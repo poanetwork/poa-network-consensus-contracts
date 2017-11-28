@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-contract SimpleConsensus {
+contract PoaNetworkConsensus {
     /// Issue this log event to signal a desired change in validator set.
     /// This will not lead to a change in active validator set until 
     /// finalizeChange is called.
@@ -13,6 +13,7 @@ contract SimpleConsensus {
     /// signal will not be recognized.
     event InitiateChange(bytes32 indexed parentHash, address[] newSet);
     event ChangeFinalized(address[] newSet);
+    event ChangeReference(string nameOfContract, address newAddress);
     struct ValidatorState {
         // Is this a validator.
         bool isValidator;
@@ -55,7 +56,7 @@ contract SimpleConsensus {
         _;
     }
 
-    function SimpleConsensus() {
+    function PoaNetworkConsensus() {
         // TODO: When you deploy this contract, make sure you hardcode items below
         // Make sure you have those addresses defined in spec.json
         currentValidators = [0x0039F22efB07A647557C7C5d17854CFD6D489eF3];
@@ -118,12 +119,17 @@ contract SimpleConsensus {
     }
 
     function setKeysManager(address _newAddress) public onlyBallotsManager {
+        require(_newAddress != address(0));
         require(_newAddress != ballotsManager);
         keysManager = _newAddress;
+        ChangeReference("KeysManager", keysManager);
     }
 
     function setBallotsManager(address _newAddress) public onlyBallotsManager {
+        require(_newAddress != address(0));
+        require(_newAddress != keysManager);
         ballotsManager = _newAddress;
+        ChangeReference("BallotsManager", ballotsManager);
     }
 
 }
