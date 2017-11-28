@@ -1,17 +1,17 @@
-import '../contracts/SimpleConsensus.sol';
+import '../contracts/PoaNetworkConsensus.sol';
 
-contract SimpleConsensusMock is SimpleConsensus {
+contract PoaNetworkConsensusMock is PoaNetworkConsensus {
     //For testing
     // address public systemAddress = 0xfffffffffffffffffffffffffffffffffffffffe;
     function setSystemAddress(address _newAddress) public {
         systemAddress = _newAddress;
     }
 
-    function setKeysManager(address _newAddress) public {
+    function setKeysManagerMock(address _newAddress) public {
         keysManager = _newAddress;
     }
 
-    function setBallotsManager(address _newAddress) public {
+    function setBallotsManagerMock(address _newAddress) public {
         ballotsManager = _newAddress;
     }
 }
