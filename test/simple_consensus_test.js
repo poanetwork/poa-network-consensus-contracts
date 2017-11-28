@@ -19,14 +19,14 @@ contract('SimpleConsensus [all features]', function (accounts) {
             finalized.should.be.false;
         });
 
-        it('checks SYSTEM_ADDRESS', async () => {
-            let SYSTEM_ADDRESS = await simpleConsensus.SYSTEM_ADDRESS();
-            SYSTEM_ADDRESS.should.be.equal('0xfffffffffffffffffffffffffffffffffffffffe');
+        it('checks systemAddress', async () => {
+            let systemAddress = await simpleConsensus.systemAddress();
+            systemAddress.should.be.equal('0xfffffffffffffffffffffffffffffffffffffffe');
         })
     })
 
     describe('#finalizeChange', async () => {
-        it('should only be called by SYSTEM_ADDRESS', async () => {
+        it('should only be called by systemAddress', async () => {
             await simpleConsensus.finalizeChange().should.be.rejectedWith(ERROR_MSG);
             await simpleConsensus.setSystemAddress(accounts[0]);
             await simpleConsensus.finalizeChange().should.be.fulfilled;
@@ -129,7 +129,7 @@ contract('SimpleConsensus [all features]', function (accounts) {
                 currentValidators.push(validator);
             }
             currentValidators.push(accounts[1]);
-            logs[0].args['_new_set'].should.deep.equal(currentValidators);  
+            logs[0].args['newSet'].should.deep.equal(currentValidators);  
             logs[0].event.should.be.equal('InitiateChange');
         })
     })
@@ -173,7 +173,7 @@ contract('SimpleConsensus [all features]', function (accounts) {
             const indexOfRemovedElement = pendingList.indexOf(accounts[1]);
             pendingList.splice(indexOfRemovedElement, 1);
             const { logs } = await simpleConsensus.removeValidator(accounts[1]).should.be.fulfilled;
-            let pendingListFromContract = logs[0].args['_new_set'];
+            let pendingListFromContract = logs[0].args['newSet'];
             pendingListFromContract.length.should.be.equal(currentValidatorsLength.toNumber(10) - 1);
             pendingList.should.be.deep.equal(pendingListFromContract);
             logs[0].event.should.be.equal('InitiateChange');
