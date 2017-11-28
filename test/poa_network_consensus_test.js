@@ -1,4 +1,4 @@
-let PoaNetworkConsensus = artifacts.require('./PoaNetworkConsensusMock');
+let PoaNetworkConsensus = artifacts.require('./mockContracts/PoaNetworkConsensusMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 require('chai')
     .use(require('chai-as-promised'))

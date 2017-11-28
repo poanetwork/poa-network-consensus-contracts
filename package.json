@@ -14,5 +14,8 @@
     "chai-bignumber": "^2.0.2",
     "ethereumjs-testrpc": "^6.0.3",
     "truffle": "^4.0.1"
+  },
+  "dependencies": {
+    "zeppelin-solidity": "^1.4.0"
   }
 }

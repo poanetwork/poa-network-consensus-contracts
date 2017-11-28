@@ -1,4 +1,4 @@
-import '../contracts/PoaNetworkConsensus.sol';
+import '../../contracts/PoaNetworkConsensus.sol';
 
 contract PoaNetworkConsensusMock is PoaNetworkConsensus {
     //For testing
