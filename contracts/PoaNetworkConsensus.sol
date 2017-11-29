@@ -46,6 +46,11 @@ contract PoaNetworkConsensus {
         _;
     }
 
+    modifier onlyKeysManager() {
+        require(msg.sender == keysManager);
+        _;
+    }
+
     modifier isValidator(address _someone) {
         require(validatorsState[_someone].isValidator);
         _;
@@ -89,7 +94,7 @@ contract PoaNetworkConsensus {
     }
 
 
-    function addValidator(address _validator) public onlyBallotsManagerOrKeysManager isNotValidator(_validator) {
+    function addValidator(address _validator) public onlyKeysManager isNotValidator(_validator) {
         require(_validator != address(0));
         pendingList = currentValidators;
         pendingList.push(_validator);
@@ -101,7 +106,7 @@ contract PoaNetworkConsensus {
         InitiateChange(block.blockhash(block.number - 1), pendingList);
     }
 
-    function removeValidator(address _validator) public onlyBallotsManagerOrKeysManager isValidator(_validator) {
+    function removeValidator(address _validator) public onlyKeysManager isValidator(_validator) {
         uint removedIndex = validatorsState[_validator].index;
         // Can not remove the last validator.
         uint lastIndex = pendingList.length - 1;
