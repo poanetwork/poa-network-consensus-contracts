@@ -40,7 +40,7 @@ contract KeysManager is Claimable {
   function KeysManager() {
     owner = masterOfCeremony;
     ballotsManager = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
-    PoaNetworkConsensus poaNetworkConsensus = PoaNetworkConsensus(0x0039F22efB07A647557C7C5d17854CFD6D489eF3);
+    poaNetworkConsensus = PoaNetworkConsensus(0x0039F22efB07A647557C7C5d17854CFD6D489eF3);
   }
 
   function initiateKeys(address _initialKey) public onlyOwner {
@@ -69,23 +69,40 @@ contract KeysManager is Claimable {
     ValidatorInitialized(_miningKey, _votingKey, _payoutKey);
   }
 
+  function isMiningActive(address _key) public view returns(bool) {
+    return validatorKeys[_key].isMiningActive;
+  }
+
+  function isVotingActive(address _key) public view returns(bool) {
+    return votingKeys[_key];
+  }
+
+  function isPayoutActive(address _miningKey) public view returns(bool) {
+    return validatorKeys[_miningKey].isPayoutActive;
+  }
+
   function addMiningKey(address _key) public onlyBallotsManager {
     _addMiningKey(_key);
   }
-  function addPayoutKey(address _key, address _miningKey) public onlyBallotsManager {
-    _addPayoutKey(_key, _miningKey);
-  }
+
   function addVotingKey(address _key, address _miningKey) public onlyBallotsManager {
     _addVotingKey(_key, _miningKey);
   }
+
+  function addPayoutKey(address _key, address _miningKey) public onlyBallotsManager {
+    _addPayoutKey(_key, _miningKey);
+  }
+
   function removeMiningKey(address _key) public onlyBallotsManager {
     _removeMiningKey(_key);
   }
-  function removePayoutKey(address _miningKey) public onlyBallotsManager {
-    _removePayoutKey(_miningKey);
-  }
+
   function removeVotingKey(address _miningKey) public onlyBallotsManager {
     _removeVotingKey(_miningKey);
+  }
+
+  function removePayoutKey(address _miningKey) public onlyBallotsManager {
+    _removePayoutKey(_miningKey);
   }
 
   function swapMiningKey(address _key, address _oldMiningKey) public onlyBallotsManager {
@@ -93,14 +110,14 @@ contract KeysManager is Claimable {
     _addMiningKey(_key);
   }
 
-  function swapPayoutKey(address _key, address _miningKey) public onlyBallotsManager {
-    _removePayoutKey(_miningKey);
-    _addPayoutKey(_key, _miningKey);
-  }
-
   function swapVotingKey(address _key, address _miningKey) public onlyBallotsManager {
     _removeVotingKey(_miningKey);
     _addVotingKey(_key, _miningKey);
+  }
+
+  function swapPayoutKey(address _key, address _miningKey) public onlyBallotsManager {
+    _removePayoutKey(_miningKey);
+    _addPayoutKey(_key, _miningKey);
   }
 
   function _addMiningKey(address _key) private {
@@ -115,19 +132,19 @@ contract KeysManager is Claimable {
     MiningKeyChanged(_key, "added");
   }
 
-  function _addPayoutKey(address _key, address _miningKey) private {
-    Keys storage validator = validatorKeys[_miningKey];
-    validator.payoutKey = _key;
-    validator.isPayoutActive = true;
-    PayoutKeyChanged(_key, _miningKey, "added");
-  }
-
   function _addVotingKey(address _key, address _miningKey) private {
     Keys storage validator = validatorKeys[_miningKey];
     validator.votingKey = _key;
     validator.isVotingActive = true;
     votingKeys[_key] = true;
     VotingKeyChanged(_key, _miningKey, "added");
+  }
+
+  function _addPayoutKey(address _key, address _miningKey) private {
+    Keys storage validator = validatorKeys[_miningKey];
+    validator.payoutKey = _key;
+    validator.isPayoutActive = true;
+    PayoutKeyChanged(_key, _miningKey, "added");
   }
 
   function _removeMiningKey(address _key) private {
@@ -141,13 +158,7 @@ contract KeysManager is Claimable {
     poaNetworkConsensus.removeValidator(_key);
     MiningKeyChanged(_key, "removed");
   }
-  function _removePayoutKey(address _miningKey) private {
-    Keys storage validator = validatorKeys[_miningKey];
-    address oldPayout = validator.payoutKey;
-    validator.payoutKey = address(0);
-    validator.isPayoutActive = false;
-    PayoutKeyChanged(oldPayout, _miningKey, "removed");
-  }
+
   function _removeVotingKey(address _miningKey) private {
     Keys storage validator = validatorKeys[_miningKey];
     address oldVoting = validator.votingKey;
@@ -157,13 +168,15 @@ contract KeysManager is Claimable {
     VotingKeyChanged(oldVoting, _miningKey, "removed");
   }
 
+  function _removePayoutKey(address _miningKey) private {
+    Keys storage validator = validatorKeys[_miningKey];
+    address oldPayout = validator.payoutKey;
+    validator.payoutKey = address(0);
+    validator.isPayoutActive = false;
+    PayoutKeyChanged(oldPayout, _miningKey, "removed");
+  }
 
   function getTime() public view returns(uint256) {
     return now;
   }
-
-  function isMiningActive(address _key) public view returns(bool) {
-    return validatorKeys[_key].isMiningActive;
-  }
-
 }

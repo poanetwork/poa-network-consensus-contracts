@@ -1,3 +1,4 @@
+let PoaNetworkConsensusMock = artifacts.require('./PoaNetworkConsensusMock');
 let KeysManagerMock = artifacts.require('./KeysManagerMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 require('chai')
@@ -9,6 +10,8 @@ contract('KeysManager [all features]', function (accounts) {
   let keysManager;
 
   beforeEach(async () => {
+    poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(accounts[0]);
+    console.log("poaNetworkConsensusMock address:", poaNetworkConsensusMock.address)
     keysManager = await KeysManagerMock.new(accounts[0]);
   });
 
@@ -67,9 +70,9 @@ contract('KeysManager [all features]', function (accounts) {
   });
   describe.only('#createKeys', async () => {
     it('should only be called from initialized key', async () => {
-      await keysManager.createKeys(accounts[0], accounts[1], accounts[2]).should.be.rejectedWith(ERROR_MSG);
+      await keysManager.createKeys(accounts[2], accounts[3], accounts[4], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
       await keysManager.initiateKeys(accounts[1], {from: accounts[0]}).should.be.fulfilled;
-      await keysManager.createKeys(accounts[0], accounts[3], accounts[2], {from: accounts[1]}).should.be.fulfilled;
+      await keysManager.createKeys(accounts[2], accounts[3], accounts[4], {from: accounts[1]}).should.be.fulfilled;
     });
     it('params should not be equal to each other', async () => {
       await keysManager.initiateKeys(accounts[1], {from: accounts[0]}).should.be.fulfilled;
@@ -77,7 +80,7 @@ contract('KeysManager [all features]', function (accounts) {
       await keysManager.createKeys(accounts[0], accounts[2], accounts[2], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
       await keysManager.createKeys(accounts[0], accounts[2], accounts[0], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
     });
-    it('any of params should be equal to initialKey', async () => {
+    it('any of params should not be equal to initialKey', async () => {
       await keysManager.initiateKeys(accounts[1], {from: accounts[0]}).should.be.fulfilled;
       await keysManager.createKeys(accounts[1], accounts[0], accounts[2], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
       await keysManager.createKeys(accounts[0], accounts[1], accounts[2], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
@@ -87,13 +90,13 @@ contract('KeysManager [all features]', function (accounts) {
       await keysManager.initiateKeys(accounts[1], {from: accounts[0]}).should.be.fulfilled;
       const {logs} = await keysManager.createKeys(accounts[0], accounts[3], accounts[2], {from: accounts[1]}).should.be.fulfilled;
       true.should.be.equal(
-        await keysManager.miningKeys(accounts[0])
+        await keysManager.isMiningActive(accounts[0])
       )
       true.should.be.equal(
-        await keysManager.votingKeys(accounts[3])
+        await keysManager.isVotingActive(accounts[3])
       )
       true.should.be.equal(
-        await keysManager.payoutKeys(accounts[2])
+        await keysManager.isPayoutActive(accounts[0])
       )
       // event ValidatorInitialized(address indexed miningKey, address indexed votingKey, address indexed payoutKey);
       logs[0].event.should.be.equal('ValidatorInitialized');
