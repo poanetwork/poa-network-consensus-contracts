@@ -14,14 +14,15 @@ contract BallotsManager {
     uint256 ballotType;
   }
   KeysManager public keysManager;
+  PoaNetworkConsensus public poaNetworkConsensus;
   mapping(address => Ballot) public ballotState; 
 
   modifier onlyVotingContract(address ballot) {
     require(ballotState[ballot].isActive);
     _;
   }
-  function BallotsManager() {
-    PoaNetworkConsensus poaNetworkConsensus = PoaNetworkConsensus(0x0039F22efB07A647557C7C5d17854CFD6D489eF3);
+  function BallotsManager(address _poaConsensus) {
+    PoaNetworkConsensus poaNetworkConsensus = PoaNetworkConsensus(_poaConsensus);
     keysManager = KeysManager(poaNetworkConsensus.keysManager());
   }
 

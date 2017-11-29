@@ -17,6 +17,7 @@ contract KeysManager is Claimable {
   PoaNetworkConsensus public poaNetworkConsensus;
   uint256 public maxNumberOfInitialKeys = 12;
   uint256 public initialKeysCount = 0;
+  uint256 public maxLimitValidators = 2000;
   mapping(address => bool) public initialKeys;
   mapping(address => Keys) public validatorKeys;
   mapping(address => bool) public votingKeys;
@@ -32,8 +33,13 @@ contract KeysManager is Claimable {
     _;
   }
 
-  modifier onlyValidInitialKey {
+  modifier onlyValidInitialKey() {
     require(initialKeys[msg.sender]);
+    _;
+  }
+
+  modifier withinTotalLimit() {
+    require(poaNetworkConsensus.currentValidatorsLength() <= maxLimitValidators);
     _;
   }
 
@@ -81,7 +87,7 @@ contract KeysManager is Claimable {
     return validatorKeys[_miningKey].isPayoutActive;
   }
 
-  function addMiningKey(address _key) public onlyBallotsManager {
+  function addMiningKey(address _key) public onlyBallotsManager withinTotalLimit {
     _addMiningKey(_key);
   }
 
@@ -134,6 +140,7 @@ contract KeysManager is Claimable {
 
   function _addVotingKey(address _key, address _miningKey) private {
     Keys storage validator = validatorKeys[_miningKey];
+    require(validator.isMiningActive && _key != _miningKey);
     validator.votingKey = _key;
     validator.isVotingActive = true;
     votingKeys[_key] = true;
@@ -142,12 +149,14 @@ contract KeysManager is Claimable {
 
   function _addPayoutKey(address _key, address _miningKey) private {
     Keys storage validator = validatorKeys[_miningKey];
+    require(validator.isMiningActive && _key != _miningKey);
     validator.payoutKey = _key;
     validator.isPayoutActive = true;
     PayoutKeyChanged(_key, _miningKey, "added");
   }
 
   function _removeMiningKey(address _key) private {
+    require(validatorKeys[_key].isMiningActive);
     validatorKeys[_key] = Keys({
       votingKey: address(0),
       payoutKey: address(0),
@@ -161,6 +170,7 @@ contract KeysManager is Claimable {
 
   function _removeVotingKey(address _miningKey) private {
     Keys storage validator = validatorKeys[_miningKey];
+    require(validator.isVotingActive);
     address oldVoting = validator.votingKey;
     validator.votingKey = address(0);
     validator.isVotingActive = false;
@@ -170,6 +180,7 @@ contract KeysManager is Claimable {
 
   function _removePayoutKey(address _miningKey) private {
     Keys storage validator = validatorKeys[_miningKey];
+    require(validator.isPayoutActive);
     address oldPayout = validator.payoutKey;
     validator.payoutKey = address(0);
     validator.isPayoutActive = false;
@@ -179,4 +190,5 @@ contract KeysManager is Claimable {
   function getTime() public view returns(uint256) {
     return now;
   }
+
 }
