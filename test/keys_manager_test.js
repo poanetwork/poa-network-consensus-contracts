@@ -11,8 +11,9 @@ contract('KeysManager [all features]', function (accounts) {
 
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(accounts[0]);
-    console.log("poaNetworkConsensusMock address:", poaNetworkConsensusMock.address)
     keysManager = await KeysManagerMock.new(accounts[0]);
+    await keysManager.setPoaConsensus(poaNetworkConsensusMock.address);
+    await poaNetworkConsensusMock.setKeysManagerMock(keysManager.address);
   });
 
   describe('#constructor', async () => {
@@ -68,7 +69,7 @@ contract('KeysManager [all features]', function (accounts) {
       initialKeysCount.should.be.bignumber.equal(logs[0].args.initialKeysCount);
     })
   });
-  describe.only('#createKeys', async () => {
+  describe('#createKeys', async () => {
     it('should only be called from initialized key', async () => {
       await keysManager.createKeys(accounts[2], accounts[3], accounts[4], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
       await keysManager.initiateKeys(accounts[1], {from: accounts[0]}).should.be.fulfilled;

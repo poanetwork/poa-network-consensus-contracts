@@ -13,8 +13,16 @@ contract KeysManagerMock is KeysManager {
   function setMasterOfCeremony(address _newAddress) {
     masterOfCeremony = _newAddress;
   }
-  
+
   function setMaxNumberOfInitialKeys(uint256 _newMax) {
     maxNumberOfInitialKeys = _newMax;
+  }
+
+  function setBallotsManager(address _ballotsManager) public {
+    ballotsManager = _ballotsManager;
+  }
+
+  function setPoaConsensus(address _poaConsensus) public {
+    poaNetworkConsensus = PoaNetworkConsensus(_poaConsensus);
   }
 }
