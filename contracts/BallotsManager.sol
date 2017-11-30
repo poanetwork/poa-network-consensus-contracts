@@ -12,10 +12,14 @@ contract BallotsManager {
     uint256 affectedKeyType;
     address miningKey;
     uint256 ballotType;
+    uint256 index;
   }
   KeysManager public keysManager;
   PoaNetworkConsensus public poaNetworkConsensus;
   mapping(address => Ballot) public ballotState; 
+  address[] public activeBallots;
+  uint256 public maxNumberOfBallots = 2000;
+  uint256 public activeBallotsLength;
 
   modifier onlyVotingContract(address ballot) {
     require(ballotState[ballot].isActive);
@@ -43,22 +47,27 @@ contract BallotsManager {
     uint256 _affectedKeyType,
     address _miningKey,
     uint256 _ballotType
-    ) public onlyVotingKey(msg.sender) onlyValidBallotType(_ballotType)
+    ) public onlyVotingKey(msg.sender) onlyValidBallotType(_ballotType) returns(address newBallotId)
   {
     require(_affectedKeyType > 0);
     require(_affectedKey != address(0));
+    require(activeBallots.length <= 100);
     if(_miningKey != address(0)){
       require(_affectedKey != _miningKey);
       require(keysManager.isMiningActive(_miningKey));
     }
-    address id = new Voting(_startTime, _endTime, keysManager);
+    address id = deployVotingContract(_startTime, _endTime);
     ballotState[id] = Ballot({
       isActive: true,
       affectedKey: _affectedKey,
       affectedKeyType: _affectedKeyType,
       miningKey: _miningKey,
-      ballotType: _ballotType
+      ballotType: _ballotType,
+      index: activeBallots.length
     });
+    activeBallots.push(id);
+    activeBallotsLength = activeBallots.length;
+    newBallotId = id;
   }
 
   function finalize(address id, int _progress) public onlyVotingContract(id) {
@@ -73,6 +82,11 @@ contract BallotsManager {
       }
     }
     ballot.isActive = false;
+    delete activeBallots[ballot.index];
+    if(activeBallots.length > 0){
+      activeBallots.length--;
+    }
+    activeBallotsLength = activeBallots.length;
   }
 
   function finalizeAdding(address id) private {
@@ -115,5 +129,9 @@ contract BallotsManager {
     if(ballot.affectedKeyType == uint256(KeyTypes.PayoutKey)){
       keysManager.swapPayoutKey(ballot.affectedKey, ballot.miningKey);
     }
+  }
+
+  function deployVotingContract(uint256 _startTime, uint256 _endTime) private returns(address) {
+    return new Voting(_startTime, _endTime, address(keysManager));
   }
 }

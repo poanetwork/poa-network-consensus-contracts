@@ -16,6 +16,7 @@ require('chai')
 
 contract('Voting [all features]', function (accounts) {
   let keysManager, poaNetworkConsensusMock, ballotsManager, voting;
+  const votingKey = accounts[2];
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(accounts[0]);
     keysManager = await KeysManagerMock.new(accounts[0]);
@@ -23,6 +24,7 @@ contract('Voting [all features]', function (accounts) {
     await poaNetworkConsensusMock.setKeysManagerMock(keysManager.address);
     ballotsManager = await BallotsManagerMock.new(poaNetworkConsensusMock.address);
     await keysManager.setBallotsManager(ballotsManager.address);
+    await ballotsManager.setKeysManager(keysManager.address);
   })
   describe('#constructor', async () => {
     it('happy path', async () => {
@@ -57,7 +59,6 @@ contract('Voting [all features]', function (accounts) {
 
   describe('#vote', async() => {
     let VOTING_START_DATE, VOTING_END_DATE;
-    const votingKey = accounts[2];
 
     beforeEach(async ()=> {
       VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
@@ -142,6 +143,57 @@ contract('Voting [all features]', function (accounts) {
       await voting.setTime(VOTING_END_DATE);
       await voting.vote(0, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
       await voting.vote(3, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+    })
+  })
+
+  describe('#finalize', async () => {
+    let votingContractAddress;
+    beforeEach(async () => {
+      VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(30, 'years').unix();
+      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
+      // Ballot to Add Payout Key for miner account[1]
+      await ballotsManager.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[0], 3, accounts[1], 1, {from: votingKey});
+      const activeBallotsLength = await ballotsManager.activeBallotsLength();
+      votingContractAddress = await ballotsManager.activeBallots(activeBallotsLength.toNumber() - 1);
+
+      voting = await Voting.at(votingContractAddress);
+      await voting.setTime(VOTING_START_DATE);
+      await voting.vote(choice.reject, {from: votingKey}).should.be.fulfilled;
+    })
+    it.only('happy path', async () => {
+      await voting.finalize().should.be.rejectedWith(ERROR_MSG);
+      await voting.setTime(VOTING_END_DATE + 1);
+      const {logs} = await voting.finalize({from: votingKey}).should.be.fulfilled;
+      const activeBallotsLength = await ballotsManager.activeBallotsLength();
+      activeBallotsLength.should.be.bignumber.equal(0);
+      true.should.be.equal(await voting.isFinalized());
+      // Finalized(msg.sender);
+      logs[0].event.should.be.equal("Finalized");
+      logs[0].args.voter.should.be.equal(votingKey);
+
+      const ballotState = await ballotsManager.ballotState(votingContractAddress);
+      // struct Ballot {
+      
+      //   address affectedKey;
+      //   uint256 affectedKeyType;
+      //   address miningKey;
+      //   uint256 ballotType;
+      //   uint256 index;
+      // }
+      ballotState.should.be.deep.equal(
+        [
+          false,//   bool isActive;
+          accounts[0],
+          new web3.BigNumber(3), 
+          accounts[1], 
+          new web3.BigNumber(1),
+          new web3.BigNumber(0)
+        ]
+      )
+
     })
   })
 });

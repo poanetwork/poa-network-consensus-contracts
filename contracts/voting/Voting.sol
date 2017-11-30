@@ -58,7 +58,7 @@ contract Voting {
 
   function finalize() public onlyValidVotingKey(msg.sender) {
     require(!isActive());
-    ballotsManager.finalize(this, progress);
+    ballotsManager.finalize(address(this), progress);
     isFinalized = true;
     Finalized(msg.sender);
   }
