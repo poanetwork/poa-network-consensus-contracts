@@ -50,14 +50,14 @@ contract PoaNetworkConsensus {
         require(msg.sender == keysManager);
         _;
     }
-
-    modifier isValidator(address _someone) {
-        require(validatorsState[_someone].isValidator);
+    
+    modifier isNewValidator(address _someone) {
+        require(!validatorsState[_someone].isValidator);
         _;
     }
 
-    modifier isNotValidator(address _someone) {
-        require(!validatorsState[_someone].isValidator);
+    modifier isNotNewValidator(address _someone) {
+        require(validatorsState[_someone].isValidator);
         _;
     }
 
@@ -94,7 +94,7 @@ contract PoaNetworkConsensus {
     }
 
 
-    function addValidator(address _validator) public onlyKeysManager isNotValidator(_validator) {
+    function addValidator(address _validator) public onlyKeysManager isNewValidator(_validator) {
         require(_validator != address(0));
         pendingList = currentValidators;
         pendingList.push(_validator);
@@ -106,7 +106,7 @@ contract PoaNetworkConsensus {
         InitiateChange(block.blockhash(block.number - 1), pendingList);
     }
 
-    function removeValidator(address _validator) public onlyKeysManager isValidator(_validator) {
+    function removeValidator(address _validator) public onlyKeysManager isNotNewValidator(_validator) {
         uint removedIndex = validatorsState[_validator].index;
         // Can not remove the last validator.
         uint lastIndex = pendingList.length - 1;
@@ -116,6 +116,7 @@ contract PoaNetworkConsensus {
         // Update the index of the last validator.
         validatorsState[lastValidator].index = removedIndex;
         delete pendingList[lastIndex];
+        require(pendingList.length > 0);
         pendingList.length--;
         validatorsState[_validator].index = 0;
         validatorsState[_validator].isValidator = false;
@@ -135,6 +136,10 @@ contract PoaNetworkConsensus {
         require(_newAddress != keysManager);
         ballotsManager = _newAddress;
         ChangeReference("BallotsManager", ballotsManager);
+    }
+
+    function isValidator(address _someone) public view returns(bool) {
+        return validatorsState[_someone].isValidator;
     }
 
 }

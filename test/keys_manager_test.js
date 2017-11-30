@@ -107,7 +107,14 @@ contract('KeysManager [all features]', function (accounts) {
       logs[0].args.miningKey.should.be.equal(accounts[0]);
       logs[0].args.votingKey.should.be.equal(accounts[3]);
       logs[0].args.payoutKey.should.be.equal(accounts[2]);
-    })
+    });
+
+    it('should assigns voting <-> mining key relationship', async () => {
+      await keysManager.initiateKeys(accounts[1], {from: accounts[0]}).should.be.fulfilled;
+      await keysManager.createKeys(accounts[0], accounts[3], accounts[2], {from: accounts[1]});
+      const miningKey = await keysManager.getMiningKeyByVoting(accounts[3]);
+      miningKey.should.be.equal(accounts[0]);
+    });
   })
 
   describe('#addMiningKey', async () => {
@@ -150,6 +157,9 @@ contract('KeysManager [all features]', function (accounts) {
       logs[0].args.key.should.be.equal(accounts[2]);
       logs[0].args.miningKey.should.be.equal(accounts[1]);
       logs[0].args.action.should.be.equal('added');
+
+      const miningKey = await keysManager.getMiningKeyByVoting(accounts[2]);
+      miningKey.should.be.equal(accounts[1]);
     })
   })
 
@@ -171,6 +181,7 @@ contract('KeysManager [all features]', function (accounts) {
       await keysManager.removeMiningKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
       await keysManager.setBallotsManager(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      await keysManager.addVotingKey(accounts[3], accounts[1]).should.be.fulfilled;
       const {logs} = await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
       const validator = await keysManager.validatorKeys(accounts[1]);
       validator.should.be.deep.equal(
@@ -183,6 +194,18 @@ contract('KeysManager [all features]', function (accounts) {
       logs[0].event.should.be.equal('MiningKeyChanged');
       logs[0].args.key.should.be.equal(accounts[1]);
       logs[0].args.action.should.be.equal('removed');
+      const miningKey = await keysManager.getMiningKeyByVoting(validator[0]);
+      miningKey.should.be.equal('0x0000000000000000000000000000000000000000');
+    })
+
+    it('should still enforce removal of votingKey to 0x0 even if voting key didnot exist', async () => {
+      await keysManager.removeMiningKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
+      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      const {logs} = await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
+      const validator = await keysManager.validatorKeys(accounts[1]);
+      const miningKey = await keysManager.getMiningKeyByVoting(validator[0]);
+      miningKey.should.be.equal('0x0000000000000000000000000000000000000000');
     })
   })
 
@@ -205,6 +228,8 @@ contract('KeysManager [all features]', function (accounts) {
       logs[0].event.should.be.equal('VotingKeyChanged');
       logs[0].args.key.should.be.equal(accounts[3]);
       logs[0].args.action.should.be.equal('removed');
+      const miningKey = await keysManager.getMiningKeyByVoting(accounts[1]);
+      miningKey.should.be.equal('0x0000000000000000000000000000000000000000');
     })
   })
 
