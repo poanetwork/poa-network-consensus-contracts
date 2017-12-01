@@ -1,8 +1,8 @@
+pragma solidity ^0.4.18;
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "../PoaNetworkConsensus.sol";
 import "../BallotsManager.sol";
 import "../KeysManager.sol";
-pragma solidity ^0.4.18;
 
 contract Voting { 
   using SafeMath for uint256;

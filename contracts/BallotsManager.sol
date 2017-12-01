@@ -1,7 +1,7 @@
+pragma solidity ^0.4.18;
 import "./voting/Voting.sol";
 import "./KeysManager.sol";
 
-pragma solidity ^0.4.18;
 
 contract BallotsManager {
   enum BallotTypes {Invalid, Adding, Removal, Swap}

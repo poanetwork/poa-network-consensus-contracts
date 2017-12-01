@@ -1,6 +1,6 @@
+pragma solidity ^0.4.18;
 import "zeppelin-solidity/contracts/ownership/Claimable.sol";
 import "./PoaNetworkConsensus.sol";
-pragma solidity ^0.4.18;
 
 contract KeysManager is Claimable {
   struct Keys {
