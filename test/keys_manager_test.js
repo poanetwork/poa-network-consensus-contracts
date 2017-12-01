@@ -12,8 +12,8 @@ contract('KeysManager [all features]', function (accounts) {
 
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(accounts[0]);
-    keysManager = await KeysManagerMock.new(accounts[0]);
-    await keysManager.setPoaConsensus(poaNetworkConsensusMock.address);
+    keysManager = await KeysManagerMock.new(accounts[0], accounts[0], poaNetworkConsensusMock.address);
+    // await keysManager.setPoaConsensus(poaNetworkConsensusMock.address);
     await poaNetworkConsensusMock.setKeysManagerMock(keysManager.address);
     ballotsManager = await BallotsManagerMock.new(poaNetworkConsensusMock.address);
     await keysManager.setBallotsManager(ballotsManager.address);
@@ -136,9 +136,9 @@ contract('KeysManager [all features]', function (accounts) {
       validator.should.be.deep.equal(
         [ '0x0000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000',
+        true,
         false,
-        false,
-        true ]
+        false]
       )
       logs[0].event.should.be.equal('MiningKeyChanged');
       logs[0].args.key.should.be.equal(accounts[2]);
@@ -152,7 +152,7 @@ contract('KeysManager [all features]', function (accounts) {
       await keysManager.setBallotsManager(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       const {logs} = await keysManager.addVotingKey(accounts[2], accounts[1]).should.be.fulfilled;
-      true.should.be.equal(await keysManager.votingKeys(accounts[2]));
+      true.should.be.equal(await keysManager.isVotingActive(accounts[2]));
       logs[0].event.should.be.equal('VotingKeyChanged');
       logs[0].args.key.should.be.equal(accounts[2]);
       logs[0].args.miningKey.should.be.equal(accounts[1]);
@@ -221,9 +221,9 @@ contract('KeysManager [all features]', function (accounts) {
       validator.should.be.deep.equal(
         [ '0x0000000000000000000000000000000000000000',
         accounts[2],
-        false,
         true,
-        true ]
+        false,
+        true]
       )
       logs[0].event.should.be.equal('VotingKeyChanged');
       logs[0].args.key.should.be.equal(accounts[3]);
@@ -246,8 +246,8 @@ contract('KeysManager [all features]', function (accounts) {
         [ accounts[3],
         '0x0000000000000000000000000000000000000000',
         true,
-        false,
-        true ]
+        true,
+        false]
       )
       logs[0].event.should.be.equal('PayoutKeyChanged');
       logs[0].args.key.should.be.equal(accounts[2]);
@@ -273,9 +273,9 @@ contract('KeysManager [all features]', function (accounts) {
       validatorNew.should.be.deep.equal(
         [ '0x0000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000',
+        true,
         false,
-        false,
-        true ]
+        false]
       )
     })
   })
@@ -292,8 +292,8 @@ contract('KeysManager [all features]', function (accounts) {
         [ accounts[3],
         '0x0000000000000000000000000000000000000000',
         true,
-        false,
-        true ]
+        true,
+        false]
       )
     })
   })
@@ -309,9 +309,9 @@ contract('KeysManager [all features]', function (accounts) {
       validator.should.be.deep.equal(
         [ '0x0000000000000000000000000000000000000000',
         accounts[3],
-        false,
         true,
-        true ]
+        false,
+        true]
       )
     })
   })

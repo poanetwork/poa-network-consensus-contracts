@@ -3,7 +3,7 @@ pragma solidity ^0.4.18;
 import '../../contracts/KeysManager.sol';
 
 contract KeysManagerMock is KeysManager {
-  function KeysManagerMock(address _masterOfCeremony) {
+  function KeysManagerMock(address _masterOfCeremony, address _ballotsManager, address _poaConsensus) KeysManager(_ballotsManager, _poaConsensus) {
     if(_masterOfCeremony != address(0)){
       owner = _masterOfCeremony;
     } else {

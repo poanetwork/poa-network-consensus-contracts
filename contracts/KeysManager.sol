@@ -6,9 +6,9 @@ contract KeysManager is Claimable {
   struct Keys {
     address votingKey;
     address payoutKey;
+    bool isMiningActive;
     bool isVotingActive;
     bool isPayoutActive;
-    bool isMiningActive;
   }
   // TODO: Please hardcode address for master of ceremony
   address public masterOfCeremony;
@@ -20,7 +20,6 @@ contract KeysManager is Claimable {
   uint256 public maxLimitValidators = 2000;
   mapping(address => bool) public initialKeys;
   mapping(address => Keys) public validatorKeys;
-  mapping(address => bool) public votingKeys;
   mapping(address => address) public getMiningKeyByVoting;
   mapping(address => address) public miningKeyHistory;
 
@@ -45,10 +44,12 @@ contract KeysManager is Claimable {
     _;
   }
 
-  function KeysManager() {
+  function KeysManager(address _ballotsManager, address _poaConsensus) {
+    require(_ballotsManager != address(0) && _poaConsensus != address(0));
+    require(_ballotsManager != _poaConsensus);
     owner = masterOfCeremony;
-    ballotsManager = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
-    poaNetworkConsensus = PoaNetworkConsensus(0x0039F22efB07A647557C7C5d17854CFD6D489eF3);
+    ballotsManager = _ballotsManager;
+    poaNetworkConsensus = PoaNetworkConsensus(_poaConsensus);
   }
 
   function initiateKeys(address _initialKey) public onlyOwner {
@@ -71,7 +72,6 @@ contract KeysManager is Claimable {
       isPayoutActive: true,
       isMiningActive: true
     });
-    votingKeys[_votingKey] = true;
     getMiningKeyByVoting[_votingKey] = _miningKey;
     initialKeys[msg.sender] = false;
     poaNetworkConsensus.addValidator(_miningKey);
@@ -82,12 +82,21 @@ contract KeysManager is Claimable {
     return validatorKeys[_key].isMiningActive;
   }
 
-  function isVotingActive(address _key) public view returns(bool) {
-    return votingKeys[_key];
+  function isVotingActive(address _votingKey) public view returns(bool) {
+    address miningKey = getMiningKeyByVoting[_votingKey];
+    return validatorKeys[miningKey].isVotingActive;
   }
 
   function isPayoutActive(address _miningKey) public view returns(bool) {
     return validatorKeys[_miningKey].isPayoutActive;
+  }
+
+  function getVotingByMining(address _miningKey) public view returns(address) {
+    return validatorKeys[_miningKey].votingKey;
+  }
+
+  function getPayoutByMining(address _miningKey) public view returns(address) {
+    return validatorKeys[_miningKey].payoutKey;
   }
 
   function addMiningKey(address _key) public onlyBallotsManager withinTotalLimit {
@@ -153,12 +162,11 @@ contract KeysManager is Claimable {
   function _addVotingKey(address _key, address _miningKey) private {
     Keys storage validator = validatorKeys[_miningKey];
     require(validator.isMiningActive && _key != _miningKey);
-    if(validator.isVotingActive && votingKeys[validator.votingKey]) {
+    if(validator.isVotingActive) {
       _swapVotingKey(_key, _miningKey);
     } else {
       validator.votingKey = _key;
       validator.isVotingActive = true;
-      votingKeys[_key] = true;
       getMiningKeyByVoting[_key] = _miningKey;
       VotingKeyChanged(_key, _miningKey, "added");
     }
@@ -197,7 +205,6 @@ contract KeysManager is Claimable {
     address oldVoting = validator.votingKey;
     validator.votingKey = address(0);
     validator.isVotingActive = false;
-    votingKeys[oldVoting] = false;
     getMiningKeyByVoting[_miningKey] = address(0);
     VotingKeyChanged(oldVoting, _miningKey, "removed");
   }

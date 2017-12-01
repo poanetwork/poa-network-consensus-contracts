@@ -25,7 +25,7 @@ contract Voting {
   enum ActionChoice { Invalid, Accept, Reject }
 
   modifier onlyValidVotingKey(address _votingKey) {
-    require(keysManager.votingKeys(_votingKey));
+    require(keysManager.isVotingActive(_votingKey));
     _;
   }
 
@@ -58,7 +58,7 @@ contract Voting {
 
   function finalize() public onlyValidVotingKey(msg.sender) {
     require(!isActive());
-    ballotsManager.finalize(address(this), progress);
+    ballotsManager.finalize(address(this), progress, totalVoters);
     isFinalized = true;
     Finalized(msg.sender);
   }
