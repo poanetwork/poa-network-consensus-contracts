@@ -1,6 +1,7 @@
 let PoaNetworkConsensusMock = artifacts.require('./PoaNetworkConsensusMock');
 let KeysManagerMock = artifacts.require('./KeysManagerMock');
 let BallotsManagerMock = artifacts.require('./BallotsManagerMock');
+let BallotsStorageMock = artifacts.require('./BallotsStorageMock');
 let Voting = artifacts.require('./VotingMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
@@ -14,23 +15,32 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
-let keysManager, poaNetworkConsensusMock, ballotsManager, voting;
+let keysManager, poaNetworkConsensusMock, ballotsManager,ballotsStorage, voting;
 let votingKey, votingKey2, votingKey3;
 contract('Voting [all features]', function (accounts) {
   votingKey = accounts[2];
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(accounts[0]);
-    ballotsManager = await BallotsManagerMock.new(poaNetworkConsensusMock.address);
+    ballotsManager = await BallotsManagerMock.new('0x0000000000000000000000000000000000000000', '0x0000000000000000000000000000000000000000');
     keysManager = await KeysManagerMock.new(accounts[0], ballotsManager.address, poaNetworkConsensusMock.address);
+    ballotsStorage = await BallotsStorageMock.new(ballotsManager.address);
     await poaNetworkConsensusMock.setKeysManagerMock(keysManager.address);
+    await poaNetworkConsensusMock.setBallotsStorageMock(ballotsStorage.address);
     await ballotsManager.setKeysManager(keysManager.address);
+    await ballotsManager.setBallotsStorage(ballotsStorage.address);
+
   })
   describe('#constructor', async () => {
     it('happy path', async () => {
-      
+      // uint256 _startTime,
+    // uint256 _endTime,
+    // address _keysContract,
+    // address _affectedKey,
+    // uint256 _affectedKeyType,
+    // address _miningKey
       const VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
       const VOTING_END_DATE = moment.utc().add(30, 'years').unix();
-      voting = await Voting.new(VOTING_START_DATE, VOTING_END_DATE, accounts[1]);
+      voting = await Voting.new(VOTING_START_DATE, VOTING_END_DATE, accounts[1], accounts[2], 1, accounts[3]);
       const startTime = await voting.startTime();
       const endTime = await voting.endTime();
       const keysManager = await voting.keysManager();
@@ -45,13 +55,13 @@ contract('Voting [all features]', function (accounts) {
     it('should not let create voting with invalid duration', async () => {
       let VOTING_START_DATE = moment.utc().add(30, 'years').unix();
       let VOTING_END_DATE = moment.utc().add(2, 'seconds').unix();
-      await Voting.new(VOTING_START_DATE, VOTING_END_DATE, accounts[1]).should.be.rejectedWith(ERROR_MSG);
+      await Voting.new(VOTING_START_DATE, VOTING_END_DATE, accounts[1], accounts[2], 1, accounts[3]).should.be.rejectedWith(ERROR_MSG);
       VOTING_START_DATE = 0
       VOTING_END_DATE = moment.utc().add(2, 'seconds').unix();
-      await Voting.new(VOTING_START_DATE, VOTING_END_DATE, accounts[1]).should.be.rejectedWith(ERROR_MSG);
+      await Voting.new(VOTING_START_DATE, VOTING_END_DATE, accounts[1], accounts[2], 1, accounts[3]).should.be.rejectedWith(ERROR_MSG);
       VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
       VOTING_END_DATE = 0
-      await Voting.new(VOTING_START_DATE, VOTING_END_DATE, accounts[1]).should.be.rejectedWith(ERROR_MSG);
+      await Voting.new(VOTING_START_DATE, VOTING_END_DATE, accounts[1], accounts[2], 1, accounts[3]).should.be.rejectedWith(ERROR_MSG);
       
     })
   })
@@ -66,7 +76,7 @@ contract('Voting [all features]', function (accounts) {
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
       
-      voting = await Voting.new(VOTING_START_DATE, VOTING_END_DATE, keysManager.address);
+      voting = await Voting.new(VOTING_START_DATE, VOTING_END_DATE, keysManager.address, accounts[2], 1, accounts[3]);
     })
 
     it('should let a validator to vote', async () => {
@@ -168,9 +178,10 @@ contract('Voting [all features]', function (accounts) {
     })
     it('happy path - no action since it didnot meet minimum number of totalVoters', async () => {
       // Ballot to Add Payout Key for miner account[1]
-      await ballotsManager.createBallot(VOTING_START_DATE, VOTING_END_DATE, payoutKeyToAdd, 3, accounts[1], 1, {from: votingKey});
-      let activeBallotsLength = await ballotsManager.activeBallotsLength();
-      votingContractAddress = await ballotsManager.activeBallots(activeBallotsLength.toNumber() - 1);
+      await ballotsManager.createKeysBallot(VOTING_START_DATE, VOTING_END_DATE, payoutKeyToAdd, 3, accounts[1], 1, {from: votingKey});
+      let activeBallotsLength = await ballotsStorage.activeBallotsLength();
+      votingContractAddress = await ballotsStorage.activeBallots(activeBallotsLength.toNumber() - 1);
+      // console.log(votingContractAddress);
       voting = await Voting.at(votingContractAddress);
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(choice.reject, {from: votingKey}).should.be.fulfilled;
@@ -178,19 +189,16 @@ contract('Voting [all features]', function (accounts) {
       await voting.finalize().should.be.rejectedWith(ERROR_MSG);
       await voting.setTime(VOTING_END_DATE + 1);
       const {logs} = await voting.finalize({from: votingKey}).should.be.fulfilled;
-      activeBallotsLength = await ballotsManager.activeBallotsLength();
+      activeBallotsLength = await ballotsStorage.activeBallotsLength();
       activeBallotsLength.should.be.bignumber.equal(0);
       true.should.be.equal(await voting.isFinalized());
       // Finalized(msg.sender);
       logs[0].event.should.be.equal("Finalized");
       logs[0].args.voter.should.be.equal(votingKey);
 
-      const ballotState = await ballotsManager.ballotState(votingContractAddress);
+      const ballotState = await ballotsStorage.ballotState(votingContractAddress);
       ballotState.should.be.deep.equal(
         [
-          accounts[0], //   address affectedKey;
-          new web3.BigNumber(3), //   uint256 affectedKeyType;
-          accounts[1], //   address miningKey;
           new web3.BigNumber(1),//   uint256 ballotType;
           new web3.BigNumber(0),//   uint256 index;
           new web3.BigNumber(3),//   uint256 minThresholdOfVoters;
@@ -486,9 +494,9 @@ async function deployAndTestBallot({_affectedKey, _affectedKeyType, _miningKey, 
   // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
   // address _miningKey,
   // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
-  await ballotsManager.createBallot(VOTING_START_DATE, VOTING_END_DATE, _affectedKey, _affectedKeyType, _miningKey, _ballotType, {from: votingKey});
-  const activeBallotsLength = await ballotsManager.activeBallotsLength();
-  votingContractAddress = await ballotsManager.activeBallots(activeBallotsLength.toNumber() - 1);
+  await ballotsManager.createKeysBallot(VOTING_START_DATE, VOTING_END_DATE, _affectedKey, _affectedKeyType, _miningKey, _ballotType, {from: votingKey});
+  const activeBallotsLength = await ballotsStorage.activeBallotsLength();
+  votingContractAddress = await ballotsStorage.activeBallots(activeBallotsLength.toNumber() - 1);
   voting = await Voting.at(votingContractAddress);
   await voting.setTime(VOTING_START_DATE);
   await voting.vote(choice.reject, {from: votingKey}).should.be.fulfilled;
@@ -500,12 +508,9 @@ async function deployAndTestBallot({_affectedKey, _affectedKeyType, _miningKey, 
   await voting.setTime(VOTING_END_DATE + 1);
   const {logs} = await voting.finalize({from: votingKey}).should.be.fulfilled;
   true.should.be.equal(await voting.isFinalized());
-  const ballotState = await ballotsManager.ballotState(votingContractAddress);
+  const ballotState = await ballotsStorage.ballotState(votingContractAddress);
   ballotState.should.be.deep.equal(
     [
-      _affectedKey, //   address affectedKey;
-      new web3.BigNumber(_affectedKeyType), //   uint256 affectedKeyType;
-      _miningKey, //   address miningKey;
       new web3.BigNumber(_ballotType),//   uint256 ballotType;
       new web3.BigNumber(0),//   uint256 index;
       new web3.BigNumber(3),//   uint256 minThresholdOfVoters;

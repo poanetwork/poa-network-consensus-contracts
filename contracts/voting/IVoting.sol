@@ -4,15 +4,13 @@ import "../PoaNetworkConsensus.sol";
 import "../BallotsManager.sol";
 import "../KeysManager.sol";
 
-contract Voting { 
+contract IVoting { 
   using SafeMath for uint256;
   int public progress;
   uint256 public startTime = 0;
   uint256 public endTime = 0;
   uint256 public totalVoters;
   bool public isFinalized = false;
-  address public affectedKey;
-  address public miningKey;
   KeysManager public keysManager;
   BallotsManager public ballotsManager;
   mapping(address => bool) public voters;
@@ -29,7 +27,10 @@ contract Voting {
     _;
   }
 
-  function Voting(uint256 _startTime, uint256 _endTime, address _keysContract) {
+  function IVoting(
+    uint256 _startTime,
+    uint256 _endTime,
+    address _keysContract) {
     require(_startTime > 0 && _endTime > 0);
     require(_endTime > _startTime && _startTime > getTime());
     require(_keysContract != msg.sender);
@@ -58,10 +59,12 @@ contract Voting {
 
   function finalize() public onlyValidVotingKey(msg.sender) {
     require(!isActive());
-    ballotsManager.finalize(address(this), progress, totalVoters);
+    finalizeBallot();
     isFinalized = true;
     Finalized(msg.sender);
   }
+
+  function finalizeBallot() private;
 
   function getTime() public view returns(uint256) {
     return now;

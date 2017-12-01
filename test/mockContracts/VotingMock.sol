@@ -1,11 +1,11 @@
 pragma solidity ^0.4.18;
 
-import '../../contracts/voting/Voting.sol';
+import '../../contracts/voting/VotingKeys.sol';
 
-contract VotingMock is Voting {
+contract VotingMock is VotingKeys {
   uint256 public time;
-  function VotingMock(uint256 _startTime, uint256 _endTime, address _keysContract)
-    Voting(_startTime, _endTime, _keysContract)
+  function VotingMock(uint256 _startTime, uint256 _endTime, address _keysContract, address _affectedKey, uint256 _affectedKeyType, address _miningKey)
+    VotingKeys(_startTime, _endTime, _keysContract, _affectedKey, _affectedKeyType, _miningKey)
   {
   }
 

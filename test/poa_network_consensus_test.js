@@ -7,7 +7,6 @@ require('chai')
 
 contract('PoaNetworkConsensus [all features]', function (accounts) {
     let poaNetworkConsensus;
-
     beforeEach(async () => {
         poaNetworkConsensus = await PoaNetworkConsensus.new();
     });

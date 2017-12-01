@@ -27,17 +27,13 @@ contract PoaNetworkConsensus {
     address[] public pendingList;
     address public keysManager;
     address public ballotsManager;
+    address public ballotsStorage;
     uint256 public currentValidatorsLength;
     mapping(address => ValidatorState) public validatorsState;
 
 
     modifier onlySystemAndNotFinalized() {
         require(msg.sender == systemAddress && !finalized);
-        _;
-    }
-
-    modifier onlyBallotsManagerOrKeysManager() {
-        require(msg.sender == ballotsManager || msg.sender == keysManager);
         _;
     }
 
@@ -75,6 +71,7 @@ contract PoaNetworkConsensus {
         pendingList = currentValidators;
         keysManager = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
         ballotsManager = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
+        ballotsStorage = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
     }
     /// Get current validator set (last enacted or initial if no changes ever made)
     function getValidators() public view returns(address[]) {
@@ -136,6 +133,13 @@ contract PoaNetworkConsensus {
         require(_newAddress != keysManager);
         ballotsManager = _newAddress;
         ChangeReference("BallotsManager", ballotsManager);
+    }
+
+    function setBallotsStorage(address _newAddress) public onlyBallotsManager {
+        require(_newAddress != address(0));
+        require(_newAddress != ballotsStorage);
+        ballotsStorage = _newAddress;
+        ChangeReference("BallotsStorage", ballotsStorage);
     }
 
     function isValidator(address _someone) public view returns(bool) {
