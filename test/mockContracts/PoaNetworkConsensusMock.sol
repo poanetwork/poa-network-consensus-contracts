@@ -1,3 +1,4 @@
+pragma solidity ^0.4.18;
 import '../../contracts/PoaNetworkConsensus.sol';
 
 contract PoaNetworkConsensusMock is PoaNetworkConsensus {
@@ -13,5 +14,13 @@ contract PoaNetworkConsensusMock is PoaNetworkConsensus {
 
     function setBallotsManagerMock(address _newAddress) public {
         ballotsManager = _newAddress;
+    }
+
+    function setBallotsStorageMock(address _newAddress) public {
+        ballotsStorage = _newAddress;
+    }
+
+    function setCurrentValidatorsLength(uint256 _newNumber) public {
+        currentValidatorsLength = _newNumber;
     }
 }

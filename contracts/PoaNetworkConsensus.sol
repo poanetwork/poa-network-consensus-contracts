@@ -27,6 +27,7 @@ contract PoaNetworkConsensus {
     address[] public pendingList;
     address public keysManager;
     address public ballotsManager;
+    address public ballotsStorage;
     uint256 public currentValidatorsLength;
     mapping(address => ValidatorState) public validatorsState;
 
@@ -36,23 +37,23 @@ contract PoaNetworkConsensus {
         _;
     }
 
-    modifier onlyBallotsManagerOrKeysManager() {
-        require(msg.sender == ballotsManager || msg.sender == keysManager);
-        _;
-    }
-
     modifier onlyBallotsManager() {
         require(msg.sender == ballotsManager);
         _;
     }
 
-    modifier isValidator(address _someone) {
-        require(validatorsState[_someone].isValidator);
+    modifier onlyKeysManager() {
+        require(msg.sender == keysManager);
+        _;
+    }
+    
+    modifier isNewValidator(address _someone) {
+        require(!validatorsState[_someone].isValidator);
         _;
     }
 
-    modifier isNotValidator(address _someone) {
-        require(!validatorsState[_someone].isValidator);
+    modifier isNotNewValidator(address _someone) {
+        require(validatorsState[_someone].isValidator);
         _;
     }
 
@@ -70,6 +71,7 @@ contract PoaNetworkConsensus {
         pendingList = currentValidators;
         keysManager = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
         ballotsManager = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
+        ballotsStorage = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
     }
     /// Get current validator set (last enacted or initial if no changes ever made)
     function getValidators() public view returns(address[]) {
@@ -89,7 +91,7 @@ contract PoaNetworkConsensus {
     }
 
 
-    function addValidator(address _validator) public onlyBallotsManagerOrKeysManager isNotValidator(_validator) {
+    function addValidator(address _validator) public onlyKeysManager isNewValidator(_validator) {
         require(_validator != address(0));
         pendingList = currentValidators;
         pendingList.push(_validator);
@@ -101,7 +103,7 @@ contract PoaNetworkConsensus {
         InitiateChange(block.blockhash(block.number - 1), pendingList);
     }
 
-    function removeValidator(address _validator) public onlyBallotsManagerOrKeysManager isValidator(_validator) {
+    function removeValidator(address _validator) public onlyKeysManager isNotNewValidator(_validator) {
         uint removedIndex = validatorsState[_validator].index;
         // Can not remove the last validator.
         uint lastIndex = pendingList.length - 1;
@@ -111,6 +113,7 @@ contract PoaNetworkConsensus {
         // Update the index of the last validator.
         validatorsState[lastValidator].index = removedIndex;
         delete pendingList[lastIndex];
+        require(pendingList.length > 0);
         pendingList.length--;
         validatorsState[_validator].index = 0;
         validatorsState[_validator].isValidator = false;
@@ -130,6 +133,17 @@ contract PoaNetworkConsensus {
         require(_newAddress != keysManager);
         ballotsManager = _newAddress;
         ChangeReference("BallotsManager", ballotsManager);
+    }
+
+    function setBallotsStorage(address _newAddress) public onlyBallotsManager {
+        require(_newAddress != address(0));
+        require(_newAddress != ballotsStorage);
+        ballotsStorage = _newAddress;
+        ChangeReference("BallotsStorage", ballotsStorage);
+    }
+
+    function isValidator(address _someone) public view returns(bool) {
+        return validatorsState[_someone].isValidator;
     }
 
 }
