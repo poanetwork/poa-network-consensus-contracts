@@ -1,11 +1,12 @@
 pragma solidity ^0.4.18;
 
-import '../../contracts/voting/VotingKeys.sol';
+import '../../contracts/voting/VotingContract.sol';
+import '../../contracts/KeysManager.sol';
 
-contract VotingMock is VotingKeys {
+contract VotingMock is VotingContract {
   uint256 public time;
-  function VotingMock(uint256 _startTime, uint256 _endTime, address _keysContract, address _affectedKey, uint256 _affectedKeyType, address _miningKey)
-    VotingKeys(_startTime, _endTime, _keysContract, _affectedKey, _affectedKeyType, _miningKey)
+  function VotingMock(address _keysContract)
+    VotingContract(_keysContract)
   {
   }
 
@@ -19,6 +20,10 @@ contract VotingMock is VotingKeys {
     } else {
       return time;
     }
+  }
+
+  function setKeysManager(address _newAddress) public {
+    keysManager = KeysManager(_newAddress);
   }
 
 

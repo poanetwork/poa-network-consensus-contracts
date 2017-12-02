@@ -1,7 +1,5 @@
 let PoaNetworkConsensusMock = artifacts.require('./PoaNetworkConsensusMock');
 let KeysManagerMock = artifacts.require('./KeysManagerMock');
-let BallotsManagerMock = artifacts.require('./BallotsManagerMock');
-let BallotsStorageMock = artifacts.require('./BallotsStorageMock');
 let Voting = artifacts.require('./VotingMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
@@ -15,76 +13,70 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
-let keysManager, poaNetworkConsensusMock, ballotsManager,ballotsStorage, voting;
+let keysManager, poaNetworkConsensusMock, voting;
 let votingKey, votingKey2, votingKey3;
 contract('Voting [all features]', function (accounts) {
   votingKey = accounts[2];
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(accounts[0]);
-    ballotsManager = await BallotsManagerMock.new('0x0000000000000000000000000000000000000000', '0x0000000000000000000000000000000000000000');
-    keysManager = await KeysManagerMock.new(accounts[0], ballotsManager.address, poaNetworkConsensusMock.address);
-    ballotsStorage = await BallotsStorageMock.new(ballotsManager.address);
+    keysManager = await KeysManagerMock.new(accounts[0], accounts[0], poaNetworkConsensusMock.address);
+    voting = await Voting.new(keysManager.address);
     await poaNetworkConsensusMock.setKeysManagerMock(keysManager.address);
-    await poaNetworkConsensusMock.setBallotsStorageMock(ballotsStorage.address);
-    await ballotsManager.setKeysManager(keysManager.address);
-    await ballotsManager.setBallotsStorage(ballotsStorage.address);
+    await voting.setKeysManager(keysManager.address);
+    await poaNetworkConsensusMock.setVotingContractMock(voting.address);
+    await keysManager.setVotingContractMock(voting.address);
 
   })
   describe('#constructor', async () => {
     it('happy path', async () => {
-      // uint256 _startTime,
-    // uint256 _endTime,
-    // address _keysContract,
-    // address _affectedKey,
-    // uint256 _affectedKeyType,
-    // address _miningKey
+      await keysManager.setVotingContractMock(accounts[0]);
+      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
       const VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
       const VOTING_END_DATE = moment.utc().add(30, 'years').unix();
-      voting = await Voting.new(VOTING_START_DATE, VOTING_END_DATE, accounts[1], accounts[2], 1, accounts[3]);
-      const startTime = await voting.startTime();
-      const endTime = await voting.endTime();
-      const keysManager = await voting.keysManager();
-      const ballotsManager = await voting.ballotsManager();
+      const id = await voting.id();
+      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey});
+      const startTime = await voting.getStartTime(id.toNumber());
+      const endTime = await voting.getEndTime(id.toNumber());
+      const keysManagerFromContract = await voting.keysManager();
 
       startTime.should.be.bignumber.equal(VOTING_START_DATE);
       endTime.should.be.bignumber.equal(VOTING_END_DATE);
-      keysManager.should.be.bignumber.equal(accounts[1]);
-      ballotsManager.should.be.bignumber.equal(accounts[0]);
+      keysManagerFromContract.should.be.equal(keysManager.address);
     })
 
     it('should not let create voting with invalid duration', async () => {
       let VOTING_START_DATE = moment.utc().add(30, 'years').unix();
       let VOTING_END_DATE = moment.utc().add(2, 'seconds').unix();
-      await Voting.new(VOTING_START_DATE, VOTING_END_DATE, accounts[1], accounts[2], 1, accounts[3]).should.be.rejectedWith(ERROR_MSG);
+      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
       VOTING_START_DATE = 0
       VOTING_END_DATE = moment.utc().add(2, 'seconds').unix();
-      await Voting.new(VOTING_START_DATE, VOTING_END_DATE, accounts[1], accounts[2], 1, accounts[3]).should.be.rejectedWith(ERROR_MSG);
+      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
       VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
       VOTING_END_DATE = 0
-      await Voting.new(VOTING_START_DATE, VOTING_END_DATE, accounts[1], accounts[2], 1, accounts[3]).should.be.rejectedWith(ERROR_MSG);
-      
+      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
     })
   })
 
   describe('#vote', async() => {
     let VOTING_START_DATE, VOTING_END_DATE;
-
+    let id;
     beforeEach(async ()=> {
       VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(30, 'years').unix();
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
-      
-      voting = await Voting.new(VOTING_START_DATE, VOTING_END_DATE, keysManager.address, accounts[2], 1, accounts[3]);
+      id = await voting.id();
+      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey});
     })
 
     it('should let a validator to vote', async () => {
       await voting.setTime(VOTING_START_DATE);
-      const {logs} = await voting.vote(choice.accept, {from: votingKey}).should.be.fulfilled;
-      let progress = await voting.progress();
+      const {logs} = await voting.vote(id, choice.accept, {from: votingKey}).should.be.fulfilled;
+      let progress = await voting.getProgress(id);
       progress.should.be.bignumber.equal(1);
-      let totalVoters = await voting.totalVoters();
+      let totalVoters = await voting.getTotalVoters(id);
       totalVoters.should.be.bignumber.equal(1);
       logs[0].event.should.be.equal('Vote');
       logs[0].args.decision.should.be.bignumber.equal(1);
@@ -93,10 +85,10 @@ contract('Voting [all features]', function (accounts) {
     })
     it('reject vote should be accepted', async () => {
       await voting.setTime(VOTING_START_DATE);
-      const {logs} = await voting.vote(choice.reject, {from: votingKey}).should.be.fulfilled;
-      let progress = await voting.progress();
+      const {logs} = await voting.vote(id, choice.reject, {from: votingKey}).should.be.fulfilled;
+      let progress = await voting.getProgress(id);
       progress.should.be.bignumber.equal(-1);
-      let totalVoters = await voting.totalVoters();
+      let totalVoters = await voting.getTotalVoters(id);
       totalVoters.should.be.bignumber.equal(1);
       logs[0].event.should.be.equal('Vote');
       logs[0].args.decision.should.be.bignumber.equal(2);
@@ -106,57 +98,62 @@ contract('Voting [all features]', function (accounts) {
 
     it('should allow multiple voters to vote', async () => {
       await voting.setTime(VOTING_START_DATE);
-      await voting.vote(choice.reject, {from: votingKey}).should.be.fulfilled;
+      await voting.vote(id, choice.reject, {from: votingKey}).should.be.fulfilled;
       await keysManager.addVotingKey(accounts[3], accounts[1]).should.be.fulfilled;
-      await voting.vote(choice.reject, {from: accounts[3]}).should.be.rejectedWith(ERROR_MSG);
+      await voting.vote(id, choice.reject, {from: accounts[3]}).should.be.rejectedWith(ERROR_MSG);
 
       // add new voter
       await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
       await keysManager.addVotingKey(accounts[4], accounts[2]).should.be.fulfilled;
-      await voting.vote(choice.reject, {from: accounts[4]}).should.be.fulfilled;
+      await voting.vote(id, choice.reject, {from: accounts[4]}).should.be.fulfilled;
 
-      let progress = await voting.progress();
+      let progress = await voting.getProgress(id);
       progress.should.be.bignumber.equal(-2);
 
-      let totalVoters = await voting.totalVoters();
+      let totalVoters = await voting.getTotalVoters(id);
       totalVoters.should.be.bignumber.equal(2);
 
       await keysManager.addMiningKey(accounts[3]).should.be.fulfilled;
       await keysManager.addVotingKey(accounts[5], accounts[3]).should.be.fulfilled;
-      await voting.vote(choice.accept, {from: accounts[5]}).should.be.fulfilled;
+      await voting.vote(id, choice.accept, {from: accounts[5]}).should.be.fulfilled;
 
-      progress = await voting.progress();
+      progress = await voting.getProgress(id);
       progress.should.be.bignumber.equal(-1);
 
-      totalVoters = await voting.totalVoters();
+      totalVoters = await voting.getTotalVoters(id);
       totalVoters.should.be.bignumber.equal(3);
     })
     it('should not let vote nonVoting key', async () => {
       await voting.setTime(VOTING_START_DATE);
-      await voting.vote(choice.reject, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
+      await voting.vote(id, choice.reject, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
     })
     it('should not let vote before startTime key', async () => {
       await voting.setTime(VOTING_START_DATE - 1);
-      await voting.vote(choice.reject, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.vote(id, choice.reject, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
     })
     it('should not let vote after endTime key', async () => {
       await voting.setTime(VOTING_END_DATE + 1);
-      await voting.vote(choice.reject, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.vote(id, choice.reject, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
     })
     it('should not let vote with already voted key', async () => {
       await voting.setTime(VOTING_END_DATE);
-      await voting.vote(choice.reject, {from: votingKey}).should.be.fulfilled;
-      await voting.vote(choice.reject, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.vote(id, choice.reject, {from: votingKey}).should.be.fulfilled;
+      await voting.vote(id, choice.reject, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
     })
     it('should not let vote with invalid choice', async () => {
       await voting.setTime(VOTING_END_DATE);
-      await voting.vote(0, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
-      await voting.vote(3, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.vote(id, 0, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.vote(id, 3, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+    })
+    it('should not let vote with invalid id', async () => {
+      await voting.setTime(VOTING_END_DATE);
+      await voting.vote(99, 1, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.vote(-3, 1, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
     })
   })
 
   describe('#finalize', async () => {
-    let votingContractAddress;
+    let votingId;
     votingKey  = accounts[2];
     votingKey2 = accounts[3];
     votingKey3 = accounts[5];
@@ -164,47 +161,58 @@ contract('Voting [all features]', function (accounts) {
     beforeEach(async () => {
       VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(30, 'years').unix();
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
 
       await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
-      await keysManager.addVotingKey(accounts[3], accounts[2]).should.be.fulfilled;
+      await keysManager.addVotingKey(votingKey2, accounts[2]).should.be.fulfilled;
 
       await keysManager.addMiningKey(accounts[4]).should.be.fulfilled;
-      await keysManager.addVotingKey(accounts[5], accounts[4]).should.be.fulfilled;
-      await keysManager.setBallotsManager(ballotsManager.address);
+      await keysManager.addVotingKey(votingKey3, accounts[4]).should.be.fulfilled;
+      await keysManager.setVotingContractMock(voting.address);
       
     })
     it('happy path - no action since it didnot meet minimum number of totalVoters', async () => {
       // Ballot to Add Payout Key for miner account[1]
-      await ballotsManager.createKeysBallot(VOTING_START_DATE, VOTING_END_DATE, payoutKeyToAdd, 3, accounts[1], 1, {from: votingKey});
-      let activeBallotsLength = await ballotsStorage.activeBallotsLength();
-      votingContractAddress = await ballotsStorage.activeBallots(activeBallotsLength.toNumber() - 1);
-      // console.log(votingContractAddress);
-      voting = await Voting.at(votingContractAddress);
+      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, payoutKeyToAdd, 3, accounts[1], 1, {from: votingKey});
+      let activeBallotsLength = await voting.activeBallotsLength();
+      votingId = await voting.activeBallots(activeBallotsLength.toNumber() - 1);
+      // console.log(votingId);
       await voting.setTime(VOTING_START_DATE);
-      await voting.vote(choice.reject, {from: votingKey}).should.be.fulfilled;
+      await voting.vote(votingId, choice.reject, {from: votingKey}).should.be.fulfilled;
 
-      await voting.finalize().should.be.rejectedWith(ERROR_MSG);
+      await voting.finalize(votingId).should.be.rejectedWith(ERROR_MSG);
       await voting.setTime(VOTING_END_DATE + 1);
-      const {logs} = await voting.finalize({from: votingKey}).should.be.fulfilled;
-      activeBallotsLength = await ballotsStorage.activeBallotsLength();
+      const {logs} = await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
+      activeBallotsLength = await voting.activeBallotsLength();
       activeBallotsLength.should.be.bignumber.equal(0);
-      true.should.be.equal(await voting.isFinalized());
+      true.should.be.equal(await voting.getIsFinalized(votingId));
       // Finalized(msg.sender);
-      logs[0].event.should.be.equal("Finalized");
+      logs[0].event.should.be.equal("BallotFinalized");
       logs[0].args.voter.should.be.equal(votingKey);
 
-      const ballotState = await ballotsStorage.ballotState(votingContractAddress);
-      ballotState.should.be.deep.equal(
+      const votingState = await voting.votingState(votingId);
+      
+      votingState.should.be.deep.equal(
         [
-          new web3.BigNumber(1),//   uint256 ballotType;
-          new web3.BigNumber(0),//   uint256 index;
-          new web3.BigNumber(3),//   uint256 minThresholdOfVoters;
-          new web3.BigNumber(3) //   uint256 quorumState; [0,1,2,3] = Invalid, InProgress, Accepted, Rejected
+          new web3.BigNumber(VOTING_START_DATE), //uint256 startTime;
+          new web3.BigNumber(VOTING_END_DATE), //uint256 endTime
+          payoutKeyToAdd, //address affectedKey
+          new web3.BigNumber(3), //uint256 affectedKeyType
+          accounts[1],            //address miningKey
+          new web3.BigNumber(1),  //uint256 totalVoters
+          new web3.BigNumber(-1), //int progress
+          true,                   //bool isFinalized
+          new web3.BigNumber(3),  //uint8 quorumState
+          new web3.BigNumber(1),  //uint256 ballotType
+          new web3.BigNumber(0),  //uint256 index
+          new web3.BigNumber(3)   //uint256 minThresholdOfVoters
         ]
       )
+      true.should.be.equal(
+        await voting.hasAlreadyVoted(votingId, votingKey)
+      );
 
       const keysState = await keysManager.validatorKeys(accounts[1]);
       keysState.should.be.deep.equal(
@@ -237,9 +245,9 @@ contract('Voting [all features]', function (accounts) {
     })
     it('finalize addition of VotingKey', async () => {
       let miningKey = accounts[6];
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
-      await keysManager.setBallotsManager(ballotsManager.address);
+      await keysManager.setVotingContractMock(voting.address);
 
       // Ballot to Add Voting Key for miner account[1]
       let votingKeyToAdd = accounts[5];
@@ -296,9 +304,9 @@ contract('Voting [all features]', function (accounts) {
     })
     it('finalize removal of MiningKey', async () => {
       let miningKey = accounts[6];
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
-      await keysManager.setBallotsManager(ballotsManager.address);
+      await keysManager.setVotingContractMock(voting.address);
       // Ballot to Add Voting Key for miner account[1]
   // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
   // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
@@ -327,10 +335,10 @@ contract('Voting [all features]', function (accounts) {
     it('finalize removal of VotingKey', async () => {
       let miningKey = accounts[6];
       let votingKeyToAdd = accounts[5];
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
       await keysManager.addVotingKey(votingKeyToAdd, miningKey).should.be.fulfilled;
-      await keysManager.setBallotsManager(ballotsManager.address);
+      await keysManager.setVotingContractMock(voting.address);
 
       // Ballot to Add Voting Key for miner account[1]
 
@@ -356,10 +364,10 @@ contract('Voting [all features]', function (accounts) {
     it('finalize removal of PayoutKey', async () => {
       let miningKey = accounts[6];
       let affectedKey = accounts[5];
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
       await keysManager.addPayoutKey(affectedKey, miningKey).should.be.fulfilled;
-      await keysManager.setBallotsManager(ballotsManager.address);
+      await keysManager.setVotingContractMock(voting.address);
 
       // Ballot to Add Voting Key for miner account[1]
 
@@ -386,10 +394,10 @@ contract('Voting [all features]', function (accounts) {
     it('finalize swap of VotingKey', async () => {
       let miningKey = accounts[6];
       let affectedKey = accounts[5];
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
       await keysManager.addVotingKey(affectedKey, miningKey).should.be.fulfilled;
-      await keysManager.setBallotsManager(ballotsManager.address);
+      await keysManager.setVotingContractMock(voting.address);
 
       // Ballot to Add Voting Key for miner account[1]
 
@@ -415,10 +423,10 @@ contract('Voting [all features]', function (accounts) {
     it('finalize swap of PayoutKey', async () => {
       let miningKey = accounts[6];
       let affectedKey = accounts[5];
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
       await keysManager.addPayoutKey(affectedKey, miningKey).should.be.fulfilled;
-      await keysManager.setBallotsManager(ballotsManager.address);
+      await keysManager.setVotingContractMock(voting.address);
 
       // Ballot to Add Voting Key for miner account[1]
 
@@ -444,9 +452,9 @@ contract('Voting [all features]', function (accounts) {
     it('finalize swap of MiningKey', async () => {
       let miningKey = accounts[6];
       let affectedKey = accounts[5];
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
-      await keysManager.setBallotsManager(ballotsManager.address);
+      await keysManager.setVotingContractMock(voting.address);
       // Ballot to Add Voting Key for miner account[1]
   // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
   // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
@@ -494,27 +502,35 @@ async function deployAndTestBallot({_affectedKey, _affectedKeyType, _miningKey, 
   // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
   // address _miningKey,
   // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
-  await ballotsManager.createKeysBallot(VOTING_START_DATE, VOTING_END_DATE, _affectedKey, _affectedKeyType, _miningKey, _ballotType, {from: votingKey});
-  const activeBallotsLength = await ballotsStorage.activeBallotsLength();
-  votingContractAddress = await ballotsStorage.activeBallots(activeBallotsLength.toNumber() - 1);
-  voting = await Voting.at(votingContractAddress);
+  await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, _affectedKey, _affectedKeyType, _miningKey, _ballotType, {from: votingKey});
+  const activeBallotsLength = await voting.activeBallotsLength();
+  votingId = await voting.activeBallots(activeBallotsLength.toNumber() - 1);
   await voting.setTime(VOTING_START_DATE);
-  await voting.vote(choice.reject, {from: votingKey}).should.be.fulfilled;
-  await voting.vote(choice.accept, {from: votingKey2}).should.be.fulfilled;
-  await voting.vote(choice.accept, {from: votingKey3}).should.be.fulfilled;
+  await voting.vote(votingId, choice.reject, {from: votingKey}).should.be.fulfilled;
+  false.should.be.equal(await voting.hasAlreadyVoted(votingId, votingKey2));
+  await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
+  await voting.vote(votingId, choice.accept, {from: votingKey3}).should.be.fulfilled;
 
-  (await voting.totalVoters()).should.be.bignumber.equal(3);
-  false.should.be.equal(await voting.isFinalized());
+  (await voting.getTotalVoters(votingId)).should.be.bignumber.equal(3);
+  false.should.be.equal(await voting.getIsFinalized(votingId));
   await voting.setTime(VOTING_END_DATE + 1);
-  const {logs} = await voting.finalize({from: votingKey}).should.be.fulfilled;
-  true.should.be.equal(await voting.isFinalized());
-  const ballotState = await ballotsStorage.ballotState(votingContractAddress);
-  ballotState.should.be.deep.equal(
+  const {logs} = await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
+  true.should.be.equal(await voting.getIsFinalized(votingId));
+  const votingState = await voting.votingState(votingId);
+  votingState.should.be.deep.equal(
     [
-      new web3.BigNumber(_ballotType),//   uint256 ballotType;
-      new web3.BigNumber(0),//   uint256 index;
-      new web3.BigNumber(3),//   uint256 minThresholdOfVoters;
-      new web3.BigNumber(expectedResult) //   uint256 quorumState; [0,1,2,3] = Invalid, InProgress, Accepted, Rejected
+      new web3.BigNumber(VOTING_START_DATE), //uint256 startTime;
+      new web3.BigNumber(VOTING_END_DATE), //uint256 endTime
+      _affectedKey, //address affectedKey
+      new web3.BigNumber(_affectedKeyType), //uint256 affectedKeyType
+      _miningKey,            //address miningKey
+      new web3.BigNumber(3),  //uint256 totalVoters
+      new web3.BigNumber(1), //int progress
+      true,                   //bool isFinalized
+      new web3.BigNumber(2),  //uint8 quorumState [0,1,2,3] = Invalid, InProgress, Accepted, Rejected
+      new web3.BigNumber(_ballotType),  //uint256 ballotType
+      new web3.BigNumber(0),  //uint256 index
+      new web3.BigNumber(3)   //uint256 minThresholdOfVoters
     ]
   )
 }

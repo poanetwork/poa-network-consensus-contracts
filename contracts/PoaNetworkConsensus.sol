@@ -26,8 +26,7 @@ contract PoaNetworkConsensus {
     address[] public currentValidators;
     address[] public pendingList;
     address public keysManager;
-    address public ballotsManager;
-    address public ballotsStorage;
+    address public votingContract;
     uint256 public currentValidatorsLength;
     mapping(address => ValidatorState) public validatorsState;
 
@@ -37,8 +36,8 @@ contract PoaNetworkConsensus {
         _;
     }
 
-    modifier onlyBallotsManager() {
-        require(msg.sender == ballotsManager);
+    modifier onlyVotingContract() {
+        require(msg.sender == votingContract);
         _;
     }
 
@@ -70,8 +69,7 @@ contract PoaNetworkConsensus {
         currentValidatorsLength = currentValidators.length;
         pendingList = currentValidators;
         keysManager = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
-        ballotsManager = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
-        ballotsStorage = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
+        votingContract = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
     }
     /// Get current validator set (last enacted or initial if no changes ever made)
     function getValidators() public view returns(address[]) {
@@ -121,25 +119,18 @@ contract PoaNetworkConsensus {
         InitiateChange(block.blockhash(block.number - 1), pendingList);
     }
 
-    function setKeysManager(address _newAddress) public onlyBallotsManager {
+    function setKeysManager(address _newAddress) public onlyVotingContract {
         require(_newAddress != address(0));
-        require(_newAddress != ballotsManager);
+        require(_newAddress != votingContract);
         keysManager = _newAddress;
         ChangeReference("KeysManager", keysManager);
     }
 
-    function setBallotsManager(address _newAddress) public onlyBallotsManager {
+    function setVotingContract(address _newAddress) public onlyVotingContract {
         require(_newAddress != address(0));
-        require(_newAddress != keysManager);
-        ballotsManager = _newAddress;
-        ChangeReference("BallotsManager", ballotsManager);
-    }
-
-    function setBallotsStorage(address _newAddress) public onlyBallotsManager {
-        require(_newAddress != address(0));
-        require(_newAddress != ballotsStorage);
-        ballotsStorage = _newAddress;
-        ChangeReference("BallotsStorage", ballotsStorage);
+        require(_newAddress != votingContract);
+        votingContract = _newAddress;
+        ChangeReference("VotingContract", votingContract);
     }
 
     function isValidator(address _someone) public view returns(bool) {

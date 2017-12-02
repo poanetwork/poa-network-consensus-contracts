@@ -12,7 +12,7 @@ contract KeysManager is Claimable {
   }
   // TODO: Please hardcode address for master of ceremony
   address public masterOfCeremony;
-  address public ballotsManager;
+  address public votingContract;
   
   PoaNetworkConsensus public poaNetworkConsensus;
   uint256 public maxNumberOfInitialKeys = 12;
@@ -29,8 +29,8 @@ contract KeysManager is Claimable {
   event ValidatorInitialized(address indexed miningKey, address indexed votingKey, address indexed payoutKey);
   event InitialKeyCreated(address indexed initialKey, uint256 time, uint256 initialKeysCount);
 
-  modifier onlyBallotsManager(){
-    require(msg.sender == ballotsManager);
+  modifier onlyVotingContract(){
+    require(msg.sender == votingContract);
     _;
   }
 
@@ -44,11 +44,11 @@ contract KeysManager is Claimable {
     _;
   }
 
-  function KeysManager(address _ballotsManager, address _poaConsensus) {
-    require(_ballotsManager != address(0) && _poaConsensus != address(0));
-    require(_ballotsManager != _poaConsensus);
+  function KeysManager(address _votingContract, address _poaConsensus) {
+    require(_votingContract != address(0) && _poaConsensus != address(0));
+    require(_votingContract != _poaConsensus);
     owner = masterOfCeremony;
-    ballotsManager = _ballotsManager;
+    votingContract = _votingContract;
     poaNetworkConsensus = PoaNetworkConsensus(_poaConsensus);
   }
 
@@ -99,41 +99,41 @@ contract KeysManager is Claimable {
     return validatorKeys[_miningKey].payoutKey;
   }
 
-  function addMiningKey(address _key) public onlyBallotsManager withinTotalLimit {
+  function addMiningKey(address _key) public onlyVotingContract withinTotalLimit {
     _addMiningKey(_key);
   }
 
-  function addVotingKey(address _key, address _miningKey) public onlyBallotsManager {
+  function addVotingKey(address _key, address _miningKey) public onlyVotingContract {
     _addVotingKey(_key, _miningKey);
   }
 
-  function addPayoutKey(address _key, address _miningKey) public onlyBallotsManager {
+  function addPayoutKey(address _key, address _miningKey) public onlyVotingContract {
     _addPayoutKey(_key, _miningKey);
   }
 
-  function removeMiningKey(address _key) public onlyBallotsManager {
+  function removeMiningKey(address _key) public onlyVotingContract {
     _removeMiningKey(_key);
   }
 
-  function removeVotingKey(address _miningKey) public onlyBallotsManager {
+  function removeVotingKey(address _miningKey) public onlyVotingContract {
     _removeVotingKey(_miningKey);
   }
 
-  function removePayoutKey(address _miningKey) public onlyBallotsManager {
+  function removePayoutKey(address _miningKey) public onlyVotingContract {
     _removePayoutKey(_miningKey);
   }
 
-  function swapMiningKey(address _key, address _oldMiningKey) public onlyBallotsManager {
+  function swapMiningKey(address _key, address _oldMiningKey) public onlyVotingContract {
     miningKeyHistory[_key] = _oldMiningKey;
     _removeMiningKey(_oldMiningKey);
     _addMiningKey(_key);
   }
 
-  function swapVotingKey(address _key, address _miningKey) public onlyBallotsManager {
+  function swapVotingKey(address _key, address _miningKey) public onlyVotingContract {
     _swapVotingKey(_key, _miningKey);
   }
 
-  function swapPayoutKey(address _key, address _miningKey) public onlyBallotsManager {
+  function swapPayoutKey(address _key, address _miningKey) public onlyVotingContract {
     _swapPayoutKey(_key, _miningKey);
   }
 

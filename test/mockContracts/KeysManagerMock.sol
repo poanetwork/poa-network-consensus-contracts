@@ -3,7 +3,7 @@ pragma solidity ^0.4.18;
 import '../../contracts/KeysManager.sol';
 
 contract KeysManagerMock is KeysManager {
-  function KeysManagerMock(address _masterOfCeremony, address _ballotsManager, address _poaConsensus) KeysManager(_ballotsManager, _poaConsensus) {
+  function KeysManagerMock(address _masterOfCeremony, address _votingContract, address _poaConsensus) KeysManager(_votingContract, _poaConsensus) {
     if(_masterOfCeremony != address(0)){
       owner = _masterOfCeremony;
     } else {
@@ -18,8 +18,8 @@ contract KeysManagerMock is KeysManager {
     maxNumberOfInitialKeys = _newMax;
   }
 
-  function setBallotsManager(address _ballotsManager) public {
-    ballotsManager = _ballotsManager;
+  function setVotingContractMock(address _votingContract) public {
+    votingContract = _votingContract;
   }
 
   function setPoaConsensus(address _poaConsensus) public {
