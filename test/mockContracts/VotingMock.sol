@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-import '../../contracts/voting/VotingContract.sol';
+import '../../contracts/VotingContract.sol';
 import '../../contracts/KeysManager.sol';
 
 contract VotingMock is VotingContract {

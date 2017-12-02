@@ -11,7 +11,7 @@ contract KeysManager is Claimable {
     bool isPayoutActive;
   }
   // TODO: Please hardcode address for master of ceremony
-  address public masterOfCeremony;
+  address public masterOfCeremony = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
   address public votingContract;
   
   PoaNetworkConsensus public poaNetworkConsensus;
@@ -44,7 +44,7 @@ contract KeysManager is Claimable {
     _;
   }
 
-  function KeysManager(address _votingContract, address _poaConsensus) {
+  function KeysManager(address _votingContract, address _poaConsensus) public {
     require(_votingContract != address(0) && _poaConsensus != address(0));
     require(_votingContract != _poaConsensus);
     owner = masterOfCeremony;

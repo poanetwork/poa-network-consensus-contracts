@@ -34,8 +34,8 @@ contract('Voting [all features]', function (accounts) {
       await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
       const VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
       const VOTING_END_DATE = moment.utc().add(30, 'years').unix();
-      const id = await voting.id();
-      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey});
+      const id = await voting.nextBallotId();
+      const {logs} = await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey});
       const startTime = await voting.getStartTime(id.toNumber());
       const endTime = await voting.getEndTime(id.toNumber());
       const keysManagerFromContract = await voting.keysManager();
@@ -43,6 +43,9 @@ contract('Voting [all features]', function (accounts) {
       startTime.should.be.bignumber.equal(VOTING_START_DATE);
       endTime.should.be.bignumber.equal(VOTING_END_DATE);
       keysManagerFromContract.should.be.equal(keysManager.address);
+      logs[0].event.should.be.equal("BallotCreated");
+      logs[0].args.id.should.be.bignumber.equal(0);
+      logs[0].args.creator.should.be.equal(votingKey);
     })
 
     it('should not let create voting with invalid duration', async () => {
@@ -67,7 +70,7 @@ contract('Voting [all features]', function (accounts) {
       await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
-      id = await voting.id();
+      id = await voting.nextBallotId();
       await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey});
     })
 

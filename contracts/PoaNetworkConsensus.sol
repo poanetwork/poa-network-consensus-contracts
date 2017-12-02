@@ -56,7 +56,7 @@ contract PoaNetworkConsensus {
         _;
     }
 
-    function PoaNetworkConsensus() {
+    function PoaNetworkConsensus() public {
         // TODO: When you deploy this contract, make sure you hardcode items below
         // Make sure you have those addresses defined in spec.json
         currentValidators = [0x0039F22efB07A647557C7C5d17854CFD6D489eF3];
@@ -68,8 +68,8 @@ contract PoaNetworkConsensus {
         }
         currentValidatorsLength = currentValidators.length;
         pendingList = currentValidators;
-        keysManager = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
-        votingContract = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
+        keysManager = 0xbbeeea48d60b8c24eaefa334a503509e23d5e515;
+        votingContract = 0xeb1352fa30033da7f2a7b50a033ed47ef4b178a6;
     }
     /// Get current validator set (last enacted or initial if no changes ever made)
     function getValidators() public view returns(address[]) {

@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
-import "../KeysManager.sol";
+import "./KeysManager.sol";
 
 contract VotingContract { 
   using SafeMath for uint256;
@@ -12,7 +12,7 @@ contract VotingContract {
   KeysManager public keysManager;
   uint8 public maxOldMiningKeysDeepCheck = 25;
   uint256 public minThresholdOfVoters = 3;
-  uint256 public id;
+  uint256 public nextBallotId;
   uint256[] public activeBallots;
   uint256 public activeBallotsLength;
   struct VotingData {
@@ -41,8 +41,7 @@ contract VotingContract {
     _;
   }
 
-  function VotingContract(
-    address _keysContract) {
+  function VotingContract(address _keysContract) public {
     keysManager = KeysManager(_keysContract);
   }
 
@@ -72,11 +71,11 @@ contract VotingContract {
       index: activeBallots.length,
       minThresholdOfVoters: minThresholdOfVoters
     });
-    votingState[id] = data;
-    activeBallots.push(id);
+    votingState[nextBallotId] = data;
+    activeBallots.push(nextBallotId);
     activeBallotsLength = activeBallots.length;
-    id++;
-    BallotCreated(id, _ballotType, msg.sender);
+    BallotCreated(nextBallotId, _ballotType, msg.sender);
+    nextBallotId++;
 
   }
 
@@ -164,8 +163,6 @@ contract VotingContract {
   function getIsFinalized(uint256 _id) public view returns(bool) {
     return votingState[_id].isFinalized;
   }
-
-  function createVotingToChangeMinThreshold() {}
 
   function getTime() public view returns(uint256) {
     return now;
