@@ -4,7 +4,7 @@ import "./KeysManager.sol";
 import "./BallotsStorage.sol";
 
 
-contract VotingContract { 
+contract VotingToChangeKeys { 
     using SafeMath for uint256;
     enum BallotTypes {Invalid, Adding, Removal, Swap, ChangeMinThreshold}
     enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}
@@ -43,7 +43,7 @@ contract VotingContract {
         _;
     }
 
-    function VotingContract(address _keysContract, address _ballotsStorage) public {
+    function VotingToChangeKeys(address _keysContract, address _ballotsStorage) public {
         keysManager = KeysManager(_keysContract);
         ballotsStorage = BallotsStorage(_ballotsStorage);
     }

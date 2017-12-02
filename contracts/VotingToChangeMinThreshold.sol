@@ -51,7 +51,7 @@ contract VotingToChangeMinThreshold {
         require(activeBallotsLength <= 100);
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
-        require(_proposedValue > 0 && _proposedValue != getGlobalMinThresholdOfVoters());
+        require(_proposedValue >= 3 && _proposedValue != getGlobalMinThresholdOfVoters());
         VotingData memory data = VotingData({
             startTime: _startTime,
             endTime: _endTime,
