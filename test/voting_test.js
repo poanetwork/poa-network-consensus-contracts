@@ -1,6 +1,7 @@
 let PoaNetworkConsensusMock = artifacts.require('./PoaNetworkConsensusMock');
 let KeysManagerMock = artifacts.require('./KeysManagerMock');
 let Voting = artifacts.require('./VotingMock');
+let BallotsStorage = artifacts.require('./BallotsStorage');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
 
@@ -13,14 +14,15 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
-let keysManager, poaNetworkConsensusMock, voting;
+let keysManager, poaNetworkConsensusMock, ballotsStorage, voting;
 let votingKey, votingKey2, votingKey3;
 contract('Voting [all features]', function (accounts) {
   votingKey = accounts[2];
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(accounts[0]);
     keysManager = await KeysManagerMock.new(accounts[0], accounts[0], poaNetworkConsensusMock.address);
-    voting = await Voting.new(keysManager.address);
+    ballotsStorage = await BallotsStorage.new(accounts[0]);
+    voting = await Voting.new(keysManager.address, ballotsStorage.address);
     await poaNetworkConsensusMock.setKeysManagerMock(keysManager.address);
     await voting.setKeysManager(keysManager.address);
     await poaNetworkConsensusMock.setVotingContractMock(voting.address);

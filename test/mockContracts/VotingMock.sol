@@ -2,11 +2,12 @@ pragma solidity ^0.4.18;
 
 import '../../contracts/VotingContract.sol';
 import '../../contracts/KeysManager.sol';
+import '../../contracts/BallotsStorage.sol';
 
 contract VotingMock is VotingContract {
   uint256 public time;
-  function VotingMock(address _keysContract)
-    VotingContract(_keysContract)
+  function VotingMock(address _keysContract, address _ballotsStorage)
+    VotingContract(_keysContract, _ballotsStorage)
   {
   }
 
