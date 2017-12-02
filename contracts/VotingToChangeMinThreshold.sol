@@ -3,6 +3,7 @@ import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "./KeysManager.sol";
 import "./BallotsStorage.sol";
 
+
 contract VotingToChangeMinThreshold { 
     using SafeMath for uint256;
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}

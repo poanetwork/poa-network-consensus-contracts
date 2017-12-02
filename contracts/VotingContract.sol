@@ -3,6 +3,7 @@ import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "./KeysManager.sol";
 import "./BallotsStorage.sol";
 
+
 contract VotingContract { 
     using SafeMath for uint256;
     enum BallotTypes {Invalid, Adding, Removal, Swap, ChangeMinThreshold}
