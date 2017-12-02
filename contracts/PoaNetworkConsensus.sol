@@ -1,5 +1,6 @@
 pragma solidity ^0.4.18;
 
+
 contract PoaNetworkConsensus {
     /// Issue this log event to signal a desired change in validator set.
     /// This will not lead to a change in active validator set until 
