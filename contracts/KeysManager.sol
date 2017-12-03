@@ -4,6 +4,7 @@ import "zeppelin-solidity/contracts/ownership/Claimable.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
 import "./interfaces/IKeysManager.sol";
 
+
 contract KeysManager is Claimable, IKeysManager {
     struct Keys {
         address votingKey;
@@ -12,6 +13,7 @@ contract KeysManager is Claimable, IKeysManager {
         bool isVotingActive;
         bool isPayoutActive;
     }
+    
     // TODO: Please hardcode address for master of ceremony
     address public masterOfCeremony = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
     address public votingContract;
