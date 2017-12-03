@@ -3,12 +3,10 @@ pragma solidity ^0.4.18;
 import '../../contracts/BallotsStorage.sol';
 
 contract BallotsStorageMock is BallotsStorage {
-  function BallotsStorageMock(address _ballotsManager)
-    BallotsStorage(_ballotsManager)
-  {
-
+  function BallotsStorageMock(address _votingToChangeThreshold) BallotsStorage(_votingToChangeThreshold) {
   }
-  function setBallotsManager(address _newAddress) {
-    ballotsManager = _newAddress;
+  
+  function setVotingToChangeThresholdMock(address _votingToChangeThreshold) public {
+    votingToChangeThreshold = _votingToChangeThreshold;
   }
 }

@@ -1,6 +1,6 @@
 let PoaNetworkConsensusMock = artifacts.require('./PoaNetworkConsensusMock');
 let KeysManagerMock = artifacts.require('./KeysManagerMock');
-let BallotsManagerMock = artifacts.require('./BallotsManagerMock');
+// let VotingMock = artifacts.require('./VotingMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 require('chai')
   .use(require('chai-as-promised'))
@@ -15,8 +15,8 @@ contract('KeysManager [all features]', function (accounts) {
     keysManager = await KeysManagerMock.new(accounts[0], accounts[0], poaNetworkConsensusMock.address);
     // await keysManager.setPoaConsensus(poaNetworkConsensusMock.address);
     await poaNetworkConsensusMock.setKeysManagerMock(keysManager.address);
-    ballotsManager = await BallotsManagerMock.new(poaNetworkConsensusMock.address);
-    await keysManager.setBallotsManager(ballotsManager.address);
+    // ballotsManager = await BallotsManagerMock.new(poaNetworkConsensusMock.address);
+    await keysManager.setVotingContractMock(accounts[1]);
   });
 
   describe('#constructor', async () => {
@@ -120,17 +120,17 @@ contract('KeysManager [all features]', function (accounts) {
   describe('#addMiningKey', async () => {
     it('should only be called from ballotsManager', async () => {
       await keysManager.addMiningKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
     })
     it('should not let add more than maxLimit', async () => {
       await poaNetworkConsensusMock.setCurrentValidatorsLength(2001);
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[2]).should.be.rejectedWith(ERROR_MSG);
       let length = await poaNetworkConsensusMock.currentValidatorsLength();
     })
     it('should set validatorKeys hash', async () => {
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       const {logs} = await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
       const validator = await keysManager.validatorKeys(accounts[2]);
       validator.should.be.deep.equal(
@@ -149,7 +149,7 @@ contract('KeysManager [all features]', function (accounts) {
   describe('#addVotingKey', async () => {
     it('should add VotingKey', async () => {
       await keysManager.addVotingKey(accounts[2],accounts[1]).should.be.rejectedWith(ERROR_MSG);
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       const {logs} = await keysManager.addVotingKey(accounts[2], accounts[1]).should.be.fulfilled;
       true.should.be.equal(await keysManager.isVotingActive(accounts[2]));
@@ -166,7 +166,7 @@ contract('KeysManager [all features]', function (accounts) {
   describe('#addPayoutKey', async () => {
     it('should add PayoutKey', async () => {
       await keysManager.addPayoutKey(accounts[2],accounts[1]).should.be.rejectedWith(ERROR_MSG);
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       const {logs} = await keysManager.addPayoutKey(accounts[2], accounts[1]).should.be.fulfilled;
       logs[0].event.should.be.equal('PayoutKeyChanged');
@@ -179,7 +179,7 @@ contract('KeysManager [all features]', function (accounts) {
   describe('#removeMiningKey', async () => {
     it('should remove miningKey', async () => {
       await keysManager.removeMiningKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(accounts[3], accounts[1]).should.be.fulfilled;
       const {logs} = await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
@@ -200,7 +200,7 @@ contract('KeysManager [all features]', function (accounts) {
 
     it('should still enforce removal of votingKey to 0x0 even if voting key didnot exist', async () => {
       await keysManager.removeMiningKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       const {logs} = await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
       const validator = await keysManager.validatorKeys(accounts[1]);
@@ -212,7 +212,7 @@ contract('KeysManager [all features]', function (accounts) {
   describe('#removeVotingKey', async () => {
     it('should remove votingKey', async () => {
       await keysManager.removeVotingKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addPayoutKey(accounts[2], accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(accounts[3], accounts[1]).should.be.fulfilled;
@@ -236,7 +236,7 @@ contract('KeysManager [all features]', function (accounts) {
   describe('#removePayoutKey', async () => {
     it('should remove payoutKey', async () => {
       await keysManager.removePayoutKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addPayoutKey(accounts[2], accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(accounts[3], accounts[1]).should.be.fulfilled;
@@ -258,7 +258,7 @@ contract('KeysManager [all features]', function (accounts) {
   describe('#swapMiningKey', async () => {
     it ('should swap mining key', async () => {
       await keysManager.swapMiningKey(accounts[1], accounts[2]).should.be.rejectedWith(ERROR_MSG);
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.swapMiningKey(accounts[2], accounts[1]).should.be.fulfilled;
       const validator = await keysManager.validatorKeys(accounts[1]);
@@ -283,7 +283,7 @@ contract('KeysManager [all features]', function (accounts) {
   describe('#swapVotingKey', async () => {
     it ('should swap voting key', async () => {
       await keysManager.swapVotingKey(accounts[1], accounts[2]).should.be.rejectedWith(ERROR_MSG);
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(accounts[2], accounts[1]).should.be.fulfilled;
       await keysManager.swapVotingKey(accounts[3], accounts[1]).should.be.fulfilled;
@@ -301,7 +301,7 @@ contract('KeysManager [all features]', function (accounts) {
   describe('#swapPayoutKey', async () => {
     it ('should swap payout key', async () => {
       await keysManager.swapPayoutKey(accounts[1], accounts[2]).should.be.rejectedWith(ERROR_MSG);
-      await keysManager.setBallotsManager(accounts[0]);
+      await keysManager.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addPayoutKey(accounts[2], accounts[1]).should.be.fulfilled;
       await keysManager.swapPayoutKey(accounts[3], accounts[1]).should.be.fulfilled;

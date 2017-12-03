@@ -12,12 +12,8 @@ contract PoaNetworkConsensusMock is PoaNetworkConsensus {
         keysManager = _newAddress;
     }
 
-    function setBallotsManagerMock(address _newAddress) public {
-        ballotsManager = _newAddress;
-    }
-
-    function setBallotsStorageMock(address _newAddress) public {
-        ballotsStorage = _newAddress;
+    function setVotingContractMock(address _newAddress) public {
+        votingContract = _newAddress;
     }
 
     function setCurrentValidatorsLength(uint256 _newNumber) public {
