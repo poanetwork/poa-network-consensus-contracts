@@ -1,14 +1,18 @@
 pragma solidity ^0.4.18;
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
-import "./KeysManager.sol";
 import "./BallotsStorage.sol";
 
+contract KeysManager {
+  function isVotingActive(address _votingKey) public view returns(bool);
+  function getMiningKeyByVoting(address _votingKey) public view returns(address);
+}
 contract ValidatorMetadata {
   using SafeMath for uint256;
   struct Validator {
       bytes32 firstName;
       bytes32 lastName;
       bytes32 licenseId;
+      string fullAddress;
       bytes32 state;
       uint256 zipcode;
       uint256 expirationDate;
@@ -44,21 +48,23 @@ contract ValidatorMetadata {
   }
 
   function createMetadata(
-      uint256 _zipcode,
       bytes32 _firstName,
       bytes32 _lastName,
       bytes32 _licenseId,
-      uint256 _expirationDate,
-      bytes32 _state
+      string _fullAddress,
+      bytes32 _state,
+      uint256 _zipcode,
+      uint256 _expirationDate
   ) public onlyValidVotingKey(msg.sender) onlyFirstTime(msg.sender)
   {
     Validator memory validator = Validator({
-      zipcode: _zipcode,
       firstName: _firstName,
       lastName: _lastName,
       licenseId: _licenseId,
-      expirationDate: _expirationDate,
+      fullAddress: _fullAddress,
+      zipcode: _zipcode,
       state: _state,
+      expirationDate: _expirationDate,
       createdDate: getTime(),
       updatedDate: 0,
       minThreshold: getMinThreshold()
@@ -69,21 +75,23 @@ contract ValidatorMetadata {
   }
 
   function changeRequest(
-      uint256 _zipcode,
       bytes32 _firstName,
       bytes32 _lastName,
       bytes32 _licenseId,
-      uint256 _expirationDate,
-      bytes32 _state
+      string _fullAddress,
+      bytes32 _state,
+      uint256 _zipcode,
+      uint256 _expirationDate
   ) public onlyValidVotingKey(msg.sender) returns(bool) {
     address miningKey = getMiningByVotingKey(msg.sender);
     Validator memory pendingChange = Validator({
-      zipcode: _zipcode,
       firstName: _firstName,
       lastName: _lastName,
       licenseId: _licenseId,
-      expirationDate: _expirationDate,
+      fullAddress:_fullAddress,
       state: _state,
+      zipcode: _zipcode,
+      expirationDate: _expirationDate,
       createdDate: validators[miningKey].createdDate,
       updatedDate: getTime(),
       minThreshold: validators[miningKey].minThreshold
