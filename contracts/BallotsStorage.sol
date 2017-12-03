@@ -1,10 +1,10 @@
 pragma solidity ^0.4.18;
+import "./interfaces/IBallotsStorage.sol";
 
-
-contract BallotsStorage {
+contract BallotsStorage is IBallotsStorage {
     enum ThresholdTypes {Invalid, Keys, MetadataChange}
     address public votingToChangeThreshold;
-    mapping(uint8 => uint256) public ballotThresholds;
+    mapping(uint8 => uint256) ballotThresholds;
 
     modifier onlyVotingToChangeThreshold() {
         require(msg.sender == votingToChangeThreshold);
@@ -21,4 +21,12 @@ contract BallotsStorage {
         require(_newValue > 0 && _newValue != ballotThresholds[_thresholdType]);
         ballotThresholds[_thresholdType] = _newValue;
     }
+
+    function getBallotThreshold(uint8 _ballotType) public view returns(uint256) {
+        return ballotThresholds[_ballotType];
+    }
+
+    // function setVotingToChangeThreshold(address _votingToChangeThreshold) onlyBallotProxy {
+    //     votingToChangeThreshold = _votingToChangeThreshold;
+    // }
 }

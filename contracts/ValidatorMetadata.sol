@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
-import "./BallotsStorage.sol";
+import "./interfaces/IBallotsStorage.sol";
 
 contract KeysManager {
   function isVotingActive(address _votingKey) public view returns(bool);
@@ -21,7 +21,7 @@ contract ValidatorMetadata {
       uint256 minThreshold;
   }
   KeysManager public keysManager;
-  BallotsStorage public ballotsStorage;
+  IBallotsStorage public ballotsStorage;
   event MetadataCreated(address indexed miningKey);
   event ChangeRequestInitiated(address indexed miningKey);
   event CancelledRequest(address indexed miningKey);
@@ -45,7 +45,7 @@ contract ValidatorMetadata {
 
   function ValidatorMetadata(address _keysContract, address _ballotsStorage) public {
       keysManager = KeysManager(_keysContract);
-      ballotsStorage = BallotsStorage(_ballotsStorage);
+      ballotsStorage = IBallotsStorage(_ballotsStorage);
   }
 
   function createMetadata(
@@ -133,7 +133,7 @@ contract ValidatorMetadata {
 
   function getMinThreshold() public view returns(uint256) {
     uint8 thresholdType = 2;
-    return ballotsStorage.ballotThresholds(thresholdType);
+    return ballotsStorage.getBallotThreshold(thresholdType);
   }
 
 }

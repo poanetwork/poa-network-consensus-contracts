@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
-import "./KeysManager.sol";
-import "./BallotsStorage.sol";
+import "./interfaces/IKeysManager.sol";
+import "./interfaces/IBallotsStorage.sol";
 
 
 contract VotingToChangeMinThreshold { 
@@ -9,8 +9,8 @@ contract VotingToChangeMinThreshold {
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
     enum ActionChoice { Invalid, Accept, Reject }
 
-    BallotsStorage public ballotsStorage;
-    KeysManager public keysManager;
+    IBallotsStorage public ballotsStorage;
+    IKeysManager public keysManager;
     uint8 public maxOldMiningKeysDeepCheck = 25;
     uint256 public nextBallotId;
     uint256[] public activeBallots;
@@ -40,8 +40,8 @@ contract VotingToChangeMinThreshold {
     }
 
     function VotingToChangeMinThreshold(address _keysContract, address _ballotsStorage) public {
-        keysManager = KeysManager(_keysContract);
-        ballotsStorage = BallotsStorage(_ballotsStorage);
+        keysManager = IKeysManager(_keysContract);
+        ballotsStorage = IBallotsStorage(_ballotsStorage);
     }
 
     function createBallotToChangeThreshold(
@@ -100,7 +100,7 @@ contract VotingToChangeMinThreshold {
     }
 
     function getGlobalMinThresholdOfVoters() public view returns(uint256) {
-        return ballotsStorage.ballotThresholds(thresholdForKeysType);
+        return ballotsStorage.getBallotThreshold(thresholdForKeysType);
     }
 
     function getProgress(uint256 _id) public view returns(int) {

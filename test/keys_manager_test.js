@@ -13,9 +13,7 @@ contract('KeysManager [all features]', function (accounts) {
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(accounts[0]);
     keysManager = await KeysManagerMock.new(accounts[0], accounts[0], poaNetworkConsensusMock.address);
-    // await keysManager.setPoaConsensus(poaNetworkConsensusMock.address);
     await poaNetworkConsensusMock.setKeysManagerMock(keysManager.address);
-    // ballotsManager = await BallotsManagerMock.new(poaNetworkConsensusMock.address);
     await keysManager.setVotingContractMock(accounts[1]);
   });
 

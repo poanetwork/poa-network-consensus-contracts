@@ -1,10 +1,10 @@
 pragma solidity ^0.4.18;
 
 import "zeppelin-solidity/contracts/ownership/Claimable.sol";
-import "./PoaNetworkConsensus.sol";
+import "./interfaces/IPoaNetworkConsensus.sol";
+import "./interfaces/IKeysManager.sol";
 
-
-contract KeysManager is Claimable {
+contract KeysManager is Claimable, IKeysManager {
     struct Keys {
         address votingKey;
         address payoutKey;
@@ -16,7 +16,7 @@ contract KeysManager is Claimable {
     address public masterOfCeremony = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
     address public votingContract;
     
-    PoaNetworkConsensus public poaNetworkConsensus;
+    IPoaNetworkConsensus public poaNetworkConsensus;
     uint256 public maxNumberOfInitialKeys = 12;
     uint256 public initialKeysCount = 0;
     uint256 public maxLimitValidators = 2000;
@@ -51,7 +51,7 @@ contract KeysManager is Claimable {
         require(_votingContract != _poaConsensus);
         owner = masterOfCeremony;
         votingContract = _votingContract;
-        poaNetworkConsensus = PoaNetworkConsensus(_poaConsensus);
+        poaNetworkConsensus = IPoaNetworkConsensus(_poaConsensus);
     }
 
     function initiateKeys(address _initialKey) public onlyOwner {
@@ -223,4 +223,8 @@ contract KeysManager is Claimable {
         validator.isPayoutActive = false;
         PayoutKeyChanged(oldPayout, _miningKey, "removed");
     }
+
+    // function setVotingContract(address _votingContract) public onlyBallotProxy {
+
+    // }
 }

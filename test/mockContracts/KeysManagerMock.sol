@@ -23,6 +23,6 @@ contract KeysManagerMock is KeysManager {
   }
 
   function setPoaConsensus(address _poaConsensus) public {
-    poaNetworkConsensus = PoaNetworkConsensus(_poaConsensus);
+    poaNetworkConsensus = IPoaNetworkConsensus(_poaConsensus);
   }
 }

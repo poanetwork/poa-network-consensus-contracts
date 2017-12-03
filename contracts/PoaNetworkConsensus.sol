@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
+import "./interfaces/IPoaNetworkConsensus.sol";
 
-
-contract PoaNetworkConsensus {
+contract PoaNetworkConsensus is IPoaNetworkConsensus {
     /// Issue this log event to signal a desired change in validator set.
     /// This will not lead to a change in active validator set until 
     /// finalizeChange is called.
