@@ -17,6 +17,7 @@ contract VotingToChangeKeys {
     uint256 public nextBallotId;
     uint256[] public activeBallots;
     uint256 public activeBallotsLength;
+    uint8 thresholdForKeysType = 1;
     struct VotingData {
         uint256 startTime;
         uint256 endTime;
@@ -106,7 +107,7 @@ contract VotingToChangeKeys {
     }
 
     function getGlobalMinThresholdOfVoters() public view returns(uint256) {
-        return ballotsStorage.minThresholdOfVoters();
+        return ballotsStorage.ballotThresholds(thresholdForKeysType);
     }
 
     function getProgress(uint256 _id) public view returns(int) {
