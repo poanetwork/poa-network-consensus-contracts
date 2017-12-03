@@ -24,6 +24,7 @@ contract ValidatorMetadata {
   BallotsStorage public ballotsStorage;
   event MetadataCreated(address indexed miningKey);
   event ChangeRequestInitiated(address indexed miningKey);
+  event CancelledRequest(address indexed miningKey);
   event Confirmed(address indexed miningKey, address votingSender);
   event FinalizedChange(address indexed miningKey);
   mapping(address => Validator) public validators;
@@ -104,6 +105,7 @@ contract ValidatorMetadata {
   function cancelPendingChange() public onlyValidVotingKey(msg.sender) returns(bool) {
     address miningKey = getMiningByVotingKey(msg.sender);
     delete pendingChanges[miningKey];
+    CancelledRequest(miningKey);
     return true;
   }
 
