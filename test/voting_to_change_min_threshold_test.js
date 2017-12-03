@@ -209,7 +209,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
         await voting.hasAlreadyVoted(votingId, votingKey)
       );
 
-      const minThresholdOfVoters = await ballotsStorage.minThresholdOfVoters();
+      const minThresholdOfVoters = await ballotsStorage.getBallotThreshold(1);
       minThresholdOfVoters.should.be.bignumber.equal(3);
 
     });
@@ -258,7 +258,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
         await voting.hasAlreadyVoted(votingId, votingKey3)
       );
 
-      const minThresholdOfVoters = await ballotsStorage.minThresholdOfVoters();
+      const minThresholdOfVoters = await ballotsStorage.getBallotThreshold(1);
       minThresholdOfVoters.should.be.bignumber.equal(proposedValue);
       let votingForKeys = await VotingForKeys.new(keysManager.address, ballotsStorage.address);
       let nextId = await votingForKeys.nextBallotId();
