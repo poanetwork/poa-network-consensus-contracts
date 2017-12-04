@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
-
-contract ProxyStorage {
+import "./interfaces/IProxyStorage.sol";
+contract ProxyStorage is IProxyStorage {
     address masterOfCeremony;
     address public poaConsensus = 0x0;
     address public keysManager;

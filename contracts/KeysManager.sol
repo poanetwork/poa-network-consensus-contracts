@@ -1,11 +1,11 @@
 pragma solidity ^0.4.18;
 
-import "zeppelin-solidity/contracts/ownership/Claimable.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
 import "./interfaces/IKeysManager.sol";
+import "./interfaces/IProxyStorage.sol";
 
 
-contract KeysManager is Claimable, IKeysManager {
+contract KeysManager is IKeysManager {
     struct Keys {
         address votingKey;
         address payoutKey;
@@ -14,9 +14,8 @@ contract KeysManager is Claimable, IKeysManager {
         bool isPayoutActive;
     }
     
-    // TODO: Please hardcode address for master of ceremony
-    address public masterOfCeremony = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
-    address public votingContract;
+    address public masterOfCeremony;
+    IProxyStorage public proxyStorage;
     
     IPoaNetworkConsensus public poaNetworkConsensus;
     uint256 public maxNumberOfInitialKeys = 12;
@@ -33,8 +32,8 @@ contract KeysManager is Claimable, IKeysManager {
     event ValidatorInitialized(address indexed miningKey, address indexed votingKey, address indexed payoutKey);
     event InitialKeyCreated(address indexed initialKey, uint256 time, uint256 initialKeysCount);
 
-    modifier onlyVotingContract() {
-        require(msg.sender == votingContract);
+    modifier onlyVotingToChangeKeys() {
+        require(msg.sender == getVotingToChangeKeys());
         _;
     }
 
@@ -48,18 +47,27 @@ contract KeysManager is Claimable, IKeysManager {
         _;
     }
 
-    function KeysManager(address _votingContract, address _poaConsensus) public {
-        require(_votingContract != address(0) && _poaConsensus != address(0));
-        require(_votingContract != _poaConsensus);
-        owner = masterOfCeremony;
-        votingContract = _votingContract;
+    function KeysManager(address _proxyStorage, address _poaConsensus, address _masterOfCeremony) public {
+        require(_proxyStorage != address(0) && _poaConsensus != address(0));
+        require(_proxyStorage != _poaConsensus);
+        require(_masterOfCeremony != address(0) && _masterOfCeremony != _poaConsensus);
+        masterOfCeremony = _masterOfCeremony;
+        proxyStorage = IProxyStorage(_proxyStorage);
         poaNetworkConsensus = IPoaNetworkConsensus(_poaConsensus);
+        validatorKeys[masterOfCeremony] = Keys({
+            votingKey: address(0),
+            payoutKey: address(0),
+            isMiningActive: true,
+            isVotingActive: false,
+            isPayoutActive: false
+        });
     }
 
-    function initiateKeys(address _initialKey) public onlyOwner {
+    function initiateKeys(address _initialKey) public {
+        require(msg.sender == masterOfCeremony);
         require(_initialKey != address(0));
         require(!initialKeys[_initialKey]);
-        require(_initialKey != owner);
+        require(_initialKey != masterOfCeremony);
         require(initialKeysCount < maxNumberOfInitialKeys);
         initialKeys[_initialKey] = true;
         initialKeysCount++;
@@ -72,14 +80,18 @@ contract KeysManager is Claimable, IKeysManager {
         validatorKeys[_miningKey] = Keys({
             votingKey: _votingKey,
             payoutKey: _payoutKey,
+            isMiningActive: true,
             isVotingActive: true,
-            isPayoutActive: true,
-            isMiningActive: true
+            isPayoutActive: true
         });
         getMiningKeyByVoting[_votingKey] = _miningKey;
         initialKeys[msg.sender] = false;
         poaNetworkConsensus.addValidator(_miningKey);
         ValidatorInitialized(_miningKey, _votingKey, _payoutKey);
+    }
+
+    function getTime() public view returns(uint256) {
+        return now;
     }
 
     function isMiningActive(address _key) public view returns(bool) {
@@ -103,46 +115,42 @@ contract KeysManager is Claimable, IKeysManager {
         return validatorKeys[_miningKey].payoutKey;
     }
 
-    function addMiningKey(address _key) public onlyVotingContract withinTotalLimit {
+    function addMiningKey(address _key) public onlyVotingToChangeKeys withinTotalLimit {
         _addMiningKey(_key);
     }
 
-    function addVotingKey(address _key, address _miningKey) public onlyVotingContract {
+    function addVotingKey(address _key, address _miningKey) public onlyVotingToChangeKeys {
         _addVotingKey(_key, _miningKey);
     }
 
-    function addPayoutKey(address _key, address _miningKey) public onlyVotingContract {
+    function addPayoutKey(address _key, address _miningKey) public onlyVotingToChangeKeys {
         _addPayoutKey(_key, _miningKey);
     }
 
-    function removeMiningKey(address _key) public onlyVotingContract {
+    function removeMiningKey(address _key) public onlyVotingToChangeKeys {
         _removeMiningKey(_key);
     }
 
-    function removeVotingKey(address _miningKey) public onlyVotingContract {
+    function removeVotingKey(address _miningKey) public onlyVotingToChangeKeys {
         _removeVotingKey(_miningKey);
     }
 
-    function removePayoutKey(address _miningKey) public onlyVotingContract {
+    function removePayoutKey(address _miningKey) public onlyVotingToChangeKeys {
         _removePayoutKey(_miningKey);
     }
 
-    function swapMiningKey(address _key, address _oldMiningKey) public onlyVotingContract {
+    function swapMiningKey(address _key, address _oldMiningKey) public onlyVotingToChangeKeys {
         miningKeyHistory[_key] = _oldMiningKey;
         _removeMiningKey(_oldMiningKey);
         _addMiningKey(_key);
     }
 
-    function swapVotingKey(address _key, address _miningKey) public onlyVotingContract {
+    function swapVotingKey(address _key, address _miningKey) public onlyVotingToChangeKeys {
         _swapVotingKey(_key, _miningKey);
     }
 
-    function swapPayoutKey(address _key, address _miningKey) public onlyVotingContract {
+    function swapPayoutKey(address _key, address _miningKey) public onlyVotingToChangeKeys {
         _swapPayoutKey(_key, _miningKey);
-    }
-
-    function getTime() public view returns(uint256) {
-        return now;
     }
 
     function _swapVotingKey(address _key, address _miningKey) private {
@@ -213,7 +221,7 @@ contract KeysManager is Claimable, IKeysManager {
         address oldVoting = validator.votingKey;
         validator.votingKey = address(0);
         validator.isVotingActive = false;
-        getMiningKeyByVoting[_miningKey] = address(0);
+        getMiningKeyByVoting[oldVoting] = address(0);
         VotingKeyChanged(oldVoting, _miningKey, "removed");
     }
 
@@ -226,7 +234,7 @@ contract KeysManager is Claimable, IKeysManager {
         PayoutKeyChanged(oldPayout, _miningKey, "removed");
     }
 
-    // function setVotingContract(address _votingContract) public onlyBallotProxy {
-
-    // }
+    function getVotingToChangeKeys() public view returns(address) {
+        return proxyStorage.getVotingToChangeKeys();
+    }
 }

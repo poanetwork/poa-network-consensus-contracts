@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
 import "./interfaces/IPoaNetworkConsensus.sol";
-import "./ProxyStorage.sol";
+import "./interfaces/IProxyStorage.sol";
 
 
 contract PoaNetworkConsensus is IPoaNetworkConsensus {
@@ -28,13 +28,13 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
 
     bool public finalized = false;
     bool public isMasterOfCeremonyInitialized = false;
-    address masterOfCeremony;
+    address public masterOfCeremony;
     address public systemAddress = 0xfffffffffffffffffffffffffffffffffffffffe;
     address[] public currentValidators;
     address[] public pendingList;
     uint256 public currentValidatorsLength;
     mapping(address => ValidatorState) public validatorsState;
-    ProxyStorage public proxyStorage;
+    IProxyStorage public proxyStorage;
 
     modifier onlySystemAndNotFinalized() {
         require(msg.sender == systemAddress && !finalized);
@@ -61,10 +61,11 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         _;
     }
 
-    function PoaNetworkConsensus() public {
+    function PoaNetworkConsensus(address _masterOfCeremony) public {
         // TODO: When you deploy this contract, make sure you hardcode items below
         // Make sure you have those addresses defined in spec.json
-        masterOfCeremony = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
+        require(_masterOfCeremony != address(0));
+        masterOfCeremony = _masterOfCeremony;
         currentValidators = [masterOfCeremony];
         for (uint256 i = 0; i < currentValidators.length; i++) {
             validatorsState[currentValidators[i]] = ValidatorState({
@@ -74,9 +75,6 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         }
         currentValidatorsLength = currentValidators.length;
         pendingList = currentValidators;
-        // proxyStorage = 0xbbeeea48d60b8c24eaefa334a503509e23d5e515;
-        // keysManager = 0xbbeeea48d60b8c24eaefa334a503509e23d5e515;
-        // votingContract = 0xeb1352fa30033da7f2a7b50a033ed47ef4b178a6;
     }
 
     /// Get current validator set (last enacted or initial if no changes ever made)
@@ -109,9 +107,9 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     }
 
     function removeValidator(address _validator) public onlyKeysManager isNotNewValidator(_validator) {
-        uint removedIndex = validatorsState[_validator].index;
+        uint256 removedIndex = validatorsState[_validator].index;
         // Can not remove the last validator.
-        uint lastIndex = pendingList.length - 1;
+        uint256 lastIndex = pendingList.length - 1;
         address lastValidator = pendingList[lastIndex];
         // Override the removed validator with the last one.
         pendingList[removedIndex] = lastValidator;
@@ -131,24 +129,10 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         require(msg.sender == masterOfCeremony);
         require(!isMasterOfCeremonyInitialized);
         require(_newAddress != address(0));
-        proxyStorage = ProxyStorage(_newAddress);
+        proxyStorage = IProxyStorage(_newAddress);
         isMasterOfCeremonyInitialized = true;
         MoCInitializedProxyStorage(proxyStorage);
     }
-
-    // function setKeysManager(address _newAddress) public onlyVotingContract {
-    //     require(_newAddress != address(0));
-    //     require(_newAddress != votingContract);
-    //     keysManager = _newAddress;
-    //     ChangeReference("KeysManager", keysManager);
-    // }
-
-    // function setVotingContract(address _newAddress) public onlyVotingContract {
-    //     require(_newAddress != address(0));
-    //     require(_newAddress != votingContract);
-    //     votingContract = _newAddress;
-    //     ChangeReference("VotingContract", votingContract);
-    // }
 
     function isValidator(address _someone) public view returns(bool) {
         return validatorsState[_someone].isValidator;

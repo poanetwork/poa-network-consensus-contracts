@@ -11,8 +11,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
     let proxyStorageMock;
     let masterOfCeremony = accounts[0];
     beforeEach(async () => {
-        poaNetworkConsensus = await PoaNetworkConsensus.new();
-        await poaNetworkConsensus.setMoCMock(masterOfCeremony);
+        poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony);
         proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensus.address, masterOfCeremony);
         await poaNetworkConsensus.setProxyStorage(proxyStorageMock.address);
         await proxyStorageMock.initializeAddresses(masterOfCeremony, masterOfCeremony, masterOfCeremony);
@@ -22,6 +21,9 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
         it('finalized should be false', async () => {
             let validators = await poaNetworkConsensus.getValidators();
             let finalized = await poaNetworkConsensus.finalized();
+            validators.should.be.deep.equal([
+                masterOfCeremony
+            ]);
             finalized.should.be.false;
         });
 
@@ -36,8 +38,8 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
             await poaNetworkConsensus.finalizeChange().should.be.rejectedWith(ERROR_MSG);
             await poaNetworkConsensus.setSystemAddress(accounts[0]);
             await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+            await poaNetworkConsensus.finalizeChange().should.be.rejectedWith(ERROR_MSG);
         })
-
         it('should set finalized to true', async () => {
             let finalized = await poaNetworkConsensus.finalized();
             finalized.should.be.false;
@@ -61,15 +63,15 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
                 pendingList.push(pending);
             }
             currentValidators.should.be.deep.equal(pendingList);
-            const event = logs.find(e => e.event === 'ChangeFinalized')
-            event.should.exist
+            logs[0].event.should.be.equal('ChangeFinalized');
+            logs[0].args.newSet.should.be.deep.equal(currentValidators);
         })
 
         it('set currentValidators to pendingList after addValidator call', async () => {
             await poaNetworkConsensus.addValidator(accounts[1], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
             await poaNetworkConsensus.addValidator(accounts[1]);
             await poaNetworkConsensus.setSystemAddress(accounts[0]);
-            const { logs } = await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+            await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
             let currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength();
             let currentValidators = [];
             let pendingList = [];
@@ -80,36 +82,46 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
                 pendingList.push(pending);
             }
             currentValidators.should.be.deep.equal(pendingList);
+            await poaNetworkConsensus.addValidator(accounts[2]);
+            await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+            currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength()
+            const expected = [masterOfCeremony, accounts[1], accounts[2]];
+
+            currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength();
+            currentValidators = [];
+            pendingList = [];
+            for (let i = 0; i < currentValidatorsLength.toNumber(10); i++) {
+                let validator = await poaNetworkConsensus.currentValidators(i);
+                currentValidators.push(validator);
+                let pending = await poaNetworkConsensus.pendingList(i);
+                pendingList.push(pending);
+            }
+            expected.should.be.deep.equal(pendingList);
+            expected.should.be.deep.equal(currentValidators);
         })
     })
 
-    describe.only('#addValidator', async () => {
-        it('should add validator', async () => {
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
-        })
-
-        it('should be called only either from ballot manager or keys manager', async () => {
+    describe('#addValidator', async () => {
+        it('should be called only from keys manager', async () => {
             await poaNetworkConsensus.addValidator(accounts[1], {from: accounts[2]}).should.be.rejectedWith(ERROR_MSG);
-            await poaNetworkConsensus.setVotingContractMock(accounts[5]);
-            await poaNetworkConsensus.addValidator(accounts[1], {from: accounts[5]}).should.be.fulfilled;
-            await poaNetworkConsensus.setKeysManagerMock(accounts[6]);
+            await proxyStorageMock.setKeysManagerMock(accounts[5]);
             await poaNetworkConsensus.addValidator(accounts[1], {from: accounts[5]}).should.be.fulfilled;
         })
 
         it('should not allow to add already existing validator', async () => {
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
             await poaNetworkConsensus.addValidator(accounts[1]).should.be.rejectedWith(ERROR_MSG);
         })
 
         it('should not allow 0x0 addresses', async () => {
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.addValidator('0x0').should.be.rejectedWith(ERROR_MSG);
             await poaNetworkConsensus.addValidator('0x0000000000000000000000000000000000000000').should.be.rejectedWith(ERROR_MSG);
         })
 
         it('should set validatorsState for new validator', async () => {
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
             let state = await poaNetworkConsensus.validatorsState(accounts[1]);
             let currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength();
@@ -118,14 +130,14 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
         })
 
         it('should set finalized to false', async () => {
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
             let finalized = await poaNetworkConsensus.finalized();
             finalized.should.be.false;
         })
 
         it('should emit InitiateChange with blockhash and pendingList as params', async () => {
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
             const {logs} = await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
             let currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength();
             let currentValidators = [];
@@ -141,33 +153,29 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
 
     describe('#removeValidator', async () => {
         it('should remove validator', async () => {
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
             await poaNetworkConsensus.removeValidator(accounts[1]).should.be.fulfilled;
         })
 
-        it('should be called only either from ballot manager or keys manager', async () => {
+        it('should be called only from keys manager', async () => {
             await poaNetworkConsensus.removeValidator(accounts[1]).should.be.rejectedWith(ERROR_MSG);
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
-            await poaNetworkConsensus.removeValidator(accounts[1]).should.be.fulfilled;
-            await poaNetworkConsensus.setVotingContractMock(accounts[0]);
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
             await poaNetworkConsensus.removeValidator(accounts[1]).should.be.fulfilled;
         })
 
         it('should only be allowed to remove from existing set of validators', async () => {
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.removeValidator(accounts[1]).should.be.rejectedWith(ERROR_MSG);
         })
 
         it('should decrease length of pendingList', async () => {
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
             await poaNetworkConsensus.setSystemAddress(accounts[0]);
             await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
             await poaNetworkConsensus.addValidator(accounts[2]).should.be.fulfilled;
-            await poaNetworkConsensus.setSystemAddress(accounts[0]);
             await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
             let currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength();
             let pendingList = [];
@@ -182,10 +190,12 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
             pendingListFromContract.length.should.be.equal(currentValidatorsLength.toNumber(10) - 1);
             pendingList.should.be.deep.equal(pendingListFromContract);
             logs[0].event.should.be.equal('InitiateChange');
+            const expected = [masterOfCeremony, accounts[2]];
+            expected.should.be.deep.equal(pendingList);
         })
 
         it('should change validatorsState', async () => {
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
             await poaNetworkConsensus.removeValidator(accounts[1]).should.be.fulfilled;
             const state = await poaNetworkConsensus.validatorsState(accounts[1]);
@@ -194,58 +204,71 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
         })
 
         it('should set finalized to false', async () => {
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
             await poaNetworkConsensus.removeValidator(accounts[1]).should.be.fulfilled;
             const finalized = await poaNetworkConsensus.finalized();
             finalized.should.be.false;
         })
+    });
 
+    describe('#setProxyStorage', async () => {
+        let new_masterOfCeremony = accounts[1];
+        it('can only be called from masterOfCeremony', async () => {
+            await poaNetworkConsensus.setMoCMock(new_masterOfCeremony);
+            await poaNetworkConsensus.setIsMasterOfCeremonyInitializedMock(false);
+            await poaNetworkConsensus.setProxyStorage(accounts[5]).should.be.rejectedWith(ERROR_MSG);
+            await poaNetworkConsensus.setProxyStorage(accounts[5], {from: new_masterOfCeremony}).should.be.fulfilled;
+        })
+        it('can only be called once', async () => {
+            // we already call it in the beforeEach block, hence why I expect it to be rejected
+            await poaNetworkConsensus.setProxyStorage(accounts[5]).should.be.rejectedWith(ERROR_MSG);
+        })
+        it('cannot be set to 0x0 address', async () => {
+            await poaNetworkConsensus.setMoCMock(new_masterOfCeremony);
+            await poaNetworkConsensus.setIsMasterOfCeremonyInitializedMock(false);
+            await poaNetworkConsensus.setProxyStorage('0x0000000000000000000000000000000000000000', {from: new_masterOfCeremony}).should.be.rejectedWith(ERROR_MSG);
+        })
+        it('sets proxyStorage', async () => {
+            let newProxyStorage = accounts[3];
+            await poaNetworkConsensus.setMoCMock(new_masterOfCeremony);
+            await poaNetworkConsensus.setIsMasterOfCeremonyInitializedMock(false);
+            await poaNetworkConsensus.setProxyStorage(newProxyStorage, {from: new_masterOfCeremony}).should.be.fulfilled;
+            (await poaNetworkConsensus.proxyStorage()).should.be.equal(newProxyStorage);
+        })
+        it('sets isMasterOfCeremonyInitialized', async () => {
+            let newProxyStorage = accounts[3];
+            await poaNetworkConsensus.setMoCMock(new_masterOfCeremony);
+            await poaNetworkConsensus.setIsMasterOfCeremonyInitializedMock(false);
+            await poaNetworkConsensus.setProxyStorage(newProxyStorage, {from: new_masterOfCeremony}).should.be.fulfilled;
+            (await poaNetworkConsensus.isMasterOfCeremonyInitialized()).should.be.equal(true);
+        })
+
+        it('emits MoCInitializedProxyStorage', async () => {
+            let newProxyStorage = accounts[3];
+            await poaNetworkConsensus.setMoCMock(new_masterOfCeremony);
+            await poaNetworkConsensus.setIsMasterOfCeremonyInitializedMock(false);
+            const {logs} = await poaNetworkConsensus.setProxyStorage(newProxyStorage, {from: new_masterOfCeremony}).should.be.fulfilled;
+            logs[0].event.should.be.equal('MoCInitializedProxyStorage');
+            logs[0].args.proxyStorage.should.be.equal(newProxyStorage);
+        })
+        it('#getKeysManagerAddress', async () => {
+            let newKeysManager = accounts[3];
+            await poaNetworkConsensus.setIsMasterOfCeremonyInitializedMock(false);
+            await proxyStorageMock.setKeysManagerMock(newKeysManager);
+            (await poaNetworkConsensus.getKeysManagerAddress()).should.be.equal(newKeysManager);
+        })
+        it('#getVotingToChangeKeys', async () => {
+            let newVotingToChangeKeys = accounts[3];
+            await poaNetworkConsensus.setIsMasterOfCeremonyInitializedMock(false);
+            await proxyStorageMock.setVotingContractMock(newVotingToChangeKeys);
+            (await poaNetworkConsensus.getVotingToChangeKeys()).should.be.equal(newVotingToChangeKeys);
+        })
     })
-
-    describe('#setKeysManager', async () => {
-        it('should only be called from VotingContract to set an address', async () => {
-            await poaNetworkConsensus.setKeysManager(accounts[1]).should.be.rejectedWith(ERROR_MSG);
-            await poaNetworkConsensus.setVotingContractMock(accounts[0]);
-            const {logs} = await poaNetworkConsensus.setKeysManager(accounts[1]).should.be.fulfilled;
-            logs[0].event.should.be.equal('ChangeReference');
-            logs[0].args.nameOfContract.should.be.equal('KeysManager');
-            logs[0].args.newAddress.should.be.equal(accounts[1]);
-        })
-
-        it('should not allow 0x0 addresses', async () => {
-            await poaNetworkConsensus.setVotingContractMock(accounts[0]);
-            await poaNetworkConsensus.setKeysManager('0x0000000000000000000000000000000000000000').should.be.rejectedWith(ERROR_MSG);
-            await poaNetworkConsensus.setKeysManager('0x0').should.be.rejectedWith(ERROR_MSG);
-        })
-
-        it('newAddress should not be equal to VotingContract address', async () => {
-            await poaNetworkConsensus.setVotingContractMock(accounts[0]);
-            await poaNetworkConsensus.setKeysManager(accounts[0]).should.be.rejectedWith(ERROR_MSG);
+    describe('#isValidator', async () => {
+        it('returns address of miner', async () => {
+            (await poaNetworkConsensus.isValidator(masterOfCeremony)).should.be.equal(true);
+            (await poaNetworkConsensus.isValidator(accounts[2])).should.be.equal(false);
         })
     })
-
-    describe('#setVotingContract', async () => {
-        it('should only be called from VotingContract to set an address', async () => {
-            await poaNetworkConsensus.setVotingContract(accounts[1]).should.be.rejectedWith(ERROR_MSG);
-            await poaNetworkConsensus.setVotingContractMock(accounts[0]);
-            const {logs} = await poaNetworkConsensus.setVotingContract(accounts[1]).should.be.fulfilled;
-            logs[0].event.should.be.equal('ChangeReference');
-            logs[0].args.nameOfContract.should.be.equal('VotingContract');
-            logs[0].args.newAddress.should.be.equal(accounts[1]);
-        })
-
-        it('should not allow 0x0 addresses', async () => {
-            await poaNetworkConsensus.setVotingContractMock(accounts[0]);
-            await poaNetworkConsensus.setVotingContract('0x0000000000000000000000000000000000000000').should.be.rejectedWith(ERROR_MSG);
-            await poaNetworkConsensus.setVotingContract('0x0').should.be.rejectedWith(ERROR_MSG);
-        })
-
-        it('newAddress should not be equal to VotingContract address', async () => {
-            await poaNetworkConsensus.setVotingContractMock(accounts[0]);
-            await poaNetworkConsensus.setKeysManagerMock(accounts[1]);
-            await poaNetworkConsensus.setVotingContract(accounts[0]).should.be.rejectedWith(ERROR_MSG);
-        })
-    })
-
 });

@@ -5,7 +5,7 @@ import '../../contracts/ProxyStorage.sol';
 contract PoaNetworkConsensusMock is PoaNetworkConsensus {
     //For testing
     // address public systemAddress = 0xfffffffffffffffffffffffffffffffffffffffe;
-    function PoaNetworkConsensusMock() PoaNetworkConsensus() {}
+    function PoaNetworkConsensusMock(address _moc) PoaNetworkConsensus(_moc) {}
     function setSystemAddress(address _newAddress) public {
         systemAddress = _newAddress;
     }
@@ -16,6 +16,10 @@ contract PoaNetworkConsensusMock is PoaNetworkConsensus {
 
     function setMoCMock(address _newAddress) public {
         masterOfCeremony = _newAddress;
+    }
+
+    function setIsMasterOfCeremonyInitializedMock(bool _status) public {
+        isMasterOfCeremonyInitialized = _status;
     }
 
     function setCurrentValidatorsLength(uint256 _newNumber) public {
