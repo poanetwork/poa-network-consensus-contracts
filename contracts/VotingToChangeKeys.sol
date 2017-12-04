@@ -18,6 +18,7 @@ contract VotingToChangeKeys {
     uint256[] public activeBallots;
     uint256 public activeBallotsLength;
     uint8 thresholdForKeysType = 1;
+
     struct VotingData {
         uint256 startTime;
         uint256 endTime;
@@ -33,6 +34,7 @@ contract VotingToChangeKeys {
         uint256 minThresholdOfVoters;
         mapping(address => bool) voters;
     }
+
     mapping(uint256 => VotingData) public votingState;
 
     event Vote(uint256 indexed decision, address indexed voter, uint256 time );
@@ -59,7 +61,7 @@ contract VotingToChangeKeys {
     ) public onlyValidVotingKey(msg.sender) {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
-        require(AreBallotParamsValid(_ballotType, _affectedKey, _affectedKeyType, _miningKey)); //only if ballotType is swap or remove
+        require(areBallotParamsValid(_ballotType, _affectedKey, _affectedKeyType, _miningKey)); //only if ballotType is swap or remove
         VotingData memory data = VotingData({
             startTime: _startTime,
             endTime: _endTime,
@@ -86,9 +88,9 @@ contract VotingToChangeKeys {
         // // check for validation;
         address miningKey = getMiningByVotingKey(msg.sender);
         require(isValidVote(_id, msg.sender));
-        if(_choice == uint(ActionChoice.Accept)) {
+        if (_choice == uint(ActionChoice.Accept)) {
             ballot.progress++;
-        } else if(_choice == uint(ActionChoice.Reject)) {
+        } else if (_choice == uint(ActionChoice.Reject)) {
             ballot.progress--;
         } else {
             revert();
@@ -168,6 +170,7 @@ contract VotingToChangeKeys {
         address miningKey = getMiningByVotingKey(_votingKey);
         return ballot.voters[miningKey];
     }
+
     function isValidVote(uint256 _id, address _votingKey) public view returns(bool) {
         address miningKey = getMiningByVotingKey(_votingKey);
         bool notVoted = !hasAlreadyVoted(_id, _votingKey);
@@ -191,7 +194,7 @@ contract VotingToChangeKeys {
         return false;
     }
 
-    function AreBallotParamsValid(uint256 _ballotType, address _affectedKey, uint256 _affectedKeyType, address _miningKey) public view returns(bool) {
+    function areBallotParamsValid(uint256 _ballotType, address _affectedKey, uint256 _affectedKeyType, address _miningKey) public view returns(bool) {
         require(_affectedKeyType > 0);
         require(_affectedKey != address(0));
         require(activeBallotsLength <= 100);
@@ -250,7 +253,6 @@ contract VotingToChangeKeys {
         }
         activeBallotsLength = activeBallots.length;
     }
-
 
     function finalizeAdding(uint256 _id) private {
         require(getBallotType(_id) == uint256(BallotTypes.Adding));
