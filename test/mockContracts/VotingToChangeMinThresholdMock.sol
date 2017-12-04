@@ -6,8 +6,8 @@ import '../../contracts/BallotsStorage.sol';
 
 contract VotingToChangeMinThresholdMock is VotingToChangeMinThreshold {
   uint256 public time;
-  function VotingToChangeMinThresholdMock(address _keysContract, address _ballotsStorage)
-    VotingToChangeMinThreshold(_keysContract, _ballotsStorage)
+  function VotingToChangeMinThresholdMock(address _proxyStorage)
+    VotingToChangeMinThreshold(_proxyStorage)
   {
   }
 
@@ -22,10 +22,4 @@ contract VotingToChangeMinThresholdMock is VotingToChangeMinThreshold {
       return time;
     }
   }
-
-  function setKeysManager(address _newAddress) public {
-    keysManager = KeysManager(_newAddress);
-  }
-
-
 }

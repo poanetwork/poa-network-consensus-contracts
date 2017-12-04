@@ -22,21 +22,32 @@ contract ProxyStorage is IProxyStorage {
 //     // function setBallotsStorage(address _keysManager) public onlyProxyBallot{}
 //     // function setVotingToChangeMinThreshold(address _keysManager) public onlyProxyBallot{}
 //     // function setVotingToChangeKeys(address _keysManager) public onlyProxyBallot{}
-    function getKeysManagerAddress() public view returns(address) {
+    function getKeysManager() public view returns(address) {
         return keysManager;
     }
 
     function getVotingToChangeKeys() public view returns(address) {
         return votingToChangeKeys;
     }
+
+    function getVotingToChangeMinThreshold() public view returns(address) {
+        return votingToChangeMinThreshold;
+    }
+
+    function getBallotsStorage() public view returns(address) {
+        return ballotsStorage;
+    }
+
     function initializeAddresses(
         address _keysManager,
         address _votingToChangeKeys,
+        address _votingToChangeMinThreshold,
         address _ballotsStorage
       ) public 
     {
       require(msg.sender == masterOfCeremony);
       votingToChangeKeys = _votingToChangeKeys;
+      votingToChangeMinThreshold = _votingToChangeMinThreshold;
       keysManager = _keysManager;
       ballotsStorage = _ballotsStorage;
     }

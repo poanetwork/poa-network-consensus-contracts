@@ -1,5 +1,6 @@
 pragma solidity ^0.4.18;
 
+
 contract IProxyStorage {
     address masterOfCeremony;
     address public poaConsensus;
@@ -8,7 +9,9 @@ contract IProxyStorage {
     address public votingToChangeMinThreshold;
     address public votingToChangeKeys;
     address public proxyBallot;
-    function getKeysManagerAddress() public view returns(address);
+    function getKeysManager() public view returns(address);
+    function getBallotsStorage() public view returns(address);
     function getVotingToChangeKeys() public view returns(address);
-    function initializeAddresses(address,address,address) public;
+    function getVotingToChangeMinThreshold() public view returns(address);
+    function initializeAddresses(address,address,address,address) public;
 }

@@ -22,4 +22,8 @@ contract KeysManagerMock is KeysManager {
   function setPoaConsensus(address _poaConsensus) public {
     poaNetworkConsensus = IPoaNetworkConsensus(_poaConsensus);
   }
+
+  function setProxyStorage(address _proxyStorage) public {
+    proxyStorage = IProxyStorage(_proxyStorage);
+  }
 }

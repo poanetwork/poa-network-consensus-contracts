@@ -14,7 +14,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
         poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony);
         proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensus.address, masterOfCeremony);
         await poaNetworkConsensus.setProxyStorage(proxyStorageMock.address);
-        await proxyStorageMock.initializeAddresses(masterOfCeremony, masterOfCeremony, masterOfCeremony);
+        await proxyStorageMock.initializeAddresses(masterOfCeremony, masterOfCeremony, masterOfCeremony, masterOfCeremony);
     });
 
     describe('default values', async () => {
@@ -252,11 +252,11 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
             logs[0].event.should.be.equal('MoCInitializedProxyStorage');
             logs[0].args.proxyStorage.should.be.equal(newProxyStorage);
         })
-        it('#getKeysManagerAddress', async () => {
+        it('#getKeysManager', async () => {
             let newKeysManager = accounts[3];
             await poaNetworkConsensus.setIsMasterOfCeremonyInitializedMock(false);
             await proxyStorageMock.setKeysManagerMock(newKeysManager);
-            (await poaNetworkConsensus.getKeysManagerAddress()).should.be.equal(newKeysManager);
+            (await poaNetworkConsensus.getKeysManager()).should.be.equal(newKeysManager);
         })
         it('#getVotingToChangeKeys', async () => {
             let newVotingToChangeKeys = accounts[3];

@@ -1,7 +1,8 @@
-let PoaNetworkConsensusMock = artifacts.require('./PoaNetworkConsensusMock');
-let KeysManagerMock = artifacts.require('./KeysManagerMock');
-let ValidatorMetadata = artifacts.require('./ValidatorMetadataMock');
+let PoaNetworkConsensusMock = artifacts.require('./mockContracts/PoaNetworkConsensusMock');
+let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
+let ValidatorMetadata = artifacts.require('./mockContracts/ValidatorMetadataMock');
 let BallotsStorage = artifacts.require('./BallotsStorage');
+let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
 
@@ -28,12 +29,14 @@ contract('ValidatorMetadata [all features]', function (accounts) {
   miningKey = accounts[1];
   miningKey2 = accounts[4];
   beforeEach(async () => { 
-    poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(accounts[0]);
-    keysManager = await KeysManagerMock.new(accounts[0], accounts[0], poaNetworkConsensusMock.address);
-    ballotsStorage = await BallotsStorage.new(accounts[0]);
-    metadata = await ValidatorMetadata.new(keysManager.address, ballotsStorage.address);
-    await poaNetworkConsensusMock.setKeysManagerMock(keysManager.address);
-    await keysManager.setVotingContractMock(accounts[0]);
+    poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony);
+    proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address, masterOfCeremony);
+    keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony);
+    ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
+    await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
+    await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, masterOfCeremony, ballotsStorage.address);
+
+    metadata = await ValidatorMetadata.new(proxyStorageMock.address);
     await keysManager.addMiningKey(miningKey).should.be.fulfilled;
     await keysManager.addVotingKey(votingKey, miningKey).should.be.fulfilled;
     await keysManager.addMiningKey(miningKey2).should.be.fulfilled;

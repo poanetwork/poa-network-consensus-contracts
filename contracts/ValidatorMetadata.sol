@@ -1,13 +1,8 @@
 pragma solidity ^0.4.18;
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "./interfaces/IBallotsStorage.sol";
-
-
-contract KeysManager {
-    function isVotingActive(address _votingKey) public view returns(bool);
-    function getMiningKeyByVoting(address _votingKey) public view returns(address);
-}
-
+import "./interfaces/IProxyStorage.sol";
+import "./interfaces/IKeysManager.sol";
 
 contract ValidatorMetadata {
     using SafeMath for uint256;
@@ -25,8 +20,7 @@ contract ValidatorMetadata {
         uint256 minThreshold;
     }
     
-    KeysManager public keysManager;
-    IBallotsStorage public ballotsStorage;
+    IProxyStorage public proxyStorage;
     event MetadataCreated(address indexed miningKey);
     event ChangeRequestInitiated(address indexed miningKey);
     event CancelledRequest(address indexed miningKey);
@@ -37,6 +31,7 @@ contract ValidatorMetadata {
     mapping(address => uint256) public confirmations;
 
     modifier onlyValidVotingKey(address _votingKey) {
+        IKeysManager keysManager = IKeysManager(getKeysManager());
         require(keysManager.isVotingActive(_votingKey));
         _;
     }
@@ -48,9 +43,8 @@ contract ValidatorMetadata {
         _;
     }
 
-    function ValidatorMetadata(address _keysContract, address _ballotsStorage) public {
-        keysManager = KeysManager(_keysContract);
-        ballotsStorage = IBallotsStorage(_ballotsStorage);
+    function ValidatorMetadata(address _proxyStorage) public {
+        proxyStorage = IProxyStorage(_proxyStorage);
     }
 
     function createMetadata(
@@ -127,6 +121,7 @@ contract ValidatorMetadata {
     }
 
     function getMiningByVotingKey(address _votingKey) public view returns(address) {
+        IKeysManager keysManager = IKeysManager(getKeysManager());
         return keysManager.getMiningKeyByVoting(_votingKey);
     }
 
@@ -136,6 +131,17 @@ contract ValidatorMetadata {
 
     function getMinThreshold() public view returns(uint256) {
         uint8 thresholdType = 2;
+        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
         return ballotsStorage.getBallotThreshold(thresholdType);
     }
+
+    function getBallotsStorage() public view returns(address) {
+        return proxyStorage.getBallotsStorage();
+    }
+
+    function getKeysManager() public view returns(address) {
+        return proxyStorage.getKeysManager();
+    }
+
+
 }

@@ -47,7 +47,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     }
 
     modifier onlyKeysManager() {
-        require(msg.sender == getKeysManagerAddress());
+        require(msg.sender == getKeysManager());
         _;
     }
     
@@ -138,8 +138,8 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         return validatorsState[_someone].isValidator;
     }
 
-    function getKeysManagerAddress() public view returns(address) {
-        return proxyStorage.getKeysManagerAddress();
+    function getKeysManager() public view returns(address) {
+        return proxyStorage.getKeysManager();
     }
 
     function getVotingToChangeKeys() public view returns(address) {
