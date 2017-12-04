@@ -1,5 +1,6 @@
 pragma solidity ^0.4.18;
 import "./interfaces/IPoaNetworkConsensus.sol";
+import "./ProxyStorage.sol";
 
 contract PoaNetworkConsensus is IPoaNetworkConsensus {
     /// Issue this log event to signal a desired change in validator set.
@@ -15,6 +16,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     event InitiateChange(bytes32 indexed parentHash, address[] newSet);
     event ChangeFinalized(address[] newSet);
     event ChangeReference(string nameOfContract, address newAddress);
+    event MoCInitializedProxyStorage(address proxyStorage);
     struct ValidatorState {
         // Is this a validator.
         bool isValidator;
@@ -23,13 +25,14 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     }
 
     bool public finalized = false;
+    bool public isMasterOfCeremonyInitialized = false;
+    address masterOfCeremony;
     address public systemAddress = 0xfffffffffffffffffffffffffffffffffffffffe;
     address[] public currentValidators;
     address[] public pendingList;
-    address public keysManager;
-    address public votingContract;
     uint256 public currentValidatorsLength;
     mapping(address => ValidatorState) public validatorsState;
+    ProxyStorage public proxyStorage;
 
 
     modifier onlySystemAndNotFinalized() {
@@ -38,12 +41,12 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     }
 
     modifier onlyVotingContract() {
-        require(msg.sender == votingContract);
+        require(msg.sender == getVotingToChangeKeys());
         _;
     }
 
     modifier onlyKeysManager() {
-        require(msg.sender == keysManager);
+        require(msg.sender == getKeysManagerAddress());
         _;
     }
     
@@ -60,7 +63,8 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     function PoaNetworkConsensus() public {
         // TODO: When you deploy this contract, make sure you hardcode items below
         // Make sure you have those addresses defined in spec.json
-        currentValidators = [0x0039F22efB07A647557C7C5d17854CFD6D489eF3];
+        masterOfCeremony = 0x0039F22efB07A647557C7C5d17854CFD6D489eF3;
+        currentValidators = [masterOfCeremony];
         for (uint256 i = 0; i < currentValidators.length; i++) {
             validatorsState[currentValidators[i]] = ValidatorState({
                 isValidator: true,
@@ -69,8 +73,9 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         }
         currentValidatorsLength = currentValidators.length;
         pendingList = currentValidators;
-        keysManager = 0xbbeeea48d60b8c24eaefa334a503509e23d5e515;
-        votingContract = 0xeb1352fa30033da7f2a7b50a033ed47ef4b178a6;
+        // proxyStorage = 0xbbeeea48d60b8c24eaefa334a503509e23d5e515;
+        // keysManager = 0xbbeeea48d60b8c24eaefa334a503509e23d5e515;
+        // votingContract = 0xeb1352fa30033da7f2a7b50a033ed47ef4b178a6;
     }
     /// Get current validator set (last enacted or initial if no changes ever made)
     function getValidators() public view returns(address[]) {
@@ -120,22 +125,40 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         InitiateChange(block.blockhash(block.number - 1), pendingList);
     }
 
-    function setKeysManager(address _newAddress) public onlyVotingContract {
+    function setProxyStorage(address _newAddress) public {
+        // Address of Master of Ceremony;
+        require(msg.sender == masterOfCeremony);
+        require(!isMasterOfCeremonyInitialized);
         require(_newAddress != address(0));
-        require(_newAddress != votingContract);
-        keysManager = _newAddress;
-        ChangeReference("KeysManager", keysManager);
+        proxyStorage = ProxyStorage(_newAddress);
+        isMasterOfCeremonyInitialized = true;
+        MoCInitializedProxyStorage(proxyStorage);
     }
 
-    function setVotingContract(address _newAddress) public onlyVotingContract {
-        require(_newAddress != address(0));
-        require(_newAddress != votingContract);
-        votingContract = _newAddress;
-        ChangeReference("VotingContract", votingContract);
-    }
+    // function setKeysManager(address _newAddress) public onlyVotingContract {
+    //     require(_newAddress != address(0));
+    //     require(_newAddress != votingContract);
+    //     keysManager = _newAddress;
+    //     ChangeReference("KeysManager", keysManager);
+    // }
+
+    // function setVotingContract(address _newAddress) public onlyVotingContract {
+    //     require(_newAddress != address(0));
+    //     require(_newAddress != votingContract);
+    //     votingContract = _newAddress;
+    //     ChangeReference("VotingContract", votingContract);
+    // }
 
     function isValidator(address _someone) public view returns(bool) {
         return validatorsState[_someone].isValidator;
+    }
+
+    function getKeysManagerAddress() public view returns(address) {
+        return proxyStorage.getKeysManagerAddress();
+    }
+
+    function getVotingToChangeKeys() public view returns(address) {
+        return proxyStorage.getVotingToChangeKeys();
     }
 
 }

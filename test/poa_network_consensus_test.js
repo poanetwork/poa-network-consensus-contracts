@@ -1,4 +1,5 @@
 let PoaNetworkConsensus = artifacts.require('./mockContracts/PoaNetworkConsensusMock');
+let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 require('chai')
     .use(require('chai-as-promised'))
@@ -7,8 +8,14 @@ require('chai')
 
 contract('PoaNetworkConsensus [all features]', function (accounts) {
     let poaNetworkConsensus;
+    let proxyStorageMock;
+    let masterOfCeremony = accounts[0];
     beforeEach(async () => {
         poaNetworkConsensus = await PoaNetworkConsensus.new();
+        await poaNetworkConsensus.setMoCMock(masterOfCeremony);
+        proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensus.address, masterOfCeremony);
+        await poaNetworkConsensus.setProxyStorage(proxyStorageMock.address);
+        await proxyStorageMock.initializeAddresses(masterOfCeremony, masterOfCeremony, masterOfCeremony);
     });
 
     describe('default values', async () => {
@@ -59,7 +66,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
         })
 
         it('set currentValidators to pendingList after addValidator call', async () => {
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
+            await poaNetworkConsensus.addValidator(accounts[1], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
             await poaNetworkConsensus.addValidator(accounts[1]);
             await poaNetworkConsensus.setSystemAddress(accounts[0]);
             const { logs } = await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
@@ -76,18 +83,17 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
         })
     })
 
-    describe('#addValidator', async () => {
+    describe.only('#addValidator', async () => {
         it('should add validator', async () => {
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
         })
 
         it('should be called only either from ballot manager or keys manager', async () => {
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.rejectedWith(ERROR_MSG);
-            await poaNetworkConsensus.setKeysManagerMock(accounts[0]);
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
-            await poaNetworkConsensus.setVotingContractMock(accounts[0]);
-            await poaNetworkConsensus.addValidator(accounts[2]).should.be.fulfilled;
+            await poaNetworkConsensus.addValidator(accounts[1], {from: accounts[2]}).should.be.rejectedWith(ERROR_MSG);
+            await poaNetworkConsensus.setVotingContractMock(accounts[5]);
+            await poaNetworkConsensus.addValidator(accounts[1], {from: accounts[5]}).should.be.fulfilled;
+            await poaNetworkConsensus.setKeysManagerMock(accounts[6]);
+            await poaNetworkConsensus.addValidator(accounts[1], {from: accounts[5]}).should.be.fulfilled;
         })
 
         it('should not allow to add already existing validator', async () => {
