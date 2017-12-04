@@ -1,6 +1,8 @@
 pragma solidity ^0.4.18;
+
 import "./interfaces/IPoaNetworkConsensus.sol";
 import "./ProxyStorage.sol";
+
 
 contract PoaNetworkConsensus is IPoaNetworkConsensus {
     /// Issue this log event to signal a desired change in validator set.
@@ -33,7 +35,6 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     uint256 public currentValidatorsLength;
     mapping(address => ValidatorState) public validatorsState;
     ProxyStorage public proxyStorage;
-
 
     modifier onlySystemAndNotFinalized() {
         require(msg.sender == systemAddress && !finalized);
@@ -77,6 +78,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         // keysManager = 0xbbeeea48d60b8c24eaefa334a503509e23d5e515;
         // votingContract = 0xeb1352fa30033da7f2a7b50a033ed47ef4b178a6;
     }
+
     /// Get current validator set (last enacted or initial if no changes ever made)
     function getValidators() public view returns(address[]) {
         return currentValidators;
@@ -93,7 +95,6 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         currentValidatorsLength = currentValidators.length;
         ChangeFinalized(getValidators());
     }
-
 
     function addValidator(address _validator) public onlyKeysManager isNewValidator(_validator) {
         require(_validator != address(0));

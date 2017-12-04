@@ -10,6 +10,7 @@ contract BallotsStorage is IBallotsStorage {
         require(msg.sender == votingToChangeThreshold);
         _;
     }
+
     function BallotsStorage(address _votingToChangeThreshold) public {
         votingToChangeThreshold = _votingToChangeThreshold;
         ballotThresholds[uint8(ThresholdTypes.Keys)] = 3;

@@ -1,5 +1,6 @@
 pragma solidity ^0.4.18;
 
+
 contract IKeysManager {
     address public masterOfCeremony;
     address public votingContract;

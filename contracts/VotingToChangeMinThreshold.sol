@@ -16,6 +16,7 @@ contract VotingToChangeMinThreshold {
     uint256[] public activeBallots;
     uint256 public activeBallotsLength;
     uint8 thresholdForKeysType = 1;
+
     struct VotingData {
         uint256 startTime;
         uint256 endTime;
@@ -28,6 +29,7 @@ contract VotingToChangeMinThreshold {
         uint256 proposedValue;
         mapping(address => bool) voters;
     }
+
     mapping(uint256 => VotingData) public votingState;
 
     event Vote(uint256 indexed decision, address indexed voter, uint256 time );
@@ -145,6 +147,7 @@ contract VotingToChangeMinThreshold {
         address miningKey = getMiningByVotingKey(_votingKey);
         return ballot.voters[miningKey];
     }
+    
     function isValidVote(uint256 _id, address _votingKey) public view returns(bool) {
         address miningKey = getMiningByVotingKey(_votingKey);
         bool notVoted = !hasAlreadyVoted(_id, _votingKey);
