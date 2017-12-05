@@ -1,5 +1,5 @@
 let PoaNetworkConsensusMock = artifacts.require('./PoaNetworkConsensusMock');
-let KeysManagerMock = artifacts.require('./KeysManagerMock');
+let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
 
 const ERROR_MSG = 'VM Exception while processing transaction: revert';

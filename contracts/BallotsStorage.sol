@@ -7,7 +7,7 @@ import "zeppelin-solidity/contracts/math/SafeMath.sol";
 contract BallotsStorage is IBallotsStorage {
     using SafeMath for uint256;
 
-    enum ThresholdTypes {Invalid, Keys, MetadataChange, Proxy}
+    enum ThresholdTypes {Invalid, Keys, MetadataChange}
     IProxyStorage public proxyStorage;
     mapping(uint8 => uint256) ballotThresholds;
 
@@ -20,11 +20,11 @@ contract BallotsStorage is IBallotsStorage {
         proxyStorage = IProxyStorage(_proxyStorage);
         ballotThresholds[uint8(ThresholdTypes.Keys)] = 3;
         ballotThresholds[uint8(ThresholdTypes.MetadataChange)] = 2;
-        ballotThresholds[uint8(ThresholdTypes.Proxy)] = getFiftyOnePercent();
     }
 
     function setThreshold(uint256 _newValue, uint8 _thresholdType) public onlyVotingToChangeThreshold {
         require(_thresholdType > 0);
+        require(_thresholdType <= uint8(ThresholdTypes.MetadataChange));
         require(_newValue > 0 && _newValue != ballotThresholds[_thresholdType]);
         ballotThresholds[_thresholdType] = _newValue;
     }
@@ -42,7 +42,7 @@ contract BallotsStorage is IBallotsStorage {
         return poa.currentValidatorsLength();
     }
 
-    function getFiftyOnePercent() public view returns(uint256) {
+    function getProxyThreshold() public view returns(uint256) {
         return getTotalNumberOfValidators().div(2).add(1);
     }
 }
