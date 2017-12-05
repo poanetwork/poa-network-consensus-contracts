@@ -82,6 +82,10 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         return currentValidators;
     }
 
+    function getPendingList() public view returns(address[]) {
+        return pendingList;
+    }
+
     /// Called when an initiated change reaches finality and is activated. 
     /// Only valid when msg.sender == SUPER_USER (EIP96, 2**160 - 2)
     ///
@@ -96,12 +100,11 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
 
     function addValidator(address _validator) public onlyKeysManager isNewValidator(_validator) {
         require(_validator != address(0));
-        pendingList = currentValidators;
-        pendingList.push(_validator);
         validatorsState[_validator] = ValidatorState({
             isValidator: true,
-            index: currentValidators.length
+            index: pendingList.length
         });
+        pendingList.push(_validator);
         finalized = false;
         InitiateChange(block.blockhash(block.number - 1), pendingList);
     }

@@ -124,9 +124,9 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
             let state = await poaNetworkConsensus.validatorsState(accounts[1]);
-            let currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength();
+            let pendingList = await poaNetworkConsensus.getPendingList();
             state[0].should.be.true;
-            state[1].should.be.bignumber.equal(currentValidatorsLength)
+            state[1].should.be.bignumber.equal(pendingList.length - 1)
         })
 
         it('should set finalized to false', async () => {

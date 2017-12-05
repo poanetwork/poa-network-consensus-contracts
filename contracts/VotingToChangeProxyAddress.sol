@@ -8,15 +8,13 @@ import "./interfaces/IKeysManager.sol";
 contract VotingToChangeProxyAddress { 
     using SafeMath for uint256;
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
-    enum ActionChoice { Invalid, Accept, Reject }
-    enum ContractTypes { Invalid, KeysManager, BallotsStorage, VotingToChangeKeys, VotingToChangeMinThreshold, VotingToChangeProxyAddress }
+    enum ActionChoice { Invalid, Accept, Reject }    
 
     IProxyStorage public proxyStorage;
     uint8 public maxOldMiningKeysDeepCheck = 25;
     uint256 public nextBallotId;
     uint256[] public activeBallots;
     uint256 public activeBallotsLength;
-    uint8 thresholdForProxy = 2;
 
     struct VotingData {
         uint256 startTime;
@@ -44,21 +42,16 @@ contract VotingToChangeProxyAddress {
         _;
     }
 
-    modifier isValidContractType(uint8 _contractType) {
-      require(_contractType > uint8(ContractTypes.Invalid) && _contractType <= uint8(ContractTypes.VotingToChangeProxyAddress));
-      _;
-    }
-
     function VotingToChangeProxyAddress(address _proxyStorage) public {
         proxyStorage = IProxyStorage(_proxyStorage);
     }
 
-    function createBallotToChangeThreshold(
+    function createBallotToChangeProxyAddress(
         uint256 _startTime,
         uint256 _endTime,
         address _proposedValue,
         uint8 _contractType
-        ) public onlyValidVotingKey(msg.sender) isValidContractType(_contractType) {
+        ) public onlyValidVotingKey(msg.sender) {
         require(activeBallotsLength <= 100);
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
@@ -116,7 +109,7 @@ contract VotingToChangeProxyAddress {
 
     function getGlobalMinThresholdOfVoters() public view returns(uint256) {
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
-        return ballotsStorage.getBallotThreshold(thresholdForProxy);
+        return ballotsStorage.getProxyThreshold();
     }
 
     function getProgress(uint256 _id) public view returns(int) {

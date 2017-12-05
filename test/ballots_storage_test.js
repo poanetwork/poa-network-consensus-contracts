@@ -28,10 +28,10 @@ contract('BallotsStorage [all features]', function (accounts) {
   describe('#contstuctor', async () => {
     it('sets MoC and Poa', async () => {
       new web3.BigNumber(3).should.be.bignumber.equal(
-        await ballotsStorage.getBallotThreshold(1)
+        await ballotsStorageMock.getBallotThreshold(1)
       );
       new web3.BigNumber(2).should.be.bignumber.equal(
-        await ballotsStorage.getBallotThreshold(2)
+        await ballotsStorageMock.getBallotThreshold(2)
       );
     })
   })

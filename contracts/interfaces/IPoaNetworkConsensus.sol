@@ -9,6 +9,7 @@ contract IPoaNetworkConsensus {
     uint256 public currentValidatorsLength;
 
     function getValidators() public view returns(address[]);
+    function getPendingList() public view returns(address[]);
     function finalizeChange() public;
     function addValidator(address) public;
     function removeValidator(address) public;

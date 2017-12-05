@@ -10,7 +10,13 @@ contract ProxyStorage is IProxyStorage {
     address public proxyBallot;
     address public ballotsStorage;
 
-    enum ContractTypes { Invalid, KeysManager, VotingToChangeKeys, VotingToChangeMinThreshold, VotingToChangeProxy, BallotsStorage }
+    enum ContractTypes {
+        Invalid,
+        KeysManager,
+        VotingToChangeKeys,
+        VotingToChangeMinThreshold,
+        VotingToChangeProxy,
+        BallotsStorage }
     event ProxyInitialized(
         address keysManager,
         address votingToChangeKeys,

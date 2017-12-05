@@ -15,10 +15,6 @@ contract KeysManagerMock is KeysManager {
     maxNumberOfInitialKeys = _newMax;
   }
 
-  function setVotingContractMock(address _votingContract) public {
-    votingContract = _votingContract;
-  }
-
   function setPoaConsensus(address _poaConsensus) public {
     poaNetworkConsensus = IPoaNetworkConsensus(_poaConsensus);
   }
