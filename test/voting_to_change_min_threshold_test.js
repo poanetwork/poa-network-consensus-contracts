@@ -28,7 +28,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     voting = await Voting.new(proxyStorageMock.address);
-    await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, voting.address, ballotsStorage.address);
+    await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, voting.address, masterOfCeremony, ballotsStorage.address);
   })
   describe('#createBallotToChangeThreshold', async () => {
     let VOTING_START_DATE, VOTING_END_DATE, id;

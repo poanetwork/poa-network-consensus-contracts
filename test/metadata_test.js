@@ -34,7 +34,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony);
     ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
-    await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, masterOfCeremony, ballotsStorage.address);
+    await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, masterOfCeremony, masterOfCeremony, ballotsStorage.address);
 
     metadata = await ValidatorMetadata.new(proxyStorageMock.address);
     await keysManager.addMiningKey(miningKey).should.be.fulfilled;
