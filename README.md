@@ -1,5 +1,39 @@
 # poa-network-consensus-contracts
 
+## Setup of the ceremony
+
+### Prerequisites
+
+- Python 3.5+, pip
+- solc, the Solidity compiler
+
+### Start POA network
+
+- Install solidity-flattener `pip3.5 install solidity-flattener`
+- Create `./flat` directory `mkdir flat`
+- Install npm dependencies `npm i`
+- Generate flat sources of contracts with the script `./make_flat.sh`
+- We need the byte code of `PoaNetworkConsensus_flat` contract to add it to [`spec.json`](https://github.com/oraclesorg/oracles-chain-spec/blob/master/spec.json) of the network. Go to [Remix](http://remix.ethereum.org/#version=soljson-v0.4.18+commit.9cf6e910.js). Copy `./flat/PoaNetworkConsensus_flat.sol` source to the input field and press `Start to compile`. Choose `PoaNetworkConsensus` contract in the listbox and press "Details". Copy `BYTECODE` of the compiled source for `spec.json`.
+
+### Add Contracts to Parity UI.
+
+Start Parity UI. In the contracts section press `Develop` button. 
+Select `0.4.18` Solidity compiler version. Set `Optimize` to `true`.
+
+- In Parity UI `Contracts` tab choose watch custom contract. Paste bytecode and ABI of `PoaNetworkConsensus` contract from Remix.
+
+Compile and deploy contracts in the next sequence:
+
+- `ProxyStorage_flat.sol` - Select contract `ProxyStorage` with constructor parameters: `_poaConsensus` - address of poaConsensus contract, `_moc` - address of Master of Ceremony. Then from poaNetworkConsensus contract send transaction `setProxyStorage` with the address of ProxyStorage contract.
+- `KeysManager_flat.sol` - Select contract `KeysManager` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract, `_poaConsensus` - address of poaConsensus contract, `_moc` - address of Master of Ceremony.
+- `BallotsStorage_flat.sol` - Select contract `BallotsStorage` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
+- `VotingToChangeKeys_flat.sol` - Select contract `VotingToChangeKeys` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
+- `VotingToChangeMinThreshold_flat.sol` - Select contract `VotingToChangeMinThreshold` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
+- `VotingToChangeProxyAddress_flat.sol` - Select contract `VotingToChangeProxyAddress` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
+- `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
+
+## Unit tests
+
 ### [PoaNetworkConsensus](https://github.com/oraclesorg/poa-network-consensus-contracts/blob/master/contracts/PoaNetworkConsensus.sol) contract.
 
 This is the contract, which stores data for PoA Oracles Network consensus.
