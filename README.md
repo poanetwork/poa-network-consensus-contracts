@@ -42,6 +42,7 @@ Compile and deploy contracts in the next sequence:
 -  Select deployed `ProxyStorage` contract and make a call from MoC address to `initializeAddresses` with relevant addresses.
 
 ## Unit tests
+[Full Test Report](https://oraclesorg.github.io/poa-network-consensus-contracts/mochawesome.html)<br />
 
 ### [PoaNetworkConsensus](https://github.com/oraclesorg/poa-network-consensus-contracts/blob/master/contracts/PoaNetworkConsensus.sol) contract.
 
