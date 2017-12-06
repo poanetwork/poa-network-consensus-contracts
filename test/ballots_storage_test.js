@@ -22,7 +22,7 @@ contract('BallotsStorage [all features]', function (accounts) {
     poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony);
     proxyStorage = await ProxyStorageMock.new(poaNetworkConsensus.address, masterOfCeremony);
     ballotsStorageMock = await BallotsStorageMock.new(proxyStorage.address);
-    //votingToChangeMinThresholdMock = await VotingToChangeMinThresholdMock.new(proxyStorage.address);
+    await poaNetworkConsensus.setProxyStorage(proxyStorage.address);
     await proxyStorage.initializeAddresses(keysManager, votingToChangeKeys, votingToChangeMinThreshold, votingToChangeProxy, ballotsStorage);
   })
   describe('#contstuctor', async () => {
@@ -59,6 +59,40 @@ contract('BallotsStorage [all features]', function (accounts) {
     it('sets new value for MetadataChange threshold', async () => {
       await ballotsStorageMock.setThreshold(6, 2, {from: accounts[3]}).should.be.fulfilled;
       new web3.BigNumber(6).should.be.bignumber.equal(await ballotsStorageMock.getBallotThreshold(2));
+    })
+  })
+  describe('#getTotalNumberOfValidators', async () => {
+    it('returns total number of validators', async () => {
+      await proxyStorage.setKeysManagerMock(masterOfCeremony);
+      await poaNetworkConsensus.addValidator(accounts[1]);
+      await poaNetworkConsensus.setSystemAddress(masterOfCeremony);
+      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+      const getValidators = await poaNetworkConsensus.getValidators();
+      new web3.BigNumber(2).should.be.bignumber.equal(getValidators.length);
+      new web3.BigNumber(2).should.be.bignumber.equal(await ballotsStorageMock.getTotalNumberOfValidators())
+    })
+  })  
+  describe('#getProxyThreshold', async () => {
+    it('returns total number of validators', async () => {
+      new web3.BigNumber(1).should.be.bignumber.equal(await ballotsStorageMock.getProxyThreshold())
+      await proxyStorage.setKeysManagerMock(masterOfCeremony);
+      await poaNetworkConsensus.addValidator(accounts[1]);
+      await poaNetworkConsensus.addValidator(accounts[2]);
+      await poaNetworkConsensus.addValidator(accounts[3]);
+      await poaNetworkConsensus.addValidator(accounts[4]);
+      await poaNetworkConsensus.addValidator(accounts[5]);
+      await poaNetworkConsensus.setSystemAddress(accounts[0]);
+      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+      const getValidators = await poaNetworkConsensus.getValidators();
+      new web3.BigNumber(6).should.be.bignumber.equal(getValidators.length);
+      new web3.BigNumber(4).should.be.bignumber.equal(await ballotsStorageMock.getProxyThreshold())
+    })
+  })
+  describe('#getVotingToChangeThreshold', async () => {
+    it('returns voting to change min threshold address', async () => {
+      votingToChangeMinThreshold.should.be.equal(await ballotsStorageMock.getVotingToChangeThreshold())
+      await proxyStorage.setVotingToChangeMinThresholdMock(accounts[4]);
+      accounts[4].should.be.equal(await ballotsStorageMock.getVotingToChangeThreshold())
     })
   })  
 })

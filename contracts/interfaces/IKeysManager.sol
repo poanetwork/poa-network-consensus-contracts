@@ -29,13 +29,4 @@ contract IKeysManager {
     function swapVotingKey(address, address) public;
     function swapPayoutKey(address, address) public;
     function getTime() public view returns(uint256);
-    
-    function _swapVotingKey(address, address) private;
-    function _swapPayoutKey(address, address) private;
-    function _addMiningKey(address) private;
-    function _addVotingKey(address, address) private;
-    function _addPayoutKey(address, address) private;
-    function _removeMiningKey(address) private;
-    function _removeVotingKey(address) private;
-    function _removePayoutKey(address) private;
 }
