@@ -19,5 +19,4 @@ module.exports = {
   mocha: {
     reporter: 'mochawesome'
   }
-}
 };
