@@ -66,6 +66,20 @@ contract('ProxyStorage [all features]', function (accounts) {
       logs[0].args.ballotsStorage.should.be.equal(ballotsStorage);
 
     })
+    it('prevents Moc to call it more than once', async () => {
+      false.should.be.equal(await proxyStorage.mocInitialized());
+      const {logs} = await proxyStorage.initializeAddresses(keysManager,
+        votingToChangeKeys,
+        votingToChangeMinThreshold,
+        votingToChangeProxy,
+        ballotsStorage).should.be.fulfilled;
+      true.should.be.equal(await proxyStorage.mocInitialized());
+      await proxyStorage.initializeAddresses(keysManager,
+        votingToChangeKeys,
+        votingToChangeMinThreshold,
+        votingToChangeProxy,
+        ballotsStorage).should.be.rejectedWith(ERROR_MSG);
+    })
   })
 
   describe('#setContractAddress', async () => {

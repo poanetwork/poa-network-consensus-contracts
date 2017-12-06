@@ -10,6 +10,7 @@ contract ProxyStorage is IProxyStorage {
     address public votingToChangeKeys;
     address public votingToChangeProxy;
     address public ballotsStorage;
+    bool public mocInitialized;
 
     enum ContractTypes {
         Invalid,
@@ -72,11 +73,13 @@ contract ProxyStorage is IProxyStorage {
     ) public 
     {
         require(msg.sender == masterOfCeremony);
+        require(!mocInitialized);
         votingToChangeKeys = _votingToChangeKeys;
         votingToChangeMinThreshold = _votingToChangeMinThreshold;
         votingToChangeProxy = _votingToChangeProxy;
         keysManager = _keysManager;
         ballotsStorage = _ballotsStorage;
+        mocInitialized = true;
         ProxyInitialized(
             keysManager,
             votingToChangeKeys,
