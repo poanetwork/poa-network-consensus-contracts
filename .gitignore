@@ -3,3 +3,4 @@ build
 flat
 mochawesome-report
 coverageEnv
+.DS_Store
