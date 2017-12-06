@@ -54,6 +54,12 @@ contract('KeysManager [all features]', function (accounts) {
       await keysManager.initiateKeys(accounts[2], {from: masterOfCeremony}).should.be.rejectedWith(ERROR_MSG);
     })
 
+    it('should not allow to initialize already initialized key after validator created mining key', async () => {
+      await keysManager.initiateKeys(accounts[2], {from: masterOfCeremony}).should.be.fulfilled;   
+      await keysManager.createKeys(accounts[3],accounts[4],accounts[5], {from: accounts[2]}).should.be.fulfilled;
+      await keysManager.initiateKeys(accounts[2], {from: masterOfCeremony}).should.be.rejectedWith(ERROR_MSG);
+    })
+
     it('should not equal to master of ceremony', async () => {
       await keysManager.initiateKeys(masterOfCeremony, {from: masterOfCeremony}).should.be.rejectedWith(ERROR_MSG);
     })
@@ -66,6 +72,25 @@ contract('KeysManager [all features]', function (accounts) {
       await keysManager.initiateKeys(accounts[2], {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.initiateKeys(accounts[3], {from: masterOfCeremony}).should.be.rejectedWith(ERROR_MSG);
     })
+
+    it('should not allow to initialize more than maxNumberOfInitialKeys', async () => {
+      let maxNumberOfInitialKeys = await keysManager.maxNumberOfInitialKeys();
+      maxNumberOfInitialKeys.should.be.bignumber.equal(12);
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000001', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000002', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000003', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000004', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000005', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000006', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000007', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000008', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000009', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000010', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000011', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000012', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000013', {from: masterOfCeremony}).should.be.rejectedWith(ERROR_MSG);
+    })
+
     it('should increment initialKeyCount by 1', async () => {
       let initialKeysCount = await keysManager.initialKeysCount();
       initialKeysCount.should.be.bignumber.equal(0);
@@ -74,7 +99,7 @@ contract('KeysManager [all features]', function (accounts) {
       initialKeysCount.should.be.bignumber.equal(1);
     })
 
-    it('should set initialKeys hash to true', async() => {
+    it('should set initialKeys hash to activated status', async() => {
       new web3.BigNumber(0).should.be.bignumber.equal(await keysManager.initialKeys(accounts[1]));
       const {logs} = await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
       new web3.BigNumber(1).should.be.bignumber.equal(await keysManager.initialKeys(accounts[1]));
@@ -134,6 +159,27 @@ contract('KeysManager [all features]', function (accounts) {
       await keysManager.createKeys(miningKey, accounts[3], accounts[2], {from: accounts[1]});
       const index = await poaNetworkConsensusMock.currentValidatorsLength();
       (await poaNetworkConsensusMock.pendingList(index)).should.be.equal(miningKey);
+    })
+
+    it('should set validatorKeys hash', async () => {
+      let miningKey = accounts[4];
+      await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.createKeys(miningKey, accounts[3], accounts[2], {from: accounts[1]});
+      const validatorKey = await keysManager.validatorKeys(miningKey);
+      validatorKey.should.be.deep.equal([
+        accounts[3],
+        accounts[2],
+        true,
+        true,
+        true
+      ])
+    })
+    
+    it('should set validatorKeys hash', async () => {
+      let miningKey = accounts[4];
+      await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.createKeys(miningKey, accounts[3], accounts[2], {from: accounts[1]});
+      new web3.BigNumber(2).should.be.bignumber.equal(await keysManager.initialKeys(accounts[1]));
     })
   })
 
