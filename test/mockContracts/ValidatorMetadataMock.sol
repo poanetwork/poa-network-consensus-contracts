@@ -2,8 +2,8 @@ pragma solidity ^0.4.18;
 import '../../contracts/ValidatorMetadata.sol';
 
 contract ValidatorMetadataMock is ValidatorMetadata {
-    function ValidatorMetadataMock(address _keysContract, address _ballotsStorage)
-    ValidatorMetadata(_keysContract, _ballotsStorage)
+    function ValidatorMetadataMock(address _proxyStorage)
+    ValidatorMetadata(_proxyStorage)
   {
   }
     uint256 public time;

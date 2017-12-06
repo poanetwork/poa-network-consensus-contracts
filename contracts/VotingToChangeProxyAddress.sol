@@ -5,17 +5,16 @@ import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IKeysManager.sol";
 
 
-contract VotingToChangeMinThreshold { 
+contract VotingToChangeProxyAddress { 
     using SafeMath for uint256;
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
-    enum ActionChoice { Invalid, Accept, Reject }
+    enum ActionChoice { Invalid, Accept, Reject }    
 
     IProxyStorage public proxyStorage;
     uint8 public maxOldMiningKeysDeepCheck = 25;
     uint256 public nextBallotId;
     uint256[] public activeBallots;
     uint256 public activeBallotsLength;
-    uint8 thresholdForKeysType = 1;
 
     struct VotingData {
         uint256 startTime;
@@ -26,7 +25,8 @@ contract VotingToChangeMinThreshold {
         uint8 quorumState;
         uint256 index;
         uint256 minThresholdOfVoters;
-        uint256 proposedValue;
+        address proposedValue;
+        uint8 contractType;
         mapping(address => bool) voters;
     }
 
@@ -42,25 +42,20 @@ contract VotingToChangeMinThreshold {
         _;
     }
 
-    modifier isValidProposedValue(uint256 _proposedValue) {
-        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
-        require(_proposedValue >= 3 && _proposedValue != getGlobalMinThresholdOfVoters());
-        require(_proposedValue <= ballotsStorage.getProxyThreshold());
-        _;
-    }
-
-    function VotingToChangeMinThreshold(address _proxyStorage) public {
+    function VotingToChangeProxyAddress(address _proxyStorage) public {
         proxyStorage = IProxyStorage(_proxyStorage);
     }
 
-    function createBallotToChangeThreshold(
+    function createBallotToChangeProxyAddress(
         uint256 _startTime,
         uint256 _endTime,
-        uint256 _proposedValue
-        ) public onlyValidVotingKey(msg.sender) isValidProposedValue(_proposedValue) {
+        address _proposedValue,
+        uint8 _contractType
+        ) public onlyValidVotingKey(msg.sender) {
         require(activeBallotsLength <= 100);
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
+        require(_proposedValue != address(0));
         VotingData memory data = VotingData({
             startTime: _startTime,
             endTime: _endTime,
@@ -70,12 +65,13 @@ contract VotingToChangeMinThreshold {
             quorumState: uint8(QuorumStates.InProgress),
             index: activeBallots.length,
             proposedValue: _proposedValue,
+            contractType: _contractType,
             minThresholdOfVoters: getGlobalMinThresholdOfVoters()
         });
         votingState[nextBallotId] = data;
         activeBallots.push(nextBallotId);
         activeBallotsLength = activeBallots.length;
-        BallotCreated(nextBallotId, 4, msg.sender);
+        BallotCreated(nextBallotId, 5, msg.sender);
         nextBallotId++;
     }
 
@@ -103,21 +99,17 @@ contract VotingToChangeMinThreshold {
         BallotFinalized(_id, msg.sender);
     }
 
-    function getBallotsStorage() public view returns(address) {
-        return proxyStorage.getBallotsStorage();
-    }
-
-    function getKeysManager() public view returns(address) {
-        return proxyStorage.getKeysManager();
-    }
-
-    function getProposedValue(uint256 _id) public view returns(uint256) {
+    function getProposedValue(uint256 _id) public view returns(address) {
         return votingState[_id].proposedValue;
+    }
+    
+    function getContractType(uint256 _id) public view returns(uint256) {
+        return votingState[_id].contractType;
     }
 
     function getGlobalMinThresholdOfVoters() public view returns(uint256) {
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
-        return ballotsStorage.getBallotThreshold(thresholdForKeysType);
+        return ballotsStorage.getProxyThreshold();
     }
 
     function getProgress(uint256 _id) public view returns(int) {
@@ -135,6 +127,14 @@ contract VotingToChangeMinThreshold {
     function getMiningByVotingKey(address _votingKey) public view returns(address) {
         IKeysManager keysManager = IKeysManager(getKeysManager());
         return keysManager.getMiningKeyByVoting(_votingKey);
+    }
+    
+    function getBallotsStorage() public view returns(address) {
+        return proxyStorage.getBallotsStorage();
+    }
+
+    function getKeysManager() public view returns(address) {
+        return proxyStorage.getKeysManager();
     }
 
     function getStartTime(uint256 _id) public view returns(uint256) {
@@ -189,10 +189,9 @@ contract VotingToChangeMinThreshold {
     }
 
     function finalizeBallot(uint256 _id) private {
-        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
         if (getProgress(_id) > 0 && getTotalVoters(_id) >= getMinThresholdOfVoters(_id)) {
             updateBallot(_id, uint8(QuorumStates.Accepted));
-            ballotsStorage.setThreshold(getProposedValue(_id), thresholdForKeysType);
+            proxyStorage.setContractAddress(getContractType(_id), getProposedValue(_id));
         } else {
             updateBallot(_id, uint8(QuorumStates.Rejected));
         }
