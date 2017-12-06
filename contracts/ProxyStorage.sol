@@ -7,7 +7,6 @@ contract ProxyStorage is IProxyStorage {
     address public votingToChangeMinThreshold;
     address public votingToChangeKeys;
     address public votingToChangeProxy;
-    address public proxyBallot;
     address public ballotsStorage;
 
     enum ContractTypes {

@@ -8,3 +8,6 @@ solidity_flattener  --solc-paths=zeppelin-solidity=$(pwd)/node_modules/zeppelin-
 solidity_flattener  --solc-paths=zeppelin-solidity=$(pwd)/node_modules/zeppelin-solidity/ contracts/VotingToChangeKeys.sol | sed "1s/.*/pragma solidity ^0.4.18;/" > flat/VotingToChangeKeys_flat.sol
 solidity_flattener  --solc-paths=zeppelin-solidity=$(pwd)/node_modules/zeppelin-solidity/ contracts/VotingToChangeMinThreshold.sol | sed "1s/.*/pragma solidity ^0.4.18;/" > flat/VotingToChangeMinThreshold_flat.sol
 solidity_flattener  --solc-paths=zeppelin-solidity=$(pwd)/node_modules/zeppelin-solidity/ contracts/ValidatorMetadata.sol | sed "1s/.*/pragma solidity ^0.4.18;/" > flat/ValidatorMetadata_flat.sol
+solidity_flattener  --solc-paths=zeppelin-solidity=$(pwd)/node_modules/zeppelin-solidity/ contracts/ProxyStorage.sol | sed "1s/.*/pragma solidity ^0.4.18;/" > flat/ProxyStorage_flat.sol
+solidity_flattener  --solc-paths=zeppelin-solidity=$(pwd)/node_modules/zeppelin-solidity/ contracts/BallotsStorage.sol | sed "1s/.*/pragma solidity ^0.4.18;/" > flat/BallotsStorage_flat.sol
+solidity_flattener  --solc-paths=zeppelin-solidity=$(pwd)/node_modules/zeppelin-solidity/ contracts/VotingToChangeProxyAddress.sol | sed "1s/.*/pragma solidity ^0.4.18;/" > flat/VotingToChangeProxyAddress_flat.sol

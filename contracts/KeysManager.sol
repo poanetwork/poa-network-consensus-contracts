@@ -6,6 +6,7 @@ import "./interfaces/IProxyStorage.sol";
 
 
 contract KeysManager is IKeysManager {
+    enum InitialKeyState { Invalid, Activated, Deactivated }
     struct Keys {
         address votingKey;
         address payoutKey;
@@ -21,7 +22,7 @@ contract KeysManager is IKeysManager {
     uint256 public maxNumberOfInitialKeys = 12;
     uint256 public initialKeysCount = 0;
     uint256 public maxLimitValidators = 2000;
-    mapping(address => bool) public initialKeys;
+    mapping(address => uint8) public initialKeys;
     mapping(address => Keys) public validatorKeys;
     mapping(address => address) public getMiningKeyByVoting;
     mapping(address => address) public miningKeyHistory;
@@ -38,7 +39,7 @@ contract KeysManager is IKeysManager {
     }
 
     modifier onlyValidInitialKey() {
-        require(initialKeys[msg.sender]);
+        require(initialKeys[msg.sender] == uint8(InitialKeyState.Activated));
         _;
     }
 
@@ -66,15 +67,16 @@ contract KeysManager is IKeysManager {
     function initiateKeys(address _initialKey) public {
         require(msg.sender == masterOfCeremony);
         require(_initialKey != address(0));
-        require(!initialKeys[_initialKey]);
+        require(initialKeys[_initialKey] == uint8(InitialKeyState.Invalid));
         require(_initialKey != masterOfCeremony);
         require(initialKeysCount < maxNumberOfInitialKeys);
-        initialKeys[_initialKey] = true;
+        initialKeys[_initialKey] = uint8(InitialKeyState.Activated);
         initialKeysCount++;
         InitialKeyCreated(_initialKey, getTime(), initialKeysCount);
     }
 
     function createKeys(address _miningKey, address _votingKey, address _payoutKey) public onlyValidInitialKey {
+        require(_miningKey != address(0) && _votingKey != address(0) && _payoutKey != address(0));
         require(_miningKey != _votingKey && _miningKey != _payoutKey && _votingKey != _payoutKey);
         require(_miningKey != msg.sender && _votingKey != msg.sender && _payoutKey != msg.sender);
         validatorKeys[_miningKey] = Keys({
@@ -85,7 +87,7 @@ contract KeysManager is IKeysManager {
             isPayoutActive: true
         });
         getMiningKeyByVoting[_votingKey] = _miningKey;
-        initialKeys[msg.sender] = false;
+        initialKeys[msg.sender] = uint8(InitialKeyState.Deactivated);
         poaNetworkConsensus.addValidator(_miningKey);
         ValidatorInitialized(_miningKey, _votingKey, _payoutKey);
     }
