@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "./SafeMath.sol";
 
 contract BallotsStorage is IBallotsStorage {
     using SafeMath for uint256;

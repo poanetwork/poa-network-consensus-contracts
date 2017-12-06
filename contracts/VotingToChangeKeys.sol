@@ -1,5 +1,5 @@
 pragma solidity ^0.4.18;
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "./SafeMath.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IKeysManager.sol";
