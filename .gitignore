@@ -2,3 +2,4 @@ node_modules
 build
 flat
 mochawesome-report
+coverageEnv
