@@ -1,5 +1,7 @@
 pragma solidity ^0.4.18;
 import "./interfaces/IProxyStorage.sol";
+
+
 contract ProxyStorage is IProxyStorage {
     address public masterOfCeremony;
     address poaConsensus;
@@ -7,25 +9,36 @@ contract ProxyStorage is IProxyStorage {
     address public votingToChangeMinThreshold;
     address public votingToChangeKeys;
     address public votingToChangeProxy;
-    address public proxyBallot;
     address public ballotsStorage;
 
-    enum ContractTypes { Invalid, KeysManager, VotingToChangeKeys, VotingToChangeMinThreshold, VotingToChangeProxy, BallotsStorage }
+    enum ContractTypes {
+        Invalid,
+        KeysManager,
+        VotingToChangeKeys,
+        VotingToChangeMinThreshold,
+        VotingToChangeProxy,
+        BallotsStorage 
+    }
+
     event ProxyInitialized(
         address keysManager,
         address votingToChangeKeys,
         address votingToChangeMinThreshold,
         address votingToChangeProxy,
         address ballotsStorage);
+
+    event AddressSet(uint256 contractType, address contractAddress);
+
     modifier onlyVotingToChangeProxy() {
         require(msg.sender == votingToChangeProxy);
         _;
     }
 
-    function ProxyStorage(address _poaConsensus, address _moc) {
-      poaConsensus = _poaConsensus;
-      masterOfCeremony = _moc;
+    function ProxyStorage(address _poaConsensus, address _moc) public {
+        poaConsensus = _poaConsensus;
+        masterOfCeremony = _moc;
     }
+
     function getKeysManager() public view returns(address) {
         return keysManager;
     }
@@ -37,6 +50,7 @@ contract ProxyStorage is IProxyStorage {
     function getVotingToChangeMinThreshold() public view returns(address) {
         return votingToChangeMinThreshold;
     }
+
     function getVotingToChangeProxy() public view returns(address) {
         return votingToChangeProxy;
     }
@@ -44,6 +58,7 @@ contract ProxyStorage is IProxyStorage {
     function getBallotsStorage() public view returns(address) {
         return ballotsStorage;
     }
+
     function getPoaConsensus() public view returns(address) {
         return poaConsensus;
     }
@@ -54,20 +69,20 @@ contract ProxyStorage is IProxyStorage {
         address _votingToChangeMinThreshold,
         address _votingToChangeProxy,
         address _ballotsStorage
-      ) public 
+    ) public 
     {
-      require(msg.sender == masterOfCeremony);
-      votingToChangeKeys = _votingToChangeKeys;
-      votingToChangeMinThreshold = _votingToChangeMinThreshold;
-      votingToChangeProxy = _votingToChangeProxy;
-      keysManager = _keysManager;
-      ballotsStorage = _ballotsStorage;
-      ProxyInitialized(
-        keysManager,
-        votingToChangeKeys,
-        votingToChangeMinThreshold,
-        votingToChangeProxy,
-        ballotsStorage);
+        require(msg.sender == masterOfCeremony);
+        votingToChangeKeys = _votingToChangeKeys;
+        votingToChangeMinThreshold = _votingToChangeMinThreshold;
+        votingToChangeProxy = _votingToChangeProxy;
+        keysManager = _keysManager;
+        ballotsStorage = _ballotsStorage;
+        ProxyInitialized(
+            keysManager,
+            votingToChangeKeys,
+            votingToChangeMinThreshold,
+            votingToChangeProxy,
+            ballotsStorage);
     }
 
     function setContractAddress(uint256 _contractType, address _contractAddress) public onlyVotingToChangeProxy {
@@ -83,5 +98,6 @@ contract ProxyStorage is IProxyStorage {
         } else if (_contractType == uint8(ContractTypes.BallotsStorage)) {
             ballotsStorage = _contractAddress;
         }
+        AddressSet(_contractType, _contractAddress);
     }
 }

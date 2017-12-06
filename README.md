@@ -52,9 +52,3 @@ This is the contract, which stores data for PoA Oracles Network consensus.
 
 ### MetaData contract.
 
-
-hardcode:
-1. currentValidators = [0x0039F22efB07A647557C7C5d17854CFD6D489eF3]; line 62 in PoA
-2. keysManager = 0xbbeeea48d60b8c24eaefa334a503509e23d5e515; line 71 in PoA
-3. votingContract = 0xeb1352fa30033da7f2a7b50a033ed47ef4b178a6; line 72 in PoA
-4. hardcode master of ceremony line 14 in KeysManager

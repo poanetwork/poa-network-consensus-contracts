@@ -1,5 +1,5 @@
 pragma solidity ^0.4.18;
-import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "./SafeMath.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IKeysManager.sol";
@@ -42,6 +42,13 @@ contract VotingToChangeMinThreshold {
         _;
     }
 
+    modifier isValidProposedValue(uint256 _proposedValue) {
+        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
+        require(_proposedValue >= 3 && _proposedValue != getGlobalMinThresholdOfVoters());
+        require(_proposedValue <= ballotsStorage.getProxyThreshold());
+        _;
+    }
+
     function VotingToChangeMinThreshold(address _proxyStorage) public {
         proxyStorage = IProxyStorage(_proxyStorage);
     }
@@ -50,11 +57,10 @@ contract VotingToChangeMinThreshold {
         uint256 _startTime,
         uint256 _endTime,
         uint256 _proposedValue
-        ) public onlyValidVotingKey(msg.sender) {
+        ) public onlyValidVotingKey(msg.sender) isValidProposedValue(_proposedValue) {
         require(activeBallotsLength <= 100);
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
-        require(_proposedValue >= 3 && _proposedValue != getGlobalMinThresholdOfVoters());
         VotingData memory data = VotingData({
             startTime: _startTime,
             endTime: _endTime,
@@ -95,6 +101,14 @@ contract VotingToChangeMinThreshold {
         finalizeBallot(_id);
         ballot.isFinalized = true;
         BallotFinalized(_id, msg.sender);
+    }
+
+    function getBallotsStorage() public view returns(address) {
+        return proxyStorage.getBallotsStorage();
+    }
+
+    function getKeysManager() public view returns(address) {
+        return proxyStorage.getKeysManager();
     }
 
     function getProposedValue(uint256 _id) public view returns(uint256) {
@@ -197,13 +211,5 @@ contract VotingToChangeMinThreshold {
             activeBallots.length--;
         }
         activeBallotsLength = activeBallots.length;
-    }
-
-    function getBallotsStorage() public view returns(address) {
-        return proxyStorage.getBallotsStorage();
-    }
-
-    function getKeysManager() public view returns(address) {
-        return proxyStorage.getKeysManager();
     }
 }

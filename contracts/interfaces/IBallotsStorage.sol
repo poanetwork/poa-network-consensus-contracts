@@ -6,4 +6,5 @@ interface IBallotsStorage {
     function getBallotThreshold(uint8) public view returns(uint256);
     function getVotingToChangeThreshold() public view returns(address);
     function getTotalNumberOfValidators() public view returns(uint256);
+    function getProxyThreshold() public view returns(uint256);
 }

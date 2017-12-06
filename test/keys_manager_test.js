@@ -1,5 +1,5 @@
 let PoaNetworkConsensusMock = artifacts.require('./PoaNetworkConsensusMock');
-let KeysManagerMock = artifacts.require('./KeysManagerMock');
+let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
 
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
@@ -75,9 +75,9 @@ contract('KeysManager [all features]', function (accounts) {
     })
 
     it('should set initialKeys hash to true', async() => {
-      false.should.be.equal(await keysManager.initialKeys(accounts[1]));
+      new web3.BigNumber(0).should.be.bignumber.equal(await keysManager.initialKeys(accounts[1]));
       const {logs} = await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
-      true.should.be.equal(await keysManager.initialKeys(accounts[1]));
+      new web3.BigNumber(1).should.be.bignumber.equal(await keysManager.initialKeys(accounts[1]));
       let initialKeysCount = await keysManager.initialKeysCount();
       // event InitialKeyCreated(address indexed initialKey, uint256 time, uint256 initialKeysCount);
       logs[0].event.should.equal("InitialKeyCreated");
