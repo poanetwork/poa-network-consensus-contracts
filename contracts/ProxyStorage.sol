@@ -5,11 +5,11 @@ import "./interfaces/IProxyStorage.sol";
 contract ProxyStorage is IProxyStorage {
     address public masterOfCeremony;
     address poaConsensus;
-    address public keysManager;
-    address public votingToChangeMinThreshold;
-    address public votingToChangeKeys;
-    address public votingToChangeProxy;
-    address public ballotsStorage;
+    address keysManager;
+    address votingToChangeKeys;
+    address votingToChangeMinThreshold;
+    address votingToChangeProxy;
+    address ballotsStorage;
     bool public mocInitialized;
 
     enum ContractTypes {
@@ -56,12 +56,12 @@ contract ProxyStorage is IProxyStorage {
         return votingToChangeProxy;
     }
 
-    function getBallotsStorage() public view returns(address) {
-        return ballotsStorage;
-    }
-
     function getPoaConsensus() public view returns(address) {
         return poaConsensus;
+    }
+
+    function getBallotsStorage() public view returns(address) {
+        return ballotsStorage;
     }
 
     function initializeAddresses(
@@ -74,10 +74,10 @@ contract ProxyStorage is IProxyStorage {
     {
         require(msg.sender == masterOfCeremony);
         require(!mocInitialized);
+        keysManager = _keysManager;
         votingToChangeKeys = _votingToChangeKeys;
         votingToChangeMinThreshold = _votingToChangeMinThreshold;
         votingToChangeProxy = _votingToChangeProxy;
-        keysManager = _keysManager;
         ballotsStorage = _ballotsStorage;
         mocInitialized = true;
         ProxyInitialized(
