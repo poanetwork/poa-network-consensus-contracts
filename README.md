@@ -1,5 +1,8 @@
 # poa-network-consensus-contracts
 
+[![Build Status](https://travis-ci.org/oraclesorg/poa-network-consensus-contracts.svg?branch=master)](https://travis-ci.org/oraclesorg/poa-network-consensus-contracts)
+[![Coverage Status](https://coveralls.io/repos/github/oraclesorg/poa-network-consensus-contracts/badge.svg?branch=master)](https://coveralls.io/github/oraclesorg/poa-network-consensus-contracts?branch=master)
+
 ## Setup of the ceremony
 
 ### Prerequisites
@@ -10,10 +13,12 @@
 ### Start POA network
 
 - Install solidity-flattener `pip3.5 install solidity-flattener`
-- Create `./flat` directory `mkdir flat`
 - Install npm dependencies `npm i`
 - Generate flat sources of contracts with the script `./make_flat.sh`
-- We need the byte code of `PoaNetworkConsensus_flat` contract to add it to [`spec.json`](https://github.com/oraclesorg/oracles-chain-spec/blob/master/spec.json) of the network. Go to [Remix](http://remix.ethereum.org/#version=soljson-v0.4.18+commit.9cf6e910.js). Copy `./flat/PoaNetworkConsensus_flat.sol` source to the input field and press `Start to compile`. Choose `PoaNetworkConsensus` contract in the listbox and press "Details". Copy `BYTECODE` of the compiled source for `spec.json`.
+- We need the byte code of `PoaNetworkConsensus_flat` contract to add it to [`spec.json`](https://github.com/oraclesorg/oracles-chain-spec/blob/master/spec.json) of the network. <br />
+Go to [Remix](http://remix.ethereum.org/#version=soljson-v0.4.18+commit.9cf6e910.js).<br />
+Copy `./flat/PoaNetworkConsensus_flat.sol` source to the input field and press `Start to compile`. <br />
+Choose `PoaNetworkConsensus` contract in the listbox and press "Details". Copy `BYTECODE` of the compiled source for `spec.json`.
 
 ### Add Contracts to Parity UI.
 
@@ -24,13 +29,17 @@ Select `0.4.18` Solidity compiler version. Set `Optimize` to `true`.
 
 Compile and deploy contracts in the next sequence:
 
-- `ProxyStorage_flat.sol` - Select contract `ProxyStorage` with constructor parameters: `_poaConsensus` - address of poaConsensus contract, `_moc` - address of Master of Ceremony. Then from poaNetworkConsensus contract send transaction `setProxyStorage` with the address of ProxyStorage contract.
+- `ProxyStorage_flat.sol` - Select contract `ProxyStorage` with constructor parameters: <br />
+`_poaConsensus` - address of poaConsensus contract,
+`_moc` - address of Master of Ceremony. 
+-  Select `poaNetworkConsensus` contract and send transaction `setProxyStorage` with the address of ProxyStorage contract.
 - `KeysManager_flat.sol` - Select contract `KeysManager` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract, `_poaConsensus` - address of poaConsensus contract, `_moc` - address of Master of Ceremony.
 - `BallotsStorage_flat.sol` - Select contract `BallotsStorage` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
 - `VotingToChangeKeys_flat.sol` - Select contract `VotingToChangeKeys` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
 - `VotingToChangeMinThreshold_flat.sol` - Select contract `VotingToChangeMinThreshold` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
 - `VotingToChangeProxyAddress_flat.sol` - Select contract `VotingToChangeProxyAddress` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
 - `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
+-  Select deployed `ProxyStorage` contract and make a call from MoC address to `initializeAddresses` with relevant addresses.
 
 ## Unit tests
 
