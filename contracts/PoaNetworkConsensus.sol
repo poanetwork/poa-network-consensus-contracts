@@ -19,6 +19,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     event ChangeFinalized(address[] newSet);
     event ChangeReference(string nameOfContract, address newAddress);
     event MoCInitializedProxyStorage(address proxyStorage);
+    
     struct ValidatorState {
         // Is this a validator.
         bool isValidator;

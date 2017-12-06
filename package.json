@@ -14,6 +14,7 @@
     "chai-bignumber": "^2.0.2",
     "ethereumjs-testrpc": "^6.0.3",
     "moment": "^2.19.3",
+    "solhint": "^1.1.9",
     "truffle": "^4.0.1"
   },
   "dependencies": {}

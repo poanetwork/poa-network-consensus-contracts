@@ -7,6 +7,7 @@ import "./interfaces/IProxyStorage.sol";
 
 contract KeysManager is IKeysManager {
     enum InitialKeyState { Invalid, Activated, Deactivated }
+
     struct Keys {
         address votingKey;
         address payoutKey;
@@ -94,6 +95,10 @@ contract KeysManager is IKeysManager {
 
     function getTime() public view returns(uint256) {
         return now;
+    }
+
+    function getVotingToChangeKeys() public view returns(address) {
+        return proxyStorage.getVotingToChangeKeys();
     }
 
     function isMiningActive(address _key) public view returns(bool) {
@@ -234,9 +239,5 @@ contract KeysManager is IKeysManager {
         validator.payoutKey = address(0);
         validator.isPayoutActive = false;
         PayoutKeyChanged(oldPayout, _miningKey, "removed");
-    }
-
-    function getVotingToChangeKeys() public view returns(address) {
-        return proxyStorage.getVotingToChangeKeys();
     }
 }

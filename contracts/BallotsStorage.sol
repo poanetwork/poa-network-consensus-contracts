@@ -4,6 +4,7 @@ import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
 import "./SafeMath.sol";
 
+
 contract BallotsStorage is IBallotsStorage {
     using SafeMath for uint256;
 

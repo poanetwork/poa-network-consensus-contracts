@@ -128,6 +128,14 @@ contract VotingToChangeProxyAddress {
         IKeysManager keysManager = IKeysManager(getKeysManager());
         return keysManager.getMiningKeyByVoting(_votingKey);
     }
+    
+    function getBallotsStorage() public view returns(address) {
+        return proxyStorage.getBallotsStorage();
+    }
+
+    function getKeysManager() public view returns(address) {
+        return proxyStorage.getKeysManager();
+    }
 
     function getStartTime(uint256 _id) public view returns(uint256) {
         return votingState[_id].startTime;
@@ -202,13 +210,5 @@ contract VotingToChangeProxyAddress {
             activeBallots.length--;
         }
         activeBallotsLength = activeBallots.length;
-    }
-
-    function getBallotsStorage() public view returns(address) {
-        return proxyStorage.getBallotsStorage();
-    }
-
-    function getKeysManager() public view returns(address) {
-        return proxyStorage.getKeysManager();
     }
 }

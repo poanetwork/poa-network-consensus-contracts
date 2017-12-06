@@ -61,7 +61,8 @@ contract VotingToChangeKeys {
     ) public onlyValidVotingKey(msg.sender) {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
-        require(areBallotParamsValid(_ballotType, _affectedKey, _affectedKeyType, _miningKey)); //only if ballotType is swap or remove
+        //only if ballotType is swap or remove
+        require(areBallotParamsValid(_ballotType, _affectedKey, _affectedKeyType, _miningKey));
         VotingData memory data = VotingData({
             startTime: _startTime,
             endTime: _endTime,
@@ -106,6 +107,14 @@ contract VotingToChangeKeys {
         finalizeBallot(_id);
         ballot.isFinalized = true;
         BallotFinalized(_id, msg.sender);
+    }
+
+    function getBallotsStorage() public view returns(address) {
+        return proxyStorage.getBallotsStorage();
+    }
+
+    function getKeysManager() public view returns(address) {
+        return proxyStorage.getKeysManager();
     }
 
     function getGlobalMinThresholdOfVoters() public view returns(uint256) {
@@ -197,7 +206,12 @@ contract VotingToChangeKeys {
         return false;
     }
 
-    function areBallotParamsValid(uint256 _ballotType, address _affectedKey, uint256 _affectedKeyType, address _miningKey) public view returns(bool) {
+    function areBallotParamsValid(
+        uint256 _ballotType,
+        address _affectedKey,
+        uint256 _affectedKeyType,
+        address _miningKey) public view returns(bool) 
+    {
         require(_affectedKeyType > 0);
         require(_affectedKey != address(0));
         require(activeBallotsLength <= 100);
@@ -298,13 +312,5 @@ contract VotingToChangeKeys {
         if (getAffectedKeyType(_id) == uint256(KeyTypes.PayoutKey)) {
             keysManager.swapPayoutKey(getAffectedKey(_id), getMiningKey(_id));
         }
-    }
-
-    function getBallotsStorage() public view returns(address) {
-        return proxyStorage.getBallotsStorage();
-    }
-
-    function getKeysManager() public view returns(address) {
-        return proxyStorage.getKeysManager();
     }
 }

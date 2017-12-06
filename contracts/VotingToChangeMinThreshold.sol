@@ -103,6 +103,14 @@ contract VotingToChangeMinThreshold {
         BallotFinalized(_id, msg.sender);
     }
 
+    function getBallotsStorage() public view returns(address) {
+        return proxyStorage.getBallotsStorage();
+    }
+
+    function getKeysManager() public view returns(address) {
+        return proxyStorage.getKeysManager();
+    }
+
     function getProposedValue(uint256 _id) public view returns(uint256) {
         return votingState[_id].proposedValue;
     }
@@ -203,13 +211,5 @@ contract VotingToChangeMinThreshold {
             activeBallots.length--;
         }
         activeBallotsLength = activeBallots.length;
-    }
-
-    function getBallotsStorage() public view returns(address) {
-        return proxyStorage.getBallotsStorage();
-    }
-
-    function getKeysManager() public view returns(address) {
-        return proxyStorage.getKeysManager();
     }
 }

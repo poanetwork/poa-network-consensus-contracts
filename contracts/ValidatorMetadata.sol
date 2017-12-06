@@ -4,6 +4,7 @@ import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IKeysManager.sol";
 
+
 contract ValidatorMetadata {
     using SafeMath for uint256;
 
