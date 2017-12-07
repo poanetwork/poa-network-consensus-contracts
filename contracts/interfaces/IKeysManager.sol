@@ -8,7 +8,7 @@ contract IKeysManager {
     uint256 public maxNumberOfInitialKeys;
     uint256 public initialKeysCount;
     uint256 public maxLimitValidators;
-    mapping(address => bool) public initialKeys;
+    mapping(address => uint8) public initialKeys;
     mapping(address => address) public getMiningKeyByVoting;
     mapping(address => address) public miningKeyHistory;
 

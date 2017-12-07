@@ -20,7 +20,13 @@ module.exports = {
       port: 8555,
       gas: 0xfffffffffff,
       gasPrice: 0x01
-    }
+    },
+    sokol: {
+      host: "localhost",
+      port: 8545,
+      gas: 4700000,
+      network_id: "*" // Match any network id
+    },
   },
   mocha: {
     reporter: 'mochawesome'
