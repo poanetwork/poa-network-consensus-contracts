@@ -15,7 +15,7 @@ testrpc:
 		--account="0x1fdc76364db4a4bcfad8f2c010995a96fcb98a165e34858665a234ba54715105, 1000000000000000000000000000" \
 
 test:
-	node_modules/.bin/truffle test
+	node_modules/.bin/truffle test --network test
 
 solhint:
 	solhint contracts/*.sol contracts/util/*.sol
