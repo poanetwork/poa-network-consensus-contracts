@@ -1,7 +1,6 @@
 # poa-network-consensus-contracts
 
 [![Build Status](https://travis-ci.org/oraclesorg/poa-network-consensus-contracts.svg?branch=master)](https://travis-ci.org/oraclesorg/poa-network-consensus-contracts)
-[![Coverage Status](https://coveralls.io/repos/github/oraclesorg/poa-network-consensus-contracts/badge.svg?branch=master)](https://coveralls.io/github/oraclesorg/poa-network-consensus-contracts?branch=master)
 
 ## Setup of the ceremony
 
