@@ -36,9 +36,7 @@ module.exports = async function(deployer, network, accounts) {
     ValidatorMetadata.address ${ValidatorMetadata.address} \n
     `)
 
-    // let initialKey = '0x030b90762cee7a87ee4f51e715a302177043835e';
-    // let keysManager = await KeysManager.at('0x758492834ed6454f41d6d3d6b73d6e46d4555429');
-    // await keysManager.initiateKeys(initialKey);
-    // await keysManager.initiateKeys('0x90B3E2dA7217144E34028FD7f4700a9Cb254f079');
   }
 };
+
+// POA_NETWORK_CONSENSUS_ADDRESS=0xf472e0e43570b9afaab67089615080cf7c20018d MASTER_OF_CEREMONY=0x0039F22efB07A647557C7C5d17854CFD6D489eF3 ./node_modules/.bin/truffle migrate --reset --network sokol
