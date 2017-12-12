@@ -136,6 +136,9 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       const {logs} = await metadata.changeRequest(...anotherData, {from: votingKey}).should.be.fulfilled;
       confirmations = await metadata.confirmations(miningKey);
       confirmations.should.be.bignumber.equal(0);
+      await metadata.confirmPendingChange(miningKey, {from: votingKey2});
+      confirmations = await metadata.confirmations(miningKey);
+      confirmations.should.be.bignumber.equal(1);
     })
   })
 

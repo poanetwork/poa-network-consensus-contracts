@@ -24,7 +24,7 @@ contract ValidatorMetadata {
     struct Confirmation {
 
         uint256 count;
-        mapping(address => bool) voter;
+        address[] voters;
     }
     
     IProxyStorage public proxyStorage;
@@ -102,7 +102,7 @@ contract ValidatorMetadata {
             minThreshold: validators[miningKey].minThreshold
         });
         pendingChanges[miningKey] = pendingChange;
-        confirmations[miningKey].count = 0;
+        delete confirmations[miningKey];
         ChangeRequestInitiated(miningKey);
         return true;
     }
@@ -114,12 +114,22 @@ contract ValidatorMetadata {
         return true;
     }
 
+    function isAddressAlreadyVoted(address _miningKey, address _voter) public view returns(bool) {
+        Confirmation storage confirmation = confirmations[_miningKey];
+        for(uint256 i = 0; i < confirmation.voters.length; i++){
+            if(confirmation.voters[i] == _voter){
+                return true;   
+            }
+        }
+        return false;
+    }
+
     function confirmPendingChange(address _miningKey) public onlyValidVotingKey(msg.sender) {
         Confirmation storage confirmation = confirmations[_miningKey];
-        require(!confirmation.voter[msg.sender]);
+        require(!isAddressAlreadyVoted(_miningKey, msg.sender));
         address miningKey = getMiningByVotingKey(msg.sender);
         require(miningKey != _miningKey);
-        confirmation.voter[msg.sender] = true;
+        confirmation.voters.push(msg.sender);
         confirmation.count = confirmation.count.add(1);
         Confirmed(_miningKey, msg.sender);
     }
