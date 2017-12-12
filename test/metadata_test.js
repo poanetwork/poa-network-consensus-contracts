@@ -23,6 +23,9 @@ let fakeData = [
 let newMetadata = [
   "Feodosiy", "Kennedy", "123123", "Petrovka 38", "ZA", 1337, 71
 ];
+let anotherData = [
+  "Feodosiy", "Bush", "123123", "Petrovka 38", "ZA", 1337, 71
+];
 contract('ValidatorMetadata [all features]', function (accounts) {
   votingKey = accounts[2];
   votingKey2 = accounts[3];
@@ -118,6 +121,21 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     })
     it('should not let call if there is no metadata', async () => {
       await metadata.changeRequest(...newMetadata, {from: accounts[4]}).should.be.rejectedWith(ERROR_MSG);
+    })
+    it('resets confirmations when changeRequest recreated', async () => {
+      miningKey3 = accounts[5];
+      votingKey3 = accounts[6];
+      await keysManager.addMiningKey(miningKey3).should.be.fulfilled;
+      await keysManager.addVotingKey(votingKey3, miningKey3).should.be.fulfilled;
+      await metadata.setTime(4444);
+      await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
+      await metadata.confirmPendingChange(miningKey, {from: votingKey2});
+      await metadata.confirmPendingChange(miningKey, {from: votingKey3});
+      let confirmations = await metadata.confirmations(miningKey);
+      confirmations.should.be.bignumber.equal(2);
+      const {logs} = await metadata.changeRequest(...anotherData, {from: votingKey}).should.be.fulfilled;
+      confirmations = await metadata.confirmations(miningKey);
+      confirmations.should.be.bignumber.equal(0);
     })
   })
 
