@@ -127,6 +127,7 @@ contract ValidatorMetadata {
     function confirmPendingChange(address _miningKey) public onlyValidVotingKey(msg.sender) {
         Confirmation storage confirmation = confirmations[_miningKey];
         require(!isAddressAlreadyVoted(_miningKey, msg.sender));
+        require(confirmation.voters.length <= 50); // no need for more confirmations
         address miningKey = getMiningByVotingKey(msg.sender);
         require(miningKey != _miningKey);
         confirmation.voters.push(msg.sender);
