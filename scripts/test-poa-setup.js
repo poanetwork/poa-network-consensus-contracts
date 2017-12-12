@@ -14,12 +14,12 @@ const keysManager = new web3.eth.Contract(KeysManagerABI, addresses.keysManager,
     gas: GAS_LIMIT // default gas price in wei
 });
 
-async function sendMoneyToInitialKeys(){
+async function sendMoneyToKeys(type){
   const keys = Object.keys(addresses);
   keys.forEach(async (miner) => {
     const minerAddresses = addresses[miner];
     const receipt = await sendMoney({
-      to: minerAddresses.initial,
+      to: minerAddresses[type],
       from: UNLOCKED_ADDRESS
     })
     console.log(receipt.transactionHash)
@@ -46,11 +46,12 @@ async function createKeys(miner){
 
 
 async function main(){
-  await sendMoneyToInitialKeys()
-  await initializeKeys(addresses.forthMiner.initial);
-  await createKeys(addresses.forthMiner);
+  // await sendMoneyToKeys('initial')
+  // await sendMoneyToKeys('voting')
+  await initializeKeys(addresses.sixthMiner.initial);
+  await createKeys(addresses.sixthMiner);
 
 }
 main()
 
-// PORT=8545 UNLOCKED_ADDRESS=0x0039F22efB07A647557C7C5d17854CFD6D489eF3 node test-poa-setup.js
+// PORT=8551 UNLOCKED_ADDRESS=0x030B90762Cee7a87ee4f51e715a302177043835e node test-poa-setup.js
