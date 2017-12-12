@@ -20,6 +20,12 @@ contract ValidatorMetadata {
         uint256 updatedDate;
         uint256 minThreshold;
     }
+
+    struct Confirmation {
+
+        uint256 count;
+        mapping(address => bool) voter;
+    }
     
     IProxyStorage public proxyStorage;
     event MetadataCreated(address indexed miningKey);
@@ -29,7 +35,7 @@ contract ValidatorMetadata {
     event FinalizedChange(address indexed miningKey);
     mapping(address => Validator) public validators;
     mapping(address => Validator) public pendingChanges;
-    mapping(address => uint256) public confirmations;
+    mapping(address => Confirmation) public confirmations;
 
     modifier onlyValidVotingKey(address _votingKey) {
         IKeysManager keysManager = IKeysManager(getKeysManager());
@@ -96,7 +102,7 @@ contract ValidatorMetadata {
             minThreshold: validators[miningKey].minThreshold
         });
         pendingChanges[miningKey] = pendingChange;
-        confirmations[miningKey] = 0;
+        confirmations[miningKey].count = 0;
         ChangeRequestInitiated(miningKey);
         return true;
     }
@@ -109,14 +115,17 @@ contract ValidatorMetadata {
     }
 
     function confirmPendingChange(address _miningKey) public onlyValidVotingKey(msg.sender) {
+        Confirmation storage confirmation = confirmations[_miningKey];
+        require(!confirmation.voter[msg.sender]);
         address miningKey = getMiningByVotingKey(msg.sender);
         require(miningKey != _miningKey);
-        confirmations[_miningKey] = confirmations[_miningKey].add(1);
+        confirmation.voter[msg.sender] = true;
+        confirmation.count = confirmation.count.add(1);
         Confirmed(_miningKey, msg.sender);
     }
 
     function finalize(address _miningKey) public onlyValidVotingKey(msg.sender) {
-        require(confirmations[_miningKey] >= pendingChanges[_miningKey].minThreshold);
+        require(confirmations[_miningKey].count >= pendingChanges[_miningKey].minThreshold);
         validators[_miningKey] = pendingChanges[_miningKey];
         delete pendingChanges[_miningKey];
         FinalizedChange(_miningKey);
