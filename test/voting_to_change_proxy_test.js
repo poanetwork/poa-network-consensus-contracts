@@ -6,6 +6,7 @@ let VotingForKeys = artifacts.require('./mockContracts/VotingToChangeKeysMock');
 let BallotsStorage = artifacts.require('./mockContracts/BallotsStorageMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
+const {addValidators} = require('./helpers')
 
 const choice = {
   accept: 1,
@@ -17,10 +18,12 @@ require('chai')
   .should();
 
 let keysManager, poaNetworkConsensusMock, ballotsStorage, voting;
-let votingKey, votingKey2, votingKey3;
+let votingKey, votingKey2, votingKey3, miningKeyForVotingKey;
 contract('VotingToChangeProxyAddress [all features]', function (accounts) {
   votingKey = accounts[2];
   masterOfCeremony = accounts[0];
+  miningKeyForVotingKey = accounts[1];
+  
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony);
     proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address, masterOfCeremony);
@@ -61,7 +64,8 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(1),
         accounts[5],
-        new web3.BigNumber(1)
+        new web3.BigNumber(1),
+        miningKeyForVotingKey        
       ])
       let activeBallotsLength = await voting.activeBallotsLength();
       activeBallotsLength.should.be.bignumber.equal(1);
@@ -106,8 +110,21 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
         new web3.BigNumber(1),
         new web3.BigNumber(1),
         accounts[5],
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        miningKeyForVotingKey
       ])
+    })
+    it('should not let create more ballots than the limit', async () => {
+      const VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
+      const VOTING_END_DATE = moment.utc().add(30, 'years').unix();
+      await voting.createBallotToChangeProxyAddress(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, {from: votingKey});
+      await voting.createBallotToChangeProxyAddress(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, {from: votingKey});
+      // we have 7 validators, so 200 limit / 7 = 28.5 ~ 28
+      new web3.BigNumber(200).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
+      await addValidators({proxyStorageMock, keysManager, poaNetworkConsensusMock}); //add 100 validators, so total will be 101 validator
+      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
+      await voting.createBallotToChangeProxyAddress(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, {from: votingKey}).should.be.rejectedWith(ERROR_MSG)
+
     })
   })
 
@@ -258,7 +275,8 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
         new web3.BigNumber(0), //index
         new web3.BigNumber(3), //minThreshold
         accounts[5], //porposedValue
-        new web3.BigNumber(contractType)
+        new web3.BigNumber(contractType),
+        miningKeyForVotingKey //creator
       ])
       true.should.be.equal(
         await voting.hasAlreadyVoted(votingId, votingKey)
@@ -337,7 +355,8 @@ async function deployAndTest({
     new web3.BigNumber(0), //index
     new web3.BigNumber(3), //minThreshold
     newAddress, //proposedValue
-    new web3.BigNumber(contractType)
+    new web3.BigNumber(contractType),
+    miningKeyForVotingKey //creator
   ])
   if( contractType !== 1) {
     true.should.be.equal(

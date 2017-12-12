@@ -28,9 +28,11 @@ contract VotingToChangeProxyAddress {
         address proposedValue;
         uint8 contractType;
         mapping(address => bool) voters;
+        address creator;
     }
 
     mapping(uint256 => VotingData) public votingState;
+    mapping(address => uint256) public validatorActiveBallots;
 
     event Vote(uint256 indexed decision, address indexed voter, uint256 time );
     event BallotFinalized(uint256 indexed id, address indexed voter);
@@ -56,6 +58,8 @@ contract VotingToChangeProxyAddress {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
         require(_proposedValue != address(0));
+        address creatorMiningKey = getMiningByVotingKey(msg.sender);
+        require(withinLimit(creatorMiningKey));
         VotingData memory data = VotingData({
             startTime: _startTime,
             endTime: _endTime,
@@ -66,11 +70,13 @@ contract VotingToChangeProxyAddress {
             index: activeBallots.length,
             proposedValue: _proposedValue,
             contractType: _contractType,
-            minThresholdOfVoters: getGlobalMinThresholdOfVoters()
+            minThresholdOfVoters: getGlobalMinThresholdOfVoters(),
+            creator: creatorMiningKey
         });
         votingState[nextBallotId] = data;
         activeBallots.push(nextBallotId);
         activeBallotsLength = activeBallots.length;
+        _increaseValidatorLimit();
         BallotCreated(nextBallotId, 5, msg.sender);
         nextBallotId++;
     }
@@ -95,6 +101,7 @@ contract VotingToChangeProxyAddress {
         require(!isActive(_id));
         VotingData storage ballot = votingState[_id];
         finalizeBallot(_id);
+        _decreaseValidatorLimit(_id);
         ballot.isFinalized = true;
         BallotFinalized(_id, msg.sender);
     }
@@ -188,6 +195,16 @@ contract VotingToChangeProxyAddress {
         return false;
     }
 
+    function getBallotLimitPerValidator() public view returns(uint256) {
+        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
+        return ballotsStorage.getBallotLimitPerValidator();
+    }
+
+    function withinLimit(address _miningKey) public view returns(bool) {
+        return validatorActiveBallots[_miningKey] <= getBallotLimitPerValidator();
+    }
+
+
     function finalizeBallot(uint256 _id) private {
         if (getProgress(_id) > 0 && getTotalVoters(_id) >= getMinThresholdOfVoters(_id)) {
             updateBallot(_id, uint8(QuorumStates.Accepted));
@@ -210,5 +227,16 @@ contract VotingToChangeProxyAddress {
             activeBallots.length--;
         }
         activeBallotsLength = activeBallots.length;
+    }
+
+    function _increaseValidatorLimit() private {
+        address miningKey = getMiningByVotingKey(msg.sender);
+        validatorActiveBallots[miningKey] = validatorActiveBallots[miningKey].add(1);
+    }
+
+    function _decreaseValidatorLimit(uint256 _id) private {
+        VotingData storage ballot = votingState[_id];
+        address miningKey = ballot.creator;
+        validatorActiveBallots[miningKey] = validatorActiveBallots[miningKey].sub(1);
     }
 }

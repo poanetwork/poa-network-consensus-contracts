@@ -2,6 +2,7 @@ let PoaNetworkConsensus = artifacts.require('./mockContracts/PoaNetworkConsensus
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
 let BallotsStorageMock = artifacts.require('./mockContracts/BallotsStorageMock');
 let VotingToChangeMinThresholdMock = artifacts.require('./mockContracts/VotingToChangeMinThresholdMock');
+let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 require('chai')
     .use(require('chai-as-promised'))
@@ -11,19 +12,20 @@ require('chai')
 let proxyStorage, masterOfCeremony, ballotsStorage;
 contract('BallotsStorage [all features]', function (accounts) {
   let {keysManager, votingToChangeKeys, votingToChangeMinThreshold, votingToChangeProxy, ballotsStorage} = {
-    keysManager: accounts[1],
-    votingToChangeKeys: accounts[2],
+    keysManager: '',
+    votingToChangeKeys: accounts[0],
     votingToChangeMinThreshold: accounts[3],
-    votingToChangeProxy: accounts[4],
-    ballotsStorage: accounts[5]
+    votingToChangeProxy: accounts[4]
   }
   masterOfCeremony = accounts[0];
   beforeEach(async () => {
     poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony);
     proxyStorage = await ProxyStorageMock.new(poaNetworkConsensus.address, masterOfCeremony);
     ballotsStorageMock = await BallotsStorageMock.new(proxyStorage.address);
+    keysManager = await KeysManagerMock.new(proxyStorage.address, poaNetworkConsensus.address, masterOfCeremony);
     await poaNetworkConsensus.setProxyStorage(proxyStorage.address);
-    await proxyStorage.initializeAddresses(keysManager, votingToChangeKeys, votingToChangeMinThreshold, votingToChangeProxy, ballotsStorage);
+    await proxyStorage.initializeAddresses(keysManager.address, votingToChangeKeys, votingToChangeMinThreshold, votingToChangeProxy, ballotsStorageMock.address);
+
   })
   describe('#contstuctor', async () => {
     it('sets MoC and Poa', async () => {
@@ -94,6 +96,18 @@ contract('BallotsStorage [all features]', function (accounts) {
       await proxyStorage.setVotingToChangeMinThresholdMock(accounts[4]);
       accounts[4].should.be.equal(await ballotsStorageMock.getVotingToChangeThreshold())
     })
-  })  
+  })
+  describe('#getBallotLimit', async () => {
+    it('returns limit per validator to create ballots', async () => {
+      let limit = await ballotsStorageMock.getBallotLimitPerValidator();
+      limit.should.be.bignumber.equal(200);
+
+      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      await poaNetworkConsensus.setSystemAddress(accounts[0]);
+      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+      limit = await ballotsStorageMock.getBallotLimitPerValidator();
+      limit.should.be.bignumber.equal(100);
+    })
+  })
 })
 
