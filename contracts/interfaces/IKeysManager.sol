@@ -3,7 +3,6 @@ pragma solidity ^0.4.18;
 
 contract IKeysManager {
     address public masterOfCeremony;
-    address public votingContract;
     address public poaNetworkConsensus;
     uint256 public maxNumberOfInitialKeys;
     uint256 public initialKeysCount;
