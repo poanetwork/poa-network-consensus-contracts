@@ -295,5 +295,42 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       minThresholdVotingForKeys.should.be.bignumber.equal(proposedValue);
     })
 
+    it('prevents double finalize', async () => {
+      let proposedValue1 = 4;
+      let proposedValue2 = 5;
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, proposedValue1, {from: votingKey});
+            
+      await proxyStorageMock.setVotingContractMock(accounts[0]);
+      await keysManager.addMiningKey("0xa6Bf70bd230867c870eF13631D7EFf1AE8Ab85c9").should.be.fulfilled;
+      await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
+      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
+
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE+2, VOTING_END_DATE+2, proposedValue2, {from: votingKey});
+
+      const activeBallotsLength = await voting.activeBallotsLength();
+      votingId = await voting.activeBallots(activeBallotsLength.toNumber() - 2);
+      let votingIdForSecond = votingId.add(1);
+      await voting.setTime(VOTING_START_DATE);
+      await voting.vote(votingId, choice.reject, {from: votingKey}).should.be.fulfilled;
+      false.should.be.equal(await voting.hasAlreadyVoted(votingId, votingKey2));
+      await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
+      await voting.vote(votingId, choice.accept, {from: votingKey3}).should.be.fulfilled;
+      await voting.setTime(VOTING_END_DATE + 1);
+      false.should.be.equal(await voting.getIsFinalized(votingId));
+      await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
+      new web3.BigNumber(4).should.be.bignumber.equal(await voting.getProposedValue(votingId));
+      true.should.be.equal(await voting.getIsFinalized(votingId));
+      await voting.finalize(votingId, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.finalize(votingIdForSecond, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      new web3.BigNumber(5).should.be.bignumber.equal(await voting.getProposedValue(votingIdForSecond));
+      false.should.be.equal(await voting.getIsFinalized(votingIdForSecond));
+      await voting.vote(votingIdForSecond, choice.reject, {from: votingKey}).should.be.fulfilled;
+      await voting.setTime(VOTING_END_DATE + 3);
+      await voting.finalize(votingIdForSecond, {from: votingKey}).should.be.fulfilled;
+
+      new web3.BigNumber(-1).should.be.bignumber.equal(await voting.getProgress(votingIdForSecond))
+      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getProgress(votingId))
+    })
+
   })
 })

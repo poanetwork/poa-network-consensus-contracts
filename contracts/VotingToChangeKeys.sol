@@ -109,6 +109,7 @@ contract VotingToChangeKeys {
 
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
         require(!isActive(_id));
+        require(!getIsFinalized(_id));
         VotingData storage ballot = votingState[_id];
         finalizeBallot(_id);
         _decreaseValidatorLimit(_id);
@@ -185,7 +186,7 @@ contract VotingToChangeKeys {
 
     function isActive(uint256 _id) public view returns(bool) {
         bool withinTime = getStartTime(_id) <= getTime() && getTime() <= getEndTime(_id);
-        return withinTime && !getIsFinalized(_id);
+        return withinTime;
     }
 
     function hasAlreadyVoted(uint256 _id, address _votingKey) public view returns(bool) {
@@ -279,8 +280,15 @@ contract VotingToChangeKeys {
     }
 
     function deactiveBallot(uint256 _id) private {
-        VotingData memory ballot = votingState[_id];
-        delete activeBallots[ballot.index];
+        VotingData storage ballot = votingState[_id];
+        uint256 removedIndex = ballot.index;
+        uint256 lastIndex = activeBallots.length - 1;
+        uint256 lastBallotId = activeBallots[lastIndex];
+        // Override the removed ballot with the last one.
+        activeBallots[removedIndex] = lastBallotId;
+        // Update the index of the last validator.
+        votingState[lastBallotId].index = removedIndex;
+        delete activeBallots[lastIndex];
         if (activeBallots.length > 0) {
             activeBallots.length--;
         }
