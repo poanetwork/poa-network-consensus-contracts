@@ -319,7 +319,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       newAddress.should.be.equal(await proxyStorageMock.getBallotsStorage());
     })
 
-    it.only('prevents double finalize', async () => {
+    it('prevents double finalize', async () => {
       let newAddress1 = accounts[4];
       let newAddress2 = accounts[5];
       let contractType1 = 4;
