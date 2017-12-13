@@ -6,6 +6,8 @@ let VotingForKeys = artifacts.require('./mockContracts/VotingToChangeKeysMock');
 let BallotsStorage = artifacts.require('./mockContracts/BallotsStorageMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
+const {addValidators} = require('./helpers')
+
 
 const choice = {
   accept: 1,
@@ -17,12 +19,13 @@ require('chai')
   .should();
 
 let keysManager, poaNetworkConsensusMock, ballotsStorage, voting;
-let votingKey, votingKey2, votingKey3;
+let votingKey, votingKey2, votingKey3, miningKeyForVotingKey;
 contract('VotingToChangeMinThreshold [all features]', function (accounts) {
   votingKey = accounts[2];
   votingKey2 = accounts[3];
   votingKey3 = accounts[5];
   masterOfCeremony = accounts[0];
+  miningKeyForVotingKey = accounts[1];
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony);
     proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address, masterOfCeremony);
@@ -70,7 +73,8 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
         new web3.BigNumber(1),
         new web3.BigNumber(0),
         new web3.BigNumber(3),
-        new web3.BigNumber(4)
+        new web3.BigNumber(4),
+        miningKeyForVotingKey
       ])
       startTime.should.be.bignumber.equal(VOTING_START_DATE);
       endTime.should.be.bignumber.equal(VOTING_END_DATE);
@@ -84,6 +88,18 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     })
     it('proposed value should not be equal to the same value', async () => {
       await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 3, {from: votingKey}).should.be.fulfilled.rejectedWith(ERROR_MSG);
+    })
+    it('should not let create more ballots than the limit', async () => {
+      const VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
+      const VOTING_END_DATE = moment.utc().add(30, 'years').unix();
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, {from: votingKey});
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, {from: votingKey});
+      // we have 7 validators, so 200 limit / 7 = 28.5 ~ 28
+      new web3.BigNumber(28).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
+      await addValidators({proxyStorageMock, keysManager, poaNetworkConsensusMock}); //add 100 validators, so total will be 101 validator
+      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, {from: votingKey}).should.be.rejectedWith(ERROR_MSG)
+
     })
   })
 
@@ -210,7 +226,8 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
           new web3.BigNumber(3),  //uint8 quorumState
           new web3.BigNumber(0),  //uint256 index
           new web3.BigNumber(3),   //uint256 minThresholdOfVoters
-          new web3.BigNumber(proposedValue) // uint256 proposedValue
+          new web3.BigNumber(proposedValue), // uint256 proposedValue
+          miningKeyForVotingKey  // creator
 
         ]
       )
@@ -253,7 +270,8 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
           new web3.BigNumber(2),  //uint8 quorumState
           new web3.BigNumber(0),  //uint256 index
           new web3.BigNumber(3),   //uint256 minThresholdOfVoters
-          new web3.BigNumber(proposedValue) // uint256 proposedValue
+          new web3.BigNumber(proposedValue), // uint256 proposedValue
+          miningKeyForVotingKey  //creator
 
         ]
       )

@@ -136,6 +136,9 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       const {logs} = await metadata.changeRequest(...anotherData, {from: votingKey}).should.be.fulfilled;
       confirmations = await metadata.confirmations(miningKey);
       confirmations.should.be.bignumber.equal(0);
+      await metadata.confirmPendingChange(miningKey, {from: votingKey2});
+      confirmations = await metadata.confirmations(miningKey);
+      confirmations.should.be.bignumber.equal(1);
     })
   })
 
@@ -225,6 +228,14 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       logs[0].args.miningKey.should.be.equal(miningKey);
       logs[0].args.votingSender.should.be.equal(votingKey2);
     });
+    it('prevent from double voting', async () => {
+      await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
+      await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
+      const {logs} = await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.fulfilled;
+      await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.rejectedWith(ERROR_MSG);
+      const confirmations = await metadata.confirmations(miningKey);
+      confirmations.should.be.bignumber.equal(1);
+    })
   });
   describe('#finalize', async ()=> {
     it('happy path', async ()=> {

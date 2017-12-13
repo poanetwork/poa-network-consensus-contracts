@@ -46,4 +46,12 @@ contract BallotsStorage is IBallotsStorage {
     function getProxyThreshold() public view returns(uint256) {
         return getTotalNumberOfValidators().div(2).add(1);
     }
+
+    function getBallotLimitPerValidator() public view returns(uint256) {
+        return getMaxLimitBallot().div(getTotalNumberOfValidators());
+    }
+    
+    function getMaxLimitBallot() public view returns(uint256) {
+        return 200;
+    }
 }

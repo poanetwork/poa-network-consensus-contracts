@@ -5,6 +5,7 @@ let VotingToChangeKeysMock = artifacts.require('./mockContracts/VotingToChangeKe
 let BallotsStorage = artifacts.require('./BallotsStorage');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
+const {addValidators} = require('./helpers')
 
 const choice = {
   accept: 1,
@@ -16,9 +17,10 @@ require('chai')
   .should();
 
 let keysManager, poaNetworkConsensusMock, ballotsStorage, voting;
-let votingKey, votingKey2, votingKey3;
+let votingKey, votingKey2, votingKey3, miningKeyForVotingKey;
 contract('Voting to change keys [all features]', function (accounts) {
   votingKey = accounts[2];
+  miningKeyForVotingKey = accounts[1];
   masterOfCeremony = accounts[0];
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony);
@@ -61,6 +63,20 @@ contract('Voting to change keys [all features]', function (accounts) {
       VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
       VOTING_END_DATE = 0
       await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+    })
+    it('should not let create more ballots than the limit', async () => {
+      await proxyStorageMock.setVotingContractMock(masterOfCeremony);
+      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
+      const VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
+      const VOTING_END_DATE = moment.utc().add(30, 'years').unix();
+      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey});
+      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey});
+      new web3.BigNumber(200).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
+      await addValidators({proxyStorageMock, keysManager, poaNetworkConsensusMock}); //add 100 validators, so total will be 101 validator
+      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
+      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey}).should.be.rejectedWith(ERROR_MSG)
+
     })
   })
 
@@ -213,7 +229,8 @@ contract('Voting to change keys [all features]', function (accounts) {
           new web3.BigNumber(3),  //uint8 quorumState
           new web3.BigNumber(1),  //uint256 ballotType
           new web3.BigNumber(0),  //uint256 index
-          new web3.BigNumber(3)   //uint256 minThresholdOfVoters
+          new web3.BigNumber(3),   //uint256 minThresholdOfVoters
+          miningKeyForVotingKey   // miningKeyCreator
         ]
       )
       true.should.be.equal(
@@ -535,7 +552,8 @@ async function deployAndTestBallot({_affectedKey, _affectedKeyType, _miningKey, 
       new web3.BigNumber(2),  //uint8 quorumState [0,1,2,3] = Invalid, InProgress, Accepted, Rejected
       new web3.BigNumber(_ballotType),  //uint256 ballotType
       new web3.BigNumber(0),  //uint256 index
-      new web3.BigNumber(3)   //uint256 minThresholdOfVoters
+      new web3.BigNumber(3),   //uint256 minThresholdOfVoters
+      miningKeyForVotingKey //miningKeyCreator
     ]
   )
 }
