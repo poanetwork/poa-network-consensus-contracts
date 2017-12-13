@@ -90,7 +90,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
       id = await voting.nextBallotId();
-      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, {from: votingKey});
+      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[1], 1, {from: votingKey});
     })
 
     it('should let a validator to vote', async () => {
@@ -254,7 +254,7 @@ contract('Voting to change keys [all features]', function (accounts) {
         _affectedKeyType: 3,
         _miningKey: accounts[1],
         _ballotType: 1,
-        expectedResult: 2
+        
       })
 
       const keysState = await keysManager.validatorKeys(accounts[1]);
@@ -283,7 +283,7 @@ contract('Voting to change keys [all features]', function (accounts) {
         _affectedKeyType: 2,
         _miningKey: miningKey,
         _ballotType: 1,
-        expectedResult: 2
+        
       })
       const keysState = await keysManager.validatorKeys(miningKey);
       keysState.should.be.deep.equal(
@@ -293,6 +293,36 @@ contract('Voting to change keys [all features]', function (accounts) {
         true,
         false ]
       )
+      
+    })
+    it('cannot create ballot for using previous mining key', async () => {
+      await proxyStorageMock.setVotingContractMock(voting.address);
+      let miningKey = accounts[6];
+
+  // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
+  // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
+
+      await deployAndTestBallot({
+        _affectedKey: miningKey,
+        _affectedKeyType: 1,
+        _miningKey: '0x0000000000000000000000000000000000000000',
+        _ballotType: 1,
+        
+      })
+      await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
+      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
+      true.should.be.equal(await poaNetworkConsensusMock.isValidator(miningKey));
+      let validators = await poaNetworkConsensusMock.getValidators();
+      await voting.setTime(VOTING_START_DATE - 1);
+      await deployAndTestBallot({
+        _affectedKey: accounts[5],
+        _affectedKeyType: 1,
+        _miningKey: miningKey,
+        _ballotType: 3,
+        
+      })
+      await voting.setTime(VOTING_START_DATE - 1);
+      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, miningKey, 1, accounts[5], 3, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
       
     })
     it('finalize addition of MiningKey', async () => {
@@ -307,7 +337,7 @@ contract('Voting to change keys [all features]', function (accounts) {
         _affectedKeyType: 1,
         _miningKey: '0x0000000000000000000000000000000000000000',
         _ballotType: 1,
-        expectedResult: 2
+        
       })
       const keysState = await keysManager.validatorKeys(miningKey);
       keysState.should.be.deep.equal(
@@ -338,7 +368,7 @@ contract('Voting to change keys [all features]', function (accounts) {
         _affectedKeyType: 1,
         _miningKey: miningKey,
         _ballotType: 2,
-        expectedResult: 2
+        
       })
       const keysState = await keysManager.validatorKeys(miningKey);
       keysState.should.be.deep.equal(
@@ -372,7 +402,7 @@ contract('Voting to change keys [all features]', function (accounts) {
         _affectedKeyType: 2,
         _miningKey: miningKey,
         _ballotType: 2,
-        expectedResult: 2
+        
       })
       const keysState = await keysManager.validatorKeys(miningKey);
       keysState.should.be.deep.equal(
@@ -401,7 +431,7 @@ contract('Voting to change keys [all features]', function (accounts) {
         _affectedKeyType: 3,
         _miningKey: miningKey,
         _ballotType: 2,
-        expectedResult: 2
+        
       })
       const keysState = await keysManager.validatorKeys(miningKey);
       keysState.should.be.deep.equal(
@@ -431,7 +461,7 @@ contract('Voting to change keys [all features]', function (accounts) {
         _affectedKeyType: 2,
         _miningKey: miningKey,
         _ballotType: 3,
-        expectedResult: 2
+        
       })
       const keysState = await keysManager.validatorKeys(miningKey);
       keysState.should.be.deep.equal(
@@ -460,7 +490,7 @@ contract('Voting to change keys [all features]', function (accounts) {
         _affectedKeyType: 3,
         _miningKey: miningKey,
         _ballotType: 3,
-        expectedResult: 2
+        
       })
       const keysState = await keysManager.validatorKeys(miningKey);
       keysState.should.be.deep.equal(
@@ -486,7 +516,7 @@ contract('Voting to change keys [all features]', function (accounts) {
         _affectedKeyType: 1,
         _miningKey: miningKey,
         _ballotType: 3,
-        expectedResult: 2
+        
       })
       const keysState = await keysManager.validatorKeys(miningKey);
       keysState.should.be.deep.equal(
@@ -511,7 +541,6 @@ contract('Voting to change keys [all features]', function (accounts) {
       validators.should.contain(affectedKey);
       false.should.be.equal(await poaNetworkConsensusMock.isValidator(miningKey));
       true.should.be.equal(await poaNetworkConsensusMock.isValidator(affectedKey));
-
     })
     it('prevent double finalize', async () => {
       let miningKey = accounts[6];
@@ -550,16 +579,23 @@ contract('Voting to change keys [all features]', function (accounts) {
 });
 
 
-async function deployAndTestBallot({_affectedKey, _affectedKeyType, _miningKey, _ballotType, expectedResult}) {
+async function deployAndTestBallot({_affectedKey, _affectedKeyType, _miningKey, _ballotType}) {
   // uint256 _startTime,
   // uint256 _endTime,
   // address _affectedKey,
   // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
   // address _miningKey,
   // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
-  await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, _affectedKey, _affectedKeyType, _miningKey, _ballotType, {from: votingKey});
+  votingId = await voting.nextBallotId();
+  await voting.createVotingForKeys(
+    VOTING_START_DATE,
+    VOTING_END_DATE,
+    _affectedKey,
+    _affectedKeyType,
+    _miningKey,
+    _ballotType, {from: votingKey});
   const activeBallotsLength = await voting.activeBallotsLength();
-  votingId = await voting.activeBallots(activeBallotsLength.toNumber() - 1);
+  new web3.BigNumber(_ballotType).should.be.bignumber.equal(await voting.getBallotType(votingId));
   await voting.setTime(VOTING_START_DATE);
   await voting.vote(votingId, choice.reject, {from: votingKey}).should.be.fulfilled;
   false.should.be.equal(await voting.hasAlreadyVoted(votingId, votingKey2));

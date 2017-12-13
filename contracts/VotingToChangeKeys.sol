@@ -89,8 +89,8 @@ contract VotingToChangeKeys {
         BallotCreated(nextBallotId, _ballotType, msg.sender);
         nextBallotId++;
     }
-
     function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
+        
         VotingData storage ballot = votingState[_id];
         // // check for validation;
         address miningKey = getMiningByVotingKey(msg.sender);
@@ -106,7 +106,6 @@ contract VotingToChangeKeys {
         ballot.voters[miningKey] = true;
         Vote(_choice, msg.sender, getTime());
     }
-
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
         require(!isActive(_id));
         require(!getIsFinalized(_id));
@@ -219,6 +218,22 @@ contract VotingToChangeKeys {
         return false;
     }
 
+    function checkIfMiningExisted(address _currentKey, address _affectedKey) public view returns(bool) {
+        IKeysManager keysManager = IKeysManager(getKeysManager());
+        for (uint8 i = 0; i < maxOldMiningKeysDeepCheck; i++) {
+            address oldMiningKey = keysManager.miningKeyHistory(_currentKey);
+            if (oldMiningKey == address(0)) {
+                return false;
+            }
+            if (oldMiningKey == _affectedKey) {
+                return true;
+            } else {
+                _currentKey = oldMiningKey;
+            }
+        }
+        return false;
+    }
+
     function withinLimit(address _miningKey) public view returns(bool) {
         return validatorActiveBallots[_miningKey] <= getBallotLimitPerValidator();
     }
@@ -229,6 +244,9 @@ contract VotingToChangeKeys {
         uint256 _affectedKeyType,
         address _miningKey) public view returns(bool) 
     {
+        if (_affectedKeyType == uint256(KeyTypes.MiningKey) && _ballotType != uint256(BallotTypes.Removal)) {
+            require(!checkIfMiningExisted(_miningKey, _affectedKey));
+        }
         require(_affectedKeyType > 0);
         require(_affectedKey != address(0));
         IKeysManager keysManager = IKeysManager(getKeysManager());
