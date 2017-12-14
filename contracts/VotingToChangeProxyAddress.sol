@@ -54,7 +54,6 @@ contract VotingToChangeProxyAddress {
         address _proposedValue,
         uint8 _contractType
         ) public onlyValidVotingKey(msg.sender) {
-        require(activeBallotsLength <= 100);
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
         require(_proposedValue != address(0));
