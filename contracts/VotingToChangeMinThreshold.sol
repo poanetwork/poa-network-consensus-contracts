@@ -60,7 +60,6 @@ contract VotingToChangeMinThreshold {
         uint256 _endTime,
         uint256 _proposedValue
         ) public onlyValidVotingKey(msg.sender) isValidProposedValue(_proposedValue) {
-        require(activeBallotsLength <= 100);
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
         address creatorMiningKey = getMiningByVotingKey(msg.sender);
