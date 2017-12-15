@@ -42,7 +42,7 @@ contract BallotsStorage is IBallotsStorage {
 
     function getTotalNumberOfValidators() public view returns(uint256) {
         IPoaNetworkConsensus poa = IPoaNetworkConsensus(proxyStorage.getPoaConsensus());
-        return poa.currentValidatorsLength();
+        return poa.getCurrentValidatorsLength();
     }
 
     function getProxyThreshold() public view returns(uint256) {
