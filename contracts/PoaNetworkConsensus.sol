@@ -150,4 +150,8 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         return proxyStorage.getVotingToChangeKeys();
     }
 
+    function getCurrentValidatorsLength() public view returns(uint256) {
+        return currentValidatorsLength;
+    }
+
 }

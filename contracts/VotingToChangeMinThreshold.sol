@@ -187,7 +187,7 @@ contract VotingToChangeMinThreshold {
         VotingData storage ballot = votingState[_id];
         IKeysManager keysManager = IKeysManager(getKeysManager());
         for (uint8 i = 0; i < maxOldMiningKeysDeepCheck; i++) {
-            address oldMiningKey = keysManager.miningKeyHistory(_miningKey);
+            address oldMiningKey = keysManager.getMiningKeyHistory(_miningKey);
             if (oldMiningKey == address(0)) {
                 return false;
             }

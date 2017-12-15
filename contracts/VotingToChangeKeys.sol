@@ -205,7 +205,7 @@ contract VotingToChangeKeys {
         IKeysManager keysManager = IKeysManager(getKeysManager());
         VotingData storage ballot = votingState[_id];
         for (uint8 i = 0; i < maxOldMiningKeysDeepCheck; i++) {
-            address oldMiningKey = keysManager.miningKeyHistory(_miningKey);
+            address oldMiningKey = keysManager.getMiningKeyHistory(_miningKey);
             if (oldMiningKey == address(0)) {
                 return false;
             }
@@ -221,7 +221,7 @@ contract VotingToChangeKeys {
     function checkIfMiningExisted(address _currentKey, address _affectedKey) public view returns(bool) {
         IKeysManager keysManager = IKeysManager(getKeysManager());
         for (uint8 i = 0; i < maxOldMiningKeysDeepCheck; i++) {
-            address oldMiningKey = keysManager.miningKeyHistory(_currentKey);
+            address oldMiningKey = keysManager.getMiningKeyHistory(_currentKey);
             if (oldMiningKey == address(0)) {
                 return false;
             }

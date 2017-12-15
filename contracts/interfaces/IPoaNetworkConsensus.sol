@@ -1,17 +1,12 @@
 pragma solidity ^0.4.18;
 
 
-contract IPoaNetworkConsensus {
-    bool public finalized = false;
-    address public systemAddress;
-    address[] public currentValidators;
-    address[] public pendingList;
-    uint256 public currentValidatorsLength;
-
+interface IPoaNetworkConsensus {
     function getValidators() public view returns(address[]);
     function getPendingList() public view returns(address[]);
     function finalizeChange() public;
     function addValidator(address) public;
     function removeValidator(address) public;
     function isValidator(address) public view returns(bool);
+    function getCurrentValidatorsLength() public view returns(uint256);
 }
