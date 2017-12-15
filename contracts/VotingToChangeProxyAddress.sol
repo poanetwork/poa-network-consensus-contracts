@@ -34,7 +34,7 @@ contract VotingToChangeProxyAddress {
     mapping(uint256 => VotingData) public votingState;
     mapping(address => uint256) public validatorActiveBallots;
 
-    event Vote(uint256 indexed decision, address indexed voter, uint256 time );
+    event Vote(uint256 indexed id, uint256 decision, address indexed voter, uint256 time );
     event BallotFinalized(uint256 indexed id, address indexed voter);
     event BallotCreated(uint256 indexed id, uint256 indexed ballotType, address indexed creator);
 
@@ -93,7 +93,7 @@ contract VotingToChangeProxyAddress {
         }
         ballot.totalVoters++;
         ballot.voters[miningKey] = true;
-        Vote(_choice, msg.sender, getTime());
+        Vote(_id, _choice, msg.sender, getTime());
     }
 
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
