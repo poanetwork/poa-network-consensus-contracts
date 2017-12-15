@@ -34,6 +34,7 @@ module.exports = async function(deployer, network, accounts) {
     BallotsStorage.address ${BallotsStorage.address} \n
     KeysManager.address ${KeysManager.address} \n
     ValidatorMetadata.address ${ValidatorMetadata.address} \n
+    ProxyStorage.address ${ProxyStorage.address} \n
     `)
 
   }

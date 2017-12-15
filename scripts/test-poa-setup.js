@@ -37,21 +37,25 @@ async function sendMoney({to, from}){
 
 async function initializeKeys(key) {
   const receipt = await keysManager.methods.initiateKeys(key).send({from: addresses.masterCeremony.mining});
-  console.log('Initial Key', receipt.status)
+  console.log('Initial Key ', key, ' status ', receipt.status)
 }
 async function createKeys(miner){
   const receipt = await keysManager.methods.createKeys(miner.mining, miner.voting, miner.payout).send({from: miner.initial});
-  console.log('CreateKeys ', receipt.status)
+  console.log('CreateKeys from initial', miner.initial, ' status: ', receipt.status)
 }
 
 
 async function main(){
-  // await sendMoneyToKeys('initial')
-  // await sendMoneyToKeys('voting')
-  await initializeKeys(addresses.sixthMiner.initial);
-  await createKeys(addresses.sixthMiner);
+  await sendMoneyToKeys('initial')
+  await sendMoneyToKeys('voting')
+  await initializeKeys(addresses.secondMiner.initial);
+  await createKeys(addresses.secondMiner);
+  await initializeKeys(addresses.thirdMiner.initial);
+  await createKeys(addresses.thirdMiner);
+  await initializeKeys(addresses.forthMiner.initial);
+  await createKeys(addresses.forthMiner);
 
 }
 main()
 
-// PORT=8551 UNLOCKED_ADDRESS=0x030B90762Cee7a87ee4f51e715a302177043835e node test-poa-setup.js
+// PORT=8545 UNLOCKED_ADDRESS=0x0039F22efB07A647557C7C5d17854CFD6D489eF3 node test-poa-setup.js
