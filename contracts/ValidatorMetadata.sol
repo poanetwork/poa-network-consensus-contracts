@@ -137,6 +137,7 @@ contract ValidatorMetadata {
 
     function finalize(address _miningKey) public onlyValidVotingKey(msg.sender) {
         require(confirmations[_miningKey].count >= pendingChanges[_miningKey].minThreshold);
+        require(onlyIfChangeExist(_miningKey));
         validators[_miningKey] = pendingChanges[_miningKey];
         delete pendingChanges[_miningKey];
         FinalizedChange(_miningKey);
@@ -165,5 +166,8 @@ contract ValidatorMetadata {
         return proxyStorage.getKeysManager();
     }
 
+    function onlyIfChangeExist(address _miningKey) public view returns(bool) {
+        return pendingChanges[_miningKey].zipcode > 0;
+    }
 
 }
