@@ -1,5 +1,5 @@
 {
-  "name": "oracles-poa-network-contracts",
+  "name": "poa-network-consensus-contracts",
   "version": "1.0.0",
   "description": "Solidity smart contracts for PoA validator set consensus",
   "main": "",
