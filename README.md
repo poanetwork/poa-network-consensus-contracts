@@ -1,6 +1,6 @@
 # poa-network-consensus-contracts
 
-[![Build Status](https://travis-ci.org/oraclesorg/poa-network-consensus-contracts.svg?branch=master)](https://travis-ci.org/oraclesorg/poa-network-consensus-contracts)
+[![Build Status](https://travis-ci.org/poanetwork/poa-network-consensus-contracts.svg?branch=master)](https://travis-ci.org/poanetwork/poa-network-consensus-contracts)
 
 ## Setup of the ceremony
 
@@ -14,7 +14,7 @@
 - Install solidity-flattener `pip3.5 install solidity-flattener`
 - Install npm dependencies `npm i`
 - Generate flat sources of contracts with the script `./make_flat.sh`
-- We need the byte code of `PoaNetworkConsensus_flat` contract to add it to [`spec.json`](https://github.com/oraclesorg/oracles-chain-spec/blob/master/spec.json) of the network. <br />
+- We need the byte code of `PoaNetworkConsensus_flat` contract to add it to [`spec.json`](https://github.com/poanetwork/poa-chain-spec/blob/core/spec.json) of the network. <br />
 Go to [Remix](http://remix.ethereum.org/#version=soljson-v0.4.18+commit.9cf6e910.js).<br />
 Copy `./flat/PoaNetworkConsensus_flat.sol` source to the input field and press `Start to compile`. <br />
 Choose `PoaNetworkConsensus` contract in the listbox and press "Details". Copy `BYTECODE` of the compiled source for `spec.json`.
@@ -41,7 +41,7 @@ Compile and deploy contracts in the next sequence:
 -  Select deployed `ProxyStorage` contract and make a call from MoC address to `initializeAddresses` with relevant addresses.
 
 ## Unit tests
-[Full Test Report](https://oraclesorg.github.io/poa-network-consensus-contracts/mochawesome.html)<br />
+[Full Test Report](https://poanetwork.github.io/poa-network-consensus-contracts/mochawesome.html)<br />
 
 ```
   Contract: BallotsStorage [all features]
