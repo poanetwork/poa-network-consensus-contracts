@@ -2,6 +2,10 @@
 
 [![Build Status](https://travis-ci.org/poanetwork/poa-network-consensus-contracts.svg?branch=master)](https://travis-ci.org/poanetwork/poa-network-consensus-contracts)
 
+## Audit
+- https://www.authio.org/post/poa-network-contract-audit by Alexander Wade
+- https://github.com/bokkypoobah/OraclesPoANetworkConsensusContractsAudit/tree/master/audit by Bokky PooBah
+
 ## Setup of the ceremony
 
 ### Prerequisites
