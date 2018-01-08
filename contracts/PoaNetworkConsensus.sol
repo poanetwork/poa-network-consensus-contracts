@@ -62,12 +62,19 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         _;
     }
 
-    function PoaNetworkConsensus(address _masterOfCeremony) public {
+    function PoaNetworkConsensus(address _masterOfCeremony, address[] validators, IProxyStorage _proxyStorage) public {
         // TODO: When you deploy this contract, make sure you hardcode items below
         // Make sure you have those addresses defined in spec.json
         require(_masterOfCeremony != address(0));
+        if(address(_proxyStorage) != address(0)) {
+            isMasterOfCeremonyInitialized = true;
+            proxyStorage = IProxyStorage(_proxyStorage);
+        }
         masterOfCeremony = _masterOfCeremony;
         currentValidators = [masterOfCeremony];
+        for (uint256 y = 0; y < validators.length; y++) {
+            currentValidators.push(validators[y]);
+        }
         for (uint256 i = 0; i < currentValidators.length; i++) {
             validatorsState[currentValidators[i]] = ValidatorState({
                 isValidator: true,

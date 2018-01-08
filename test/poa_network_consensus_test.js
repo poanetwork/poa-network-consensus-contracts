@@ -11,7 +11,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
     let proxyStorageMock;
     let masterOfCeremony = accounts[0];
     beforeEach(async () => {
-        poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony);
+        poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, [], "0x0000000000000000000000000000000000000000");
         proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensus.address, masterOfCeremony);
         await poaNetworkConsensus.setProxyStorage(proxyStorageMock.address);
         await proxyStorageMock.initializeAddresses(masterOfCeremony, masterOfCeremony, masterOfCeremony, masterOfCeremony, masterOfCeremony);
@@ -30,6 +30,34 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
         it('checks systemAddress', async () => {
             let systemAddress = await poaNetworkConsensus.systemAddress();
             systemAddress.should.be.equal('0xfffffffffffffffffffffffffffffffffffffffe');
+        })
+        it('allows you to set current list of validators', async () => {
+            let validatorsList = [accounts[2], accounts[3], accounts[4]];
+            let poa = await PoaNetworkConsensus.new(masterOfCeremony, validatorsList, "0x0000000000000000000000000000000000000000");
+            let validators = await poa.getValidators();
+            let finalized = await poa.finalized();
+            validators.should.be.deep.equal([
+                masterOfCeremony,
+                ...validatorsList
+            ]);
+
+        })
+        it('allows you to set proxyStorage', async () => {
+            let validatorsList = [accounts[2], accounts[3], accounts[4]];
+            let poa = await PoaNetworkConsensus.new(masterOfCeremony, validatorsList, "0x5ffc014343cd971b7eb70732021e26c35b744cc4");
+            let validators = await poa.getValidators();
+            let finalized = await poa.finalized();
+            validators.should.be.deep.equal([
+                masterOfCeremony,
+                ...validatorsList
+            ]);
+            true.should.be.equal(await poa.isMasterOfCeremonyInitialized());
+            let pendingList = await poa.getPendingList();
+            pendingList.should.be.deep.equal([
+                masterOfCeremony,
+                ...validatorsList
+            ]);
+            new web3.BigNumber(4).should.be.bignumber.equal(await poa.getCurrentValidatorsLength())
         })
     })
 

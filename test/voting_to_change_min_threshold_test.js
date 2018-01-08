@@ -27,7 +27,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
   masterOfCeremony = accounts[0];
   miningKeyForVotingKey = accounts[1];
   beforeEach(async () => {
-    poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony);
+    poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, [], "0x0000000000000000000000000000000000000000");
     proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address, masterOfCeremony);
     keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony);
     ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
