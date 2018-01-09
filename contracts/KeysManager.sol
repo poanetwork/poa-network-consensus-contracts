@@ -36,6 +36,7 @@ contract KeysManager is IKeysManager {
     event MiningKeyChanged(address key, string action);
     event ValidatorInitialized(address indexed miningKey, address indexed votingKey, address indexed payoutKey);
     event InitialKeyCreated(address indexed initialKey, uint256 time, uint256 initialKeysCount);
+    event Migrated(string name, address key);
 
     modifier onlyVotingToChangeKeys() {
         require(msg.sender == getVotingToChangeKeys());
@@ -66,6 +67,8 @@ contract KeysManager is IKeysManager {
             isVotingActive: false,
             isPayoutActive: false
         });
+        successfulValidatorClone[_masterOfCeremony] = true;
+        Migrated("miningKey", _masterOfCeremony);
         if (_previousKeysManager != address(0)) {
             previousKeysManager = _previousKeysManager;
             KeysManager previous = KeysManager(previousKeysManager);
@@ -73,31 +76,33 @@ contract KeysManager is IKeysManager {
         }
     }
 
-    function migrateFromPreviousKeysManager(address _miningKey, address _initialKey) public {
+    function migrateMiningKey(address _miningKey) public {
         KeysManager previous = KeysManager(previousKeysManager);
-        if (_initialKey != address(0) && initialKeys[_initialKey] == 0) {
-            uint8 status = previous.getInitialKey(_initialKey);
-            if( status == 1 || status == 2) {
-                initialKeys[_initialKey] = status;
-            }
-        }
+        require(_miningKey != address(0));
+        require(previous.isMiningActive(_miningKey));
+        require(!isMiningActive(_miningKey));
+        require(!successfulValidatorClone[_miningKey]);
+        address votingKey = previous.getVotingByMining(_miningKey);
+        validatorKeys[_miningKey] = Keys({
+            votingKey: votingKey,
+            payoutKey: previous.getPayoutByMining(_miningKey),
+            isMiningActive: previous.isMiningActive(_miningKey),
+            isVotingActive: previous.isVotingActive(votingKey),
+            isPayoutActive: previous.isPayoutActive(_miningKey)
+        });
+        miningKeyByVoting[previous.getVotingByMining(_miningKey)] = _miningKey;
+        successfulValidatorClone[_miningKey] = true;
+        Migrated("miningKey", _miningKey);
+    }
 
-        if (_miningKey != address(0) &&
-            previous.isMiningActive(_miningKey) &&
-            !isMiningActive(_miningKey) &&
-            !successfulValidatorClone[_miningKey]
-           ) {
-            address votingKey = previous.getVotingByMining(_miningKey);
-            validatorKeys[_miningKey] = Keys({
-                votingKey: votingKey,
-                payoutKey: previous.getPayoutByMining(_miningKey),
-                isMiningActive: previous.isMiningActive(_miningKey),
-                isVotingActive: previous.isVotingActive(votingKey),
-                isPayoutActive: previous.isPayoutActive(_miningKey)
-            });
-            miningKeyByVoting[previous.getVotingByMining(_miningKey)] = _miningKey;
-            successfulValidatorClone[_miningKey] = true;
-        }
+    function migrateInitialKey(address _initialKey) public {
+        KeysManager previous = KeysManager(previousKeysManager);
+        require(initialKeys[_initialKey] == 0);
+        require(_initialKey != address(0));
+        uint8 status = previous.getInitialKey(_initialKey);
+        require(status == 1 || status == 2);
+        initialKeys[_initialKey] = status;
+        Migrated("initialKey", _initialKey);
     }
 
     function initiateKeys(address _initialKey) public {
