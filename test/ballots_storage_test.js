@@ -19,10 +19,10 @@ contract('BallotsStorage [all features]', function (accounts) {
   }
   masterOfCeremony = accounts[0];
   beforeEach(async () => {
-    poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony);
-    proxyStorage = await ProxyStorageMock.new(poaNetworkConsensus.address, masterOfCeremony);
+    poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []);
+    proxyStorage = await ProxyStorageMock.new(poaNetworkConsensus.address);
     ballotsStorageMock = await BallotsStorageMock.new(proxyStorage.address);
-    keysManager = await KeysManagerMock.new(proxyStorage.address, poaNetworkConsensus.address, masterOfCeremony);
+    keysManager = await KeysManagerMock.new(proxyStorage.address, poaNetworkConsensus.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
     await poaNetworkConsensus.setProxyStorage(proxyStorage.address);
     await proxyStorage.initializeAddresses(keysManager.address, votingToChangeKeys, votingToChangeMinThreshold, votingToChangeProxy, ballotsStorageMock.address);
 

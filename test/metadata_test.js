@@ -32,9 +32,9 @@ contract('ValidatorMetadata [all features]', function (accounts) {
   miningKey = accounts[1];
   miningKey2 = accounts[4];
   beforeEach(async () => { 
-    poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony);
-    proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address, masterOfCeremony);
-    keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony);
+    poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
+    proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address);
+    keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
     ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, masterOfCeremony, masterOfCeremony, ballotsStorage.address);

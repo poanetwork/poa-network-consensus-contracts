@@ -18,16 +18,16 @@ contract('ProxyStorage [all features]', function (accounts) {
   }
   masterOfCeremony = accounts[0];
   beforeEach(async () => {
-    poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony);
-    proxyStorage = await ProxyStorageMock.new(poaNetworkConsensus.address, masterOfCeremony);
+    poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []);
+    proxyStorage = await ProxyStorageMock.new(poaNetworkConsensus.address);
   })
   describe('#contstuctor', async () => {
     it('sets MoC and Poa', async () => {
-      masterOfCeremony.should.be.equal(
-        await proxyStorage.masterOfCeremony()
-      );
       poaNetworkConsensus.address.should.be.equal(
         await proxyStorage.getPoaConsensus()
+      );
+      true.should.be.equal(
+        await proxyStorage.isValidator(masterOfCeremony)
       );
     })
   })
@@ -125,6 +125,12 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorage.setContractAddress(5, accounts[4], {from: votingToChangeProxy}).should.be.fulfilled;
       accounts[4].should.be.equal(
         await proxyStorage.getBallotsStorage()
+      )
+    })
+    it('sets ballotsStorage', async () => {
+      await proxyStorage.setContractAddress(6, accounts[4], {from: votingToChangeProxy}).should.be.fulfilled;
+      accounts[4].should.be.equal(
+        await proxyStorage.getPoaConsensus()
       )
     })
   })

@@ -17,16 +17,19 @@ contract KeysManager is IKeysManager {
     }
     
     address public masterOfCeremony;
+    address public previousKeysManager;
     IProxyStorage public proxyStorage;
     
     IPoaNetworkConsensus public poaNetworkConsensus;
     uint256 public maxNumberOfInitialKeys = 12;
     uint256 public initialKeysCount = 0;
     uint256 public maxLimitValidators = 2000;
+    uint8 public contractVersion = 1;
     mapping(address => uint8) public initialKeys;
     mapping(address => Keys) public validatorKeys;
     mapping(address => address) public miningKeyByVoting;
     mapping(address => address) public miningKeyHistory;
+    mapping(address => bool) public successfulValidatorClone;
 
     event PayoutKeyChanged(address key, address indexed miningKey, string action);
     event VotingKeyChanged(address key, address indexed miningKey, string action);
@@ -49,7 +52,7 @@ contract KeysManager is IKeysManager {
         _;
     }
 
-    function KeysManager(address _proxyStorage, address _poaConsensus, address _masterOfCeremony) public {
+    function KeysManager(address _proxyStorage, address _poaConsensus, address _masterOfCeremony, address _previousKeysManager) public {
         require(_proxyStorage != address(0) && _poaConsensus != address(0));
         require(_proxyStorage != _poaConsensus);
         require(_masterOfCeremony != address(0) && _masterOfCeremony != _poaConsensus);
@@ -63,6 +66,38 @@ contract KeysManager is IKeysManager {
             isVotingActive: false,
             isPayoutActive: false
         });
+        if (_previousKeysManager != address(0)) {
+            previousKeysManager = _previousKeysManager;
+            KeysManager previous = KeysManager(previousKeysManager);
+            initialKeysCount = previous.initialKeysCount();
+        }
+    }
+
+    function migrateFromPreviousKeysManager(address _miningKey, address _initialKey) public {
+        KeysManager previous = KeysManager(previousKeysManager);
+        if (_initialKey != address(0) && initialKeys[_initialKey] == 0) {
+            uint8 status = previous.getInitialKey(_initialKey);
+            if( status == 1 || status == 2) {
+                initialKeys[_initialKey] = status;
+            }
+        }
+
+        if (_miningKey != address(0) &&
+            previous.isMiningActive(_miningKey) &&
+            !isMiningActive(_miningKey) &&
+            !successfulValidatorClone[_miningKey]
+           ) {
+            address votingKey = previous.getVotingByMining(_miningKey);
+            validatorKeys[_miningKey] = Keys({
+                votingKey: votingKey,
+                payoutKey: previous.getPayoutByMining(_miningKey),
+                isMiningActive: previous.isMiningActive(_miningKey),
+                isVotingActive: previous.isVotingActive(votingKey),
+                isPayoutActive: previous.isPayoutActive(_miningKey)
+            });
+            miningKeyByVoting[previous.getVotingByMining(_miningKey)] = _miningKey;
+            successfulValidatorClone[_miningKey] = true;
+        }
     }
 
     function initiateKeys(address _initialKey) public {
@@ -126,8 +161,8 @@ contract KeysManager is IKeysManager {
         return miningKeyHistory[_miningKey];
     }
 
-    function getMiningKeyByVoting(address _miningKey) public view returns(address) {
-        return miningKeyByVoting[_miningKey];
+    function getMiningKeyByVoting(address _votingKey) public view returns(address) {
+        return miningKeyByVoting[_votingKey];
     }
 
     function getInitialKey(address _initialKey) public view returns(uint8) {

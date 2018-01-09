@@ -13,9 +13,9 @@ contract('KeysManager [all features]', function (accounts) {
   masterOfCeremony = accounts[0];
 
   beforeEach(async () => {
-    poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony);
-    proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address, masterOfCeremony);
-    keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony);
+    poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
+    proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address);
+    keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, masterOfCeremony, masterOfCeremony, masterOfCeremony);
   });
@@ -428,6 +428,89 @@ contract('KeysManager [all features]', function (accounts) {
         true,
         false,
         true]
+      )
+    })
+  })
+
+  describe('#migrateFromPreviousKeysManager', async () => {
+    it('can copy initial keys', async () => {
+      await keysManager.initiateKeys(accounts[1]);
+      let newKeysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, keysManager.address);
+      keysManager.address.should.be.equal(
+        await newKeysManager.previousKeysManager()
+      )
+      let initialKeys = await newKeysManager.initialKeysCount();
+      initialKeys.should.be.bignumber.equal(1);
+      await newKeysManager.migrateFromPreviousKeysManager("0x0000000000000000000000000000000000000000", accounts[1]);
+      new web3.BigNumber(1).should.be.bignumber.equal(
+        await newKeysManager.initialKeys(accounts[1])
+      )
+      await newKeysManager.migrateFromPreviousKeysManager("0x0000000000000000000000000000000000000000", accounts[2]);
+      new web3.BigNumber(0).should.be.bignumber.equal(
+        await newKeysManager.initialKeys(accounts[2])
+      )
+    })
+    it('copies validator keys', async () => {
+      // let masterOfCeremony = accounts[0];
+      let miningKey = accounts[2];
+      let votingKey = accounts[3];
+      let payoutKey = accounts[4];
+      let mining2 = accounts[5];
+      await proxyStorageMock.setVotingContractMock(accounts[2]);
+      await keysManager.addMiningKey(mining2, {from: accounts[2]}).should.be.fulfilled;
+
+      await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.createKeys(miningKey, votingKey, payoutKey, {from: accounts[1]}).should.be.fulfilled;
+      const validatorKeyFromOld = await keysManager.validatorKeys(miningKey);
+      validatorKeyFromOld.should.be.deep.equal([
+        votingKey,
+        payoutKey,
+        true,
+        true,
+        true
+      ])
+      let newKeysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, keysManager.address);
+      // mining #1
+      await newKeysManager.migrateFromPreviousKeysManager(miningKey,"0x0000000000000000000000000000000000000000");
+
+      let initialKeys = await newKeysManager.initialKeysCount();
+      initialKeys.should.be.bignumber.equal(1);
+      const validatorKey = await newKeysManager.validatorKeys(miningKey);
+      validatorKey.should.be.deep.equal([
+        votingKey,
+        payoutKey,
+        true,
+        true,
+        true
+      ])
+
+      miningKey.should.be.equal(
+        await newKeysManager.getMiningKeyByVoting(votingKey)
+      );
+
+      true.should.be.equal(
+        await newKeysManager.isMiningActive(miningKey)
+      )
+      true.should.be.equal(
+        await newKeysManager.isVotingActive(votingKey)
+      )
+      true.should.be.equal(
+        await newKeysManager.isPayoutActive(miningKey)
+      )
+
+      // mining#2
+      await newKeysManager.migrateFromPreviousKeysManager(mining2,"0x0000000000000000000000000000000000000000");
+      const validatorKey2 = await newKeysManager.validatorKeys(mining2);
+      validatorKey2.should.be.deep.equal([
+        "0x0000000000000000000000000000000000000000",
+        "0x0000000000000000000000000000000000000000",
+        true,
+        false,
+        false
+      ])
+
+      true.should.be.equal(
+        await newKeysManager.isMiningActive(miningKey)
       )
     })
   })
