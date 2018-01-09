@@ -9,4 +9,5 @@ interface IProxyStorage {
     function getPoaConsensus() public view returns(address);
     function initializeAddresses(address, address, address, address, address) public;
     function setContractAddress(uint256, address) public;
+    function isValidator(address) public view returns(bool);
 }
