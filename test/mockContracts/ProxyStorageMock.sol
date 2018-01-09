@@ -2,8 +2,8 @@ pragma solidity ^0.4.18;
 import '../../contracts/ProxyStorage.sol';
 
 contract ProxyStorageMock is ProxyStorage {
-    function ProxyStorageMock(address _poaConsensus, address _moc)
-    ProxyStorage(_poaConsensus, _moc)
+    function ProxyStorageMock(address _poaConsensus)
+    ProxyStorage(_poaConsensus)
   {
   }
     uint256 public time;
@@ -30,9 +30,5 @@ contract ProxyStorageMock is ProxyStorage {
 
     function setKeysManagerMock(address _newAddress) public {
         keysManager = _newAddress;
-    }
-
-    function setMoc(address _moc) public {
-      masterOfCeremony = _moc;
     }
 }

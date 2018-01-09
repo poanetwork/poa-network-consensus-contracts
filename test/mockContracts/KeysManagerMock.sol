@@ -3,8 +3,8 @@ pragma solidity ^0.4.18;
 import '../../contracts/KeysManager.sol';
 
 contract KeysManagerMock is KeysManager {
-  function KeysManagerMock(address _proxyStorage, address _poaConsensus, address _masterOfCeremony)
-   KeysManager(_proxyStorage, _poaConsensus, _masterOfCeremony) 
+  function KeysManagerMock(address _proxyStorage, address _poaConsensus, address _masterOfCeremony, address _previousKeysManager)
+   KeysManager(_proxyStorage, _poaConsensus, _masterOfCeremony, _previousKeysManager) 
   {
   }
   function setMasterOfCeremony(address _newAddress) {

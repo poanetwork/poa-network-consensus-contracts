@@ -12,7 +12,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
     let masterOfCeremony = accounts[0];
     beforeEach(async () => {
         poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []);
-        proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensus.address, masterOfCeremony);
+        proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensus.address);
         await poaNetworkConsensus.setProxyStorage(proxyStorageMock.address);
         await proxyStorageMock.initializeAddresses(masterOfCeremony, masterOfCeremony, masterOfCeremony, masterOfCeremony, masterOfCeremony);
     });

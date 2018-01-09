@@ -26,8 +26,8 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
   
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
-    proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address, masterOfCeremony);
-    keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony);
+    proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address);
+    keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
     ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     voting = await VotingToChangeProxyAddress.new(proxyStorageMock.address);

@@ -1,9 +1,8 @@
 pragma solidity ^0.4.18;
 import "./interfaces/IProxyStorage.sol";
-
+import "./interfaces/IPoaNetworkConsensus.sol";
 
 contract ProxyStorage is IProxyStorage {
-    address public masterOfCeremony;
     address poaConsensus;
     address keysManager;
     address votingToChangeKeys;
@@ -11,6 +10,7 @@ contract ProxyStorage is IProxyStorage {
     address votingToChangeProxy;
     address ballotsStorage;
     bool public mocInitialized;
+    uint8 public contractVersion = 1;
 
     enum ContractTypes {
         Invalid,
@@ -18,7 +18,8 @@ contract ProxyStorage is IProxyStorage {
         VotingToChangeKeys,
         VotingToChangeMinThreshold,
         VotingToChangeProxy,
-        BallotsStorage 
+        BallotsStorage, 
+        PoaConsensus
     }
 
     event ProxyInitialized(
@@ -35,9 +36,8 @@ contract ProxyStorage is IProxyStorage {
         _;
     }
 
-    function ProxyStorage(address _poaConsensus, address _moc) public {
+    function ProxyStorage(address _poaConsensus) public {
         poaConsensus = _poaConsensus;
-        masterOfCeremony = _moc;
     }
 
     function getKeysManager() public view returns(address) {
@@ -72,7 +72,7 @@ contract ProxyStorage is IProxyStorage {
         address _ballotsStorage
     ) public 
     {
-        require(msg.sender == masterOfCeremony);
+        require(isValidator(msg.sender));
         require(!mocInitialized);
         keysManager = _keysManager;
         votingToChangeKeys = _votingToChangeKeys;
@@ -100,7 +100,14 @@ contract ProxyStorage is IProxyStorage {
             votingToChangeProxy = _contractAddress;
         } else if (_contractType == uint8(ContractTypes.BallotsStorage)) {
             ballotsStorage = _contractAddress;
+        } else if (_contractType == uint8(ContractTypes.PoaConsensus)) {
+            poaConsensus = _contractAddress;
         }
         AddressSet(_contractType, _contractAddress);
+    }
+
+    function isValidator(address _validator) public view returns(bool) {
+        IPoaNetworkConsensus poa = IPoaNetworkConsensus(poaConsensus);
+        return poa.isValidator(_validator);
     }
 }
