@@ -62,14 +62,10 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         _;
     }
 
-    function PoaNetworkConsensus(address _masterOfCeremony, address[] validators, IProxyStorage _proxyStorage) public {
+    function PoaNetworkConsensus(address _masterOfCeremony, address[] validators) public {
         // TODO: When you deploy this contract, make sure you hardcode items below
         // Make sure you have those addresses defined in spec.json
         require(_masterOfCeremony != address(0));
-        if(address(_proxyStorage) != address(0)) {
-            isMasterOfCeremonyInitialized = true;
-            proxyStorage = IProxyStorage(_proxyStorage);
-        }
         masterOfCeremony = _masterOfCeremony;
         currentValidators = [masterOfCeremony];
         for (uint256 y = 0; y < validators.length; y++) {
@@ -136,8 +132,8 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     }
 
     function setProxyStorage(address _newAddress) public {
-        // Address of Master of Ceremony;
-        require(msg.sender == masterOfCeremony);
+        // any miner can change the address;
+        require(isValidator(msg.sender));
         require(!isMasterOfCeremonyInitialized);
         require(_newAddress != address(0));
         proxyStorage = IProxyStorage(_newAddress);
@@ -160,5 +156,4 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     function getCurrentValidatorsLength() public view returns(uint256) {
         return currentValidatorsLength;
     }
-
 }

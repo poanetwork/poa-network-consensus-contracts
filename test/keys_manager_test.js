@@ -13,7 +13,7 @@ contract('KeysManager [all features]', function (accounts) {
   masterOfCeremony = accounts[0];
 
   beforeEach(async () => {
-    poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, [], "0x0000000000000000000000000000000000000000");
+    poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
     proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address, masterOfCeremony);
     keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony);
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
