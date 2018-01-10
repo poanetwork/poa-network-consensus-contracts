@@ -455,9 +455,9 @@ contract('Voting to change keys [all features]', function (accounts) {
 
   // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
   // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
-
+      let newVotingKey = accounts[2];
       await deployAndTestBallot({
-        _affectedKey: affectedKey,
+        _affectedKey: newVotingKey,
         _affectedKeyType: 2,
         _miningKey: miningKey,
         _ballotType: 3,
@@ -465,7 +465,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       })
       const keysState = await keysManager.validatorKeys(miningKey);
       keysState.should.be.deep.equal(
-        [ affectedKey,
+        [ newVotingKey,
         '0x0000000000000000000000000000000000000000',
         true,
         true,
@@ -484,9 +484,9 @@ contract('Voting to change keys [all features]', function (accounts) {
 
   // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
   // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
-
+      let newPayoutKey = accounts[2];
       await deployAndTestBallot({
-        _affectedKey: affectedKey,
+        _affectedKey: newPayoutKey,
         _affectedKeyType: 3,
         _miningKey: miningKey,
         _ballotType: 3,
@@ -495,7 +495,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       const keysState = await keysManager.validatorKeys(miningKey);
       keysState.should.be.deep.equal(
         [ '0x0000000000000000000000000000000000000000',
-        affectedKey,
+        newPayoutKey,
         true,
         false,
         true ]

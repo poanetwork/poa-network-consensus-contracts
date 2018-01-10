@@ -266,11 +266,11 @@ contract VotingToChangeKeys {
             }
             if (_affectedKeyType == uint256(KeyTypes.VotingKey)) {
                 address votingKey = keysManager.getVotingByMining(_miningKey);
-                return keysManager.isVotingActive(votingKey) && _affectedKey == votingKey && isMiningActive;
+                return keysManager.isVotingActive(votingKey) && _affectedKey != votingKey && isMiningActive;
             }
             if (_affectedKeyType == uint256(KeyTypes.PayoutKey)) {
                 address payoutKey = keysManager.getPayoutByMining(_miningKey);
-                return keysManager.isPayoutActive(_miningKey) && _affectedKey == payoutKey && isMiningActive;
+                return keysManager.isPayoutActive(_miningKey) && _affectedKey != payoutKey && isMiningActive;
             }       
         }
         return true;
