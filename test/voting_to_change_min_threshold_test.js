@@ -59,7 +59,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       id = await voting.nextBallotId();
     })
     it('happy path', async () => {
-      const {logs} = await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, {from: votingKey});
+      const {logs} = await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, "memo",{from: votingKey});
       const startTime = await voting.getStartTime(id.toNumber());
       const endTime = await voting.getEndTime(id.toNumber());
       const keysManagerFromContract = await voting.getKeysManager();
@@ -74,7 +74,8 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(3),
         new web3.BigNumber(4),
-        miningKeyForVotingKey
+        miningKeyForVotingKey,
+        "memo"
       ])
       startTime.should.be.bignumber.equal(VOTING_START_DATE);
       endTime.should.be.bignumber.equal(VOTING_END_DATE);
@@ -84,21 +85,21 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       logs[0].args.creator.should.be.equal(votingKey);
     })
     it('proposed value should be more than or equal to 3', async () => {
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 2, {from: votingKey}).should.be.fulfilled.rejectedWith(ERROR_MSG);
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 2,"memo", {from: votingKey}).should.be.fulfilled.rejectedWith(ERROR_MSG);
     })
     it('proposed value should not be equal to the same value', async () => {
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 3, {from: votingKey}).should.be.fulfilled.rejectedWith(ERROR_MSG);
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 3,"memo", {from: votingKey}).should.be.fulfilled.rejectedWith(ERROR_MSG);
     })
     it('should not let create more ballots than the limit', async () => {
       const VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
       const VOTING_END_DATE = moment.utc().add(30, 'years').unix();
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, {from: votingKey});
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, {from: votingKey});
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4,"memo", {from: votingKey});
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4,"memo", {from: votingKey});
       // we have 7 validators, so 200 limit / 7 = 28.5 ~ 28
       new web3.BigNumber(28).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
       await addValidators({proxyStorageMock, keysManager, poaNetworkConsensusMock}); //add 100 validators, so total will be 101 validator
       new web3.BigNumber(1).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, {from: votingKey}).should.be.rejectedWith(ERROR_MSG)
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, "memo",{from: votingKey}).should.be.rejectedWith(ERROR_MSG)
 
     })
   })
@@ -113,7 +114,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       id = await voting.nextBallotId();
       let fiftyOnePercent = await ballotsStorage.getProxyThreshold();
       let validators = await poaNetworkConsensusMock.getValidators();
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, {from: votingKey});
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, "memo",{from: votingKey});
     })
 
     it('should let a validator to vote', async () => {
@@ -201,7 +202,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     it('doesnot change if it did not pass minimum threshold', async () => {
       let proposedValue = 4;
       votingId = await voting.nextBallotId();
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, proposedValue, {from: votingKey});
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, proposedValue, "memo",{from: votingKey});
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(votingId, choice.accept, {from: votingKey}).should.be.fulfilled;
       // await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
@@ -227,7 +228,8 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
           new web3.BigNumber(0),  //uint256 index
           new web3.BigNumber(3),   //uint256 minThresholdOfVoters
           new web3.BigNumber(proposedValue), // uint256 proposedValue
-          miningKeyForVotingKey  // creator
+          miningKeyForVotingKey,  // creator
+          "memo"
 
         ]
       )
@@ -243,7 +245,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     it('should change to proposedValue when quorum is reached', async () => {
       let proposedValue = 4;
       votingId = await voting.nextBallotId();
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, proposedValue, {from: votingKey});
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, proposedValue, "memo",{from: votingKey});
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(votingId, choice.accept, {from: votingKey}).should.be.fulfilled;
       await voting.vote(votingId, choice.accept, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
@@ -271,7 +273,8 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
           new web3.BigNumber(0),  //uint256 index
           new web3.BigNumber(3),   //uint256 minThresholdOfVoters
           new web3.BigNumber(proposedValue), // uint256 proposedValue
-          miningKeyForVotingKey  //creator
+          miningKeyForVotingKey,  //creator
+          "memo"
 
         ]
       )
@@ -290,7 +293,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       let votingForKeys = await VotingForKeys.new(proxyStorageMock.address);
       
       let nextId = await votingForKeys.nextBallotId();
-      await votingForKeys.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 3, accounts[1], 1, {from: votingKey});
+      await votingForKeys.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 3, accounts[1], 1, "memo", {from: votingKey});
       const minThresholdVotingForKeys = await votingForKeys.getMinThresholdOfVoters(nextId);
       minThresholdVotingForKeys.should.be.bignumber.equal(proposedValue);
     })
@@ -298,15 +301,15 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     it('prevents double finalize', async () => {
       let proposedValue1 = 4;
       let proposedValue2 = 5;
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, proposedValue1, {from: votingKey});
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, proposedValue1, "memo",{from: votingKey});
             
       await proxyStorageMock.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey("0xa6Bf70bd230867c870eF13631D7EFf1AE8Ab85c9").should.be.fulfilled;
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
 
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE+2, VOTING_END_DATE+2, proposedValue2, {from: votingKey});
-
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE+2, VOTING_END_DATE+2, proposedValue2, "memo",{from: votingKey});
+      await voting.finalize(votingId, { from: votingKey }).should.be.rejectedWith(ERROR_MSG);
       const activeBallotsLength = await voting.activeBallotsLength();
       votingId = await voting.activeBallots(activeBallotsLength.toNumber() - 2);
       let votingIdForSecond = votingId.add(1);
@@ -318,6 +321,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       await voting.setTime(VOTING_END_DATE + 1);
       false.should.be.equal(await voting.getIsFinalized(votingId));
       await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
+      await voting.vote(votingId, choice.accept, { from: votingKey }).should.be.rejectedWith(ERROR_MSG);
       new web3.BigNumber(4).should.be.bignumber.equal(await voting.getProposedValue(votingId));
       true.should.be.equal(await voting.getIsFinalized(votingId));
       await voting.finalize(votingId, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);

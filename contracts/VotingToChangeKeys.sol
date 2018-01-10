@@ -34,6 +34,7 @@ contract VotingToChangeKeys {
         uint256 minThresholdOfVoters;
         mapping(address => bool) voters;
         address creator;
+        string memo;
     }
 
     mapping(uint256 => VotingData) public votingState;
@@ -59,7 +60,8 @@ contract VotingToChangeKeys {
         address _affectedKey, 
         uint256 _affectedKeyType, 
         address _miningKey,
-        uint256 _ballotType
+        uint256 _ballotType,
+        string memo
     ) public onlyValidVotingKey(msg.sender) {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
@@ -80,7 +82,8 @@ contract VotingToChangeKeys {
             ballotType: _ballotType,
             index: activeBallots.length,
             minThresholdOfVoters: getGlobalMinThresholdOfVoters(),
-            creator: creatorMiningKey
+            creator: creatorMiningKey,
+            memo: memo
         });
         votingState[nextBallotId] = data;
         activeBallots.push(nextBallotId);
@@ -90,7 +93,7 @@ contract VotingToChangeKeys {
         nextBallotId++;
     }
     function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
-        
+        require(!getIsFinalized(_id));
         VotingData storage ballot = votingState[_id];
         // // check for validation;
         address miningKey = getMiningByVotingKey(msg.sender);
@@ -107,6 +110,7 @@ contract VotingToChangeKeys {
         Vote(_id, _choice, msg.sender, getTime());
     }
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
+        require(getStartTime(_id) <= getTime());
         require(!isActive(_id));
         require(!getIsFinalized(_id));
         VotingData storage ballot = votingState[_id];
@@ -188,6 +192,10 @@ contract VotingToChangeKeys {
         return withinTime;
     }
 
+    function getMemo(uint256 _id) public view returns(string) {
+        return votingState[_id].memo;
+    }
+
     function hasAlreadyVoted(uint256 _id, address _votingKey) public view returns(bool) {
         VotingData storage ballot = votingState[_id];
         address miningKey = getMiningByVotingKey(_votingKey);
@@ -260,17 +268,28 @@ contract VotingToChangeKeys {
             }
         }
         require(_affectedKey != _miningKey);
+        bool keyCheck;
         if (_ballotType == uint256(BallotTypes.Removal) || _ballotType == uint256(BallotTypes.Swap)) {
             if (_affectedKeyType == uint256(KeyTypes.MiningKey)) {
                 return isMiningActive;
             }
             if (_affectedKeyType == uint256(KeyTypes.VotingKey)) {
                 address votingKey = keysManager.getVotingByMining(_miningKey);
-                return keysManager.isVotingActive(votingKey) && _affectedKey == votingKey && isMiningActive;
+                if(_ballotType == uint256(BallotTypes.Removal)) {
+                    keyCheck = _affectedKey == votingKey;
+                } else {
+                    keyCheck = _affectedKey != votingKey;
+                }
+                return keysManager.isVotingActive(votingKey) && keyCheck && isMiningActive;
             }
             if (_affectedKeyType == uint256(KeyTypes.PayoutKey)) {
                 address payoutKey = keysManager.getPayoutByMining(_miningKey);
-                return keysManager.isPayoutActive(_miningKey) && _affectedKey == payoutKey && isMiningActive;
+                if(_ballotType == uint256(BallotTypes.Removal)) {
+                    keyCheck = _affectedKey == payoutKey;
+                } else {
+                    keyCheck = _affectedKey != payoutKey;
+                }
+                return keysManager.isPayoutActive(_miningKey) && keyCheck && isMiningActive;
             }       
         }
         return true;
