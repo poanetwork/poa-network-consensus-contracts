@@ -432,7 +432,7 @@ contract('KeysManager [all features]', function (accounts) {
     })
   })
 
-  describe('#migrateFromPreviousKeysManager', async () => {
+  describe('#migrateInitialKey', async () => {
     it('can copy initial keys', async () => {
       await keysManager.initiateKeys(accounts[1]);
       let newKeysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, keysManager.address);
@@ -441,11 +441,15 @@ contract('KeysManager [all features]', function (accounts) {
       )
       let initialKeys = await newKeysManager.initialKeysCount();
       initialKeys.should.be.bignumber.equal(1);
-      await newKeysManager.migrateFromPreviousKeysManager("0x0000000000000000000000000000000000000000", accounts[1]);
+      let {logs} = await newKeysManager.migrateInitialKey(accounts[1]);
+      logs[0].event.should.equal("Migrated");
+      logs[0].args.key.should.be.equal(accounts[1]);
+      logs[0].args.name.should.be.equal("initialKey");
+
       new web3.BigNumber(1).should.be.bignumber.equal(
         await newKeysManager.initialKeys(accounts[1])
       )
-      await newKeysManager.migrateFromPreviousKeysManager("0x0000000000000000000000000000000000000000", accounts[2]);
+      await newKeysManager.migrateInitialKey(accounts[2]).should.be.rejectedWith(ERROR_MSG);
       new web3.BigNumber(0).should.be.bignumber.equal(
         await newKeysManager.initialKeys(accounts[2])
       )
@@ -471,7 +475,10 @@ contract('KeysManager [all features]', function (accounts) {
       ])
       let newKeysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, keysManager.address);
       // mining #1
-      await newKeysManager.migrateFromPreviousKeysManager(miningKey,"0x0000000000000000000000000000000000000000");
+      let {logs} = await newKeysManager.migrateMiningKey(miningKey);
+      logs[0].event.should.equal("Migrated");
+      logs[0].args.key.should.be.equal(miningKey);
+      logs[0].args.name.should.be.equal("miningKey");
 
       let initialKeys = await newKeysManager.initialKeysCount();
       initialKeys.should.be.bignumber.equal(1);
@@ -483,6 +490,9 @@ contract('KeysManager [all features]', function (accounts) {
         true,
         true
       ])
+      true.should.be.equal(
+        await newKeysManager.successfulValidatorClone(miningKey)
+      )
 
       miningKey.should.be.equal(
         await newKeysManager.getMiningKeyByVoting(votingKey)
@@ -499,7 +509,7 @@ contract('KeysManager [all features]', function (accounts) {
       )
 
       // mining#2
-      await newKeysManager.migrateFromPreviousKeysManager(mining2,"0x0000000000000000000000000000000000000000");
+      await newKeysManager.migrateMiningKey(mining2);
       const validatorKey2 = await newKeysManager.validatorKeys(mining2);
       validatorKey2.should.be.deep.equal([
         "0x0000000000000000000000000000000000000000",
@@ -510,8 +520,18 @@ contract('KeysManager [all features]', function (accounts) {
       ])
 
       true.should.be.equal(
-        await newKeysManager.isMiningActive(miningKey)
+        await newKeysManager.isMiningActive(mining2)
       )
+      true.should.be.equal(
+        await newKeysManager.successfulValidatorClone(mining2)
+      )
+    })
+    it('throws when trying to copy invalid mining key', async () => {
+      let newKeysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, keysManager.address);
+      true.should.be.equal(
+        await newKeysManager.successfulValidatorClone(masterOfCeremony)
+      );
+      await newKeysManager.migrateMiningKey(masterOfCeremony).should.be.rejectedWith(ERROR_MSG);
     })
   })
 });
