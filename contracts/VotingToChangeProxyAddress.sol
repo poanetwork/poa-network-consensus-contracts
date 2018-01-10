@@ -29,6 +29,7 @@ contract VotingToChangeProxyAddress {
         uint8 contractType;
         mapping(address => bool) voters;
         address creator;
+        string memo;
     }
 
     mapping(uint256 => VotingData) public votingState;
@@ -52,7 +53,8 @@ contract VotingToChangeProxyAddress {
         uint256 _startTime,
         uint256 _endTime,
         address _proposedValue,
-        uint8 _contractType
+        uint8 _contractType,
+        string memo
         ) public onlyValidVotingKey(msg.sender) {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
@@ -70,7 +72,8 @@ contract VotingToChangeProxyAddress {
             proposedValue: _proposedValue,
             contractType: _contractType,
             minThresholdOfVoters: getGlobalMinThresholdOfVoters(),
-            creator: creatorMiningKey
+            creator: creatorMiningKey,
+            memo: memo
         });
         votingState[nextBallotId] = data;
         activeBallots.push(nextBallotId);
@@ -81,6 +84,7 @@ contract VotingToChangeProxyAddress {
     }
 
     function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
+        require(!getIsFinalized(_id));
         VotingData storage ballot = votingState[_id];
         address miningKey = getMiningByVotingKey(msg.sender);
         require(isValidVote(_id, msg.sender));
@@ -97,6 +101,7 @@ contract VotingToChangeProxyAddress {
     }
 
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
+        require(getStartTime(_id) <= getTime());
         require(!isActive(_id));
         require(!getIsFinalized(_id));
         VotingData storage ballot = votingState[_id];
@@ -155,6 +160,10 @@ contract VotingToChangeProxyAddress {
     function getIsFinalized(uint256 _id) public view returns(bool) {
         return votingState[_id].isFinalized;
     }
+    
+    function getMemo(uint256 _id) public view returns(string) {
+        return votingState[_id].memo;
+    }
 
     function getTime() public view returns(uint256) {
         return now;
@@ -203,7 +212,6 @@ contract VotingToChangeProxyAddress {
     function withinLimit(address _miningKey) public view returns(bool) {
         return validatorActiveBallots[_miningKey] <= getBallotLimitPerValidator();
     }
-
 
     function finalizeBallot(uint256 _id) private {
         if (getProgress(_id) > 0 && getTotalVoters(_id) >= getMinThresholdOfVoters(_id)) {

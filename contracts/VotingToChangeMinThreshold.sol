@@ -29,6 +29,7 @@ contract VotingToChangeMinThreshold {
         uint256 proposedValue;
         mapping(address => bool) voters;
         address creator;
+        string memo;
     }
 
     mapping(uint256 => VotingData) public votingState;
@@ -58,7 +59,8 @@ contract VotingToChangeMinThreshold {
     function createBallotToChangeThreshold(
         uint256 _startTime,
         uint256 _endTime,
-        uint256 _proposedValue
+        uint256 _proposedValue,
+        string memo
         ) public onlyValidVotingKey(msg.sender) isValidProposedValue(_proposedValue) {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
@@ -74,7 +76,8 @@ contract VotingToChangeMinThreshold {
             index: activeBallots.length,
             proposedValue: _proposedValue,
             minThresholdOfVoters: getGlobalMinThresholdOfVoters(),
-            creator: creatorMiningKey
+            creator: creatorMiningKey,
+            memo: memo
         });
         votingState[nextBallotId] = data;
         activeBallots.push(nextBallotId);
@@ -85,6 +88,7 @@ contract VotingToChangeMinThreshold {
     }
 
     function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
+        require(!getIsFinalized(_id));
         VotingData storage ballot = votingState[_id];
         address miningKey = getMiningByVotingKey(msg.sender);
         require(isValidVote(_id, msg.sender));
@@ -101,6 +105,7 @@ contract VotingToChangeMinThreshold {
     }
 
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
+        require(getStartTime(_id) <= getTime());
         require(!isActive(_id));
         require(!getIsFinalized(_id));
         VotingData storage ballot = votingState[_id];
@@ -163,6 +168,10 @@ contract VotingToChangeMinThreshold {
 
     function getTime() public view returns(uint256) {
         return now;
+    }
+
+    function getMemo(uint256 _id) public view returns(string) {
+        return votingState[_id].memo;
     }
 
     function isActive(uint256 _id) public view returns(bool) {
