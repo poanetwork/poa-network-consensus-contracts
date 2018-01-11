@@ -396,12 +396,21 @@ contract('KeysManager [all features]', function (accounts) {
         false]
       )
     })
-    it.only('should keep voting and payout keys', async () => {
-      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      await keysManager.addVotingKey(accounts[2], accounts[1]).should.be.fulfilled;
-      await keysManager.addPayoutKey(accounts[3], accounts[1]).should.be.fulfilled;
-      await keysManager.swapMiningKey(accounts[4], accounts[1]).should.be.fulfilled;
-      const validator = await keysManager.validatorKeys(accounts[1]);
+    it('should keep voting and payout keys', async () => {
+      const oldMining = accounts[1];
+      const voting = accounts[2];
+      const payout = accounts[3];
+      const newMining = accounts[4];
+      await keysManager.addMiningKey(oldMining).should.be.fulfilled;
+      await keysManager.addVotingKey(voting, oldMining).should.be.fulfilled;
+      await keysManager.addPayoutKey(payout, oldMining).should.be.fulfilled;
+      const {logs} = await keysManager.swapMiningKey(newMining, oldMining).should.be.fulfilled;
+      const mining = await keysManager.getMiningKeyByVoting(voting);
+      const validator = await keysManager.validatorKeys(oldMining);
+
+      const miningCheck = await keysManager.getMiningKeyByVoting(voting);
+      miningCheck.should.be.equal(newMining);
+
       validator.should.be.deep.equal(
         [ '0x0000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000',
@@ -409,19 +418,20 @@ contract('KeysManager [all features]', function (accounts) {
         false,
         false ]
       )
-      const validatorNew = await keysManager.validatorKeys(accounts[4]);
+      const validatorNew = await keysManager.validatorKeys(newMining);
       validatorNew.should.be.deep.equal(
-        [ accounts[2],
-        accounts[3],
+        [ voting,
+        payout,
         true,
         true,
         true]
       )
+      oldMining.should.be.equal(await keysManager.getMiningKeyHistory(newMining));
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
       const validators = await poaNetworkConsensusMock.getValidators();
-      validators.should.not.contain(accounts[1]);
-      validators.should.contain(accounts[4]);
+      validators.should.not.contain(oldMining);
+      validators.should.contain(newMining);
     })
   })
 

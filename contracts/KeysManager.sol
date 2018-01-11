@@ -200,19 +200,19 @@ contract KeysManager is IKeysManager {
 
     function swapMiningKey(address _key, address _oldMiningKey) public onlyVotingToChangeKeys {
         miningKeyHistory[_key] = _oldMiningKey;
-        Keys storage validator = validatorKeys[_oldMiningKey];
-        require(validator.isMiningActive);
+        address votingKey = getVotingByMining(_oldMiningKey);
+        require(isMiningActive(_oldMiningKey));
         validatorKeys[_key] = Keys({
-            votingKey: validator.votingKey,
-            payoutKey: validator.payoutKey,
-            isVotingActive: validator.isVotingActive,
-            isPayoutActive: validator.isPayoutActive,
+            votingKey: votingKey,
+            payoutKey: getPayoutByMining(_oldMiningKey),
+            isVotingActive: isVotingActive(votingKey),
+            isPayoutActive: isPayoutActive(_oldMiningKey),
             isMiningActive: true
         });
         poaNetworkConsensus.addValidator(_key);
-        miningKeyByVoting[validator.votingKey] = _key;
-        MiningKeyChanged(_key, "swapped");
         _removeMiningKey(_oldMiningKey);
+        miningKeyByVoting[votingKey] = _key;
+        MiningKeyChanged(_key, "swapped");
     }
 
     function swapVotingKey(address _key, address _miningKey) public onlyVotingToChangeKeys {
