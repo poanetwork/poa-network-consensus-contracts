@@ -396,6 +396,33 @@ contract('KeysManager [all features]', function (accounts) {
         false]
       )
     })
+    it.only('should keep voting and payout keys', async () => {
+      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      await keysManager.addVotingKey(accounts[2], accounts[1]).should.be.fulfilled;
+      await keysManager.addPayoutKey(accounts[3], accounts[1]).should.be.fulfilled;
+      await keysManager.swapMiningKey(accounts[4], accounts[1]).should.be.fulfilled;
+      const validator = await keysManager.validatorKeys(accounts[1]);
+      validator.should.be.deep.equal(
+        [ '0x0000000000000000000000000000000000000000',
+        '0x0000000000000000000000000000000000000000',
+        false,
+        false,
+        false ]
+      )
+      const validatorNew = await keysManager.validatorKeys(accounts[4]);
+      validatorNew.should.be.deep.equal(
+        [ accounts[2],
+        accounts[3],
+        true,
+        true,
+        true]
+      )
+      await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
+      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
+      const validators = await poaNetworkConsensusMock.getValidators();
+      validators.should.not.contain(accounts[1]);
+      validators.should.contain(accounts[4]);
+    })
   })
 
   describe('#swapVotingKey', async () => {
