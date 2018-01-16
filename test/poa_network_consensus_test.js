@@ -79,8 +79,8 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
         })
 
         it('set currentValidators to pendingList after addValidator call', async () => {
-            await poaNetworkConsensus.addValidator(accounts[1], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
-            await poaNetworkConsensus.addValidator(accounts[1]);
+            await poaNetworkConsensus.addValidator(accounts[1], true, {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
+            await poaNetworkConsensus.addValidator(accounts[1], true);
             await poaNetworkConsensus.setSystemAddress(accounts[0]);
             await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
             let currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength();
@@ -93,7 +93,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
                 pendingList.push(pending);
             }
             currentValidators.should.be.deep.equal(pendingList);
-            await poaNetworkConsensus.addValidator(accounts[2]);
+            await poaNetworkConsensus.addValidator(accounts[2], true);
             await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
             currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength()
             const expected = [masterOfCeremony, accounts[1], accounts[2]];
@@ -114,26 +114,26 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
 
     describe('#addValidator', async () => {
         it('should be called only from keys manager', async () => {
-            await poaNetworkConsensus.addValidator(accounts[1], {from: accounts[2]}).should.be.rejectedWith(ERROR_MSG);
+            await poaNetworkConsensus.addValidator(accounts[1], true, {from: accounts[2]}).should.be.rejectedWith(ERROR_MSG);
             await proxyStorageMock.setKeysManagerMock(accounts[5]);
-            await poaNetworkConsensus.addValidator(accounts[1], {from: accounts[5]}).should.be.fulfilled;
+            await poaNetworkConsensus.addValidator(accounts[1], true, {from: accounts[5]}).should.be.fulfilled;
         })
 
         it('should not allow to add already existing validator', async () => {
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.rejectedWith(ERROR_MSG);
+            await poaNetworkConsensus.addValidator(accounts[1], true).should.be.fulfilled;
+            await poaNetworkConsensus.addValidator(accounts[1], true).should.be.rejectedWith(ERROR_MSG);
         })
 
         it('should not allow 0x0 addresses', async () => {
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
-            await poaNetworkConsensus.addValidator('0x0').should.be.rejectedWith(ERROR_MSG);
-            await poaNetworkConsensus.addValidator('0x0000000000000000000000000000000000000000').should.be.rejectedWith(ERROR_MSG);
+            await poaNetworkConsensus.addValidator('0x0', true).should.be.rejectedWith(ERROR_MSG);
+            await poaNetworkConsensus.addValidator('0x0000000000000000000000000000000000000000', true).should.be.rejectedWith(ERROR_MSG);
         })
 
         it('should set validatorsState for new validator', async () => {
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
+            await poaNetworkConsensus.addValidator(accounts[1], true).should.be.fulfilled;
             let state = await poaNetworkConsensus.validatorsState(accounts[1]);
             let pendingList = await poaNetworkConsensus.getPendingList();
             state[0].should.be.true;
@@ -142,14 +142,14 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
 
         it('should set finalized to false', async () => {
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
+            await poaNetworkConsensus.addValidator(accounts[1], true).should.be.fulfilled;
             let finalized = await poaNetworkConsensus.finalized();
             finalized.should.be.false;
         })
 
         it('should emit InitiateChange with blockhash and pendingList as params', async () => {
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
-            const {logs} = await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
+            const {logs} = await poaNetworkConsensus.addValidator(accounts[1], true).should.be.fulfilled;
             let currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength();
             let currentValidators = [];
             for (let i = 0; i < currentValidatorsLength.toNumber(10); i++) {
@@ -165,28 +165,28 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
     describe('#removeValidator', async () => {
         it('should remove validator', async () => {
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
-            await poaNetworkConsensus.removeValidator(accounts[1]).should.be.fulfilled;
+            await poaNetworkConsensus.addValidator(accounts[1], true).should.be.fulfilled;
+            await poaNetworkConsensus.removeValidator(accounts[1], true).should.be.fulfilled;
         })
 
         it('should be called only from keys manager', async () => {
-            await poaNetworkConsensus.removeValidator(accounts[1]).should.be.rejectedWith(ERROR_MSG);
+            await poaNetworkConsensus.removeValidator(accounts[1],true).should.be.rejectedWith(ERROR_MSG);
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
-            await poaNetworkConsensus.removeValidator(accounts[1]).should.be.fulfilled;
+            await poaNetworkConsensus.addValidator(accounts[1], true).should.be.fulfilled;
+            await poaNetworkConsensus.removeValidator(accounts[1],true).should.be.fulfilled;
         })
 
         it('should only be allowed to remove from existing set of validators', async () => {
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
-            await poaNetworkConsensus.removeValidator(accounts[1]).should.be.rejectedWith(ERROR_MSG);
+            await poaNetworkConsensus.removeValidator(accounts[1],true).should.be.rejectedWith(ERROR_MSG);
         })
 
         it('should decrease length of pendingList', async () => {
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
+            await poaNetworkConsensus.addValidator(accounts[1], true).should.be.fulfilled;
             await poaNetworkConsensus.setSystemAddress(accounts[0]);
             await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-            await poaNetworkConsensus.addValidator(accounts[2]).should.be.fulfilled;
+            await poaNetworkConsensus.addValidator(accounts[2], true).should.be.fulfilled;
             await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
             let currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength();
             let pendingList = [];
@@ -196,7 +196,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
             }
             const indexOfRemovedElement = pendingList.indexOf(accounts[1]);
             pendingList.splice(indexOfRemovedElement, 1);
-            const { logs } = await poaNetworkConsensus.removeValidator(accounts[1]).should.be.fulfilled;
+            const { logs } = await poaNetworkConsensus.removeValidator(accounts[1],true).should.be.fulfilled;
             let pendingListFromContract = logs[0].args['newSet'];
             pendingListFromContract.length.should.be.equal(currentValidatorsLength.toNumber(10) - 1);
             pendingList.should.be.deep.equal(pendingListFromContract);
@@ -207,8 +207,8 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
 
         it('should change validatorsState', async () => {
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
-            await poaNetworkConsensus.removeValidator(accounts[1]).should.be.fulfilled;
+            await poaNetworkConsensus.addValidator(accounts[1], true).should.be.fulfilled;
+            await poaNetworkConsensus.removeValidator(accounts[1],true).should.be.fulfilled;
             const state = await poaNetworkConsensus.validatorsState(accounts[1]);
             state[0].should.be.false;
             state[1].should.be.bignumber.equal(0);
@@ -216,8 +216,8 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
 
         it('should set finalized to false', async () => {
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
-            await poaNetworkConsensus.addValidator(accounts[1]).should.be.fulfilled;
-            await poaNetworkConsensus.removeValidator(accounts[1]).should.be.fulfilled;
+            await poaNetworkConsensus.addValidator(accounts[1], true).should.be.fulfilled;
+            await poaNetworkConsensus.removeValidator(accounts[1],true).should.be.fulfilled;
             const finalized = await poaNetworkConsensus.finalized();
             finalized.should.be.false;
         })

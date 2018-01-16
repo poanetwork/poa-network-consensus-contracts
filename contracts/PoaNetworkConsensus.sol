@@ -139,19 +139,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         require(isValidator(_oldKey));
         removeValidator(_oldKey, false);
         addValidator(_newKey, false);
-        fireEventInitializeChange(true);
-    }
-
-    function fireEventInitializeChange(bool isPendingList) public {
-        // force update the list if something didnot work
-        if (isPendingList) {
-            require(msg.sender == getKeysManager());
-            finalized = false;
-            InitiateChange(block.blockhash(block.number - 1), pendingList);
-        } else {
-            require(isValidator(msg.sender));
-            InitiateChange(block.blockhash(block.number - 1), currentValidators);
-        }
+        InitiateChange(block.blockhash(block.number - 1), pendingList);
     }
 
     function setProxyStorage(address _newAddress) public {
