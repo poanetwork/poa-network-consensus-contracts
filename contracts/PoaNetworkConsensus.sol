@@ -102,7 +102,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         ChangeFinalized(getValidators());
     }
 
-    function addValidator(address _validator) public onlyKeysManager isNewValidator(_validator) {
+    function addValidator(address _validator, bool _shouldFireEvent) public onlyKeysManager isNewValidator(_validator) {
         require(_validator != address(0));
         validatorsState[_validator] = ValidatorState({
             isValidator: true,
@@ -110,10 +110,12 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         });
         pendingList.push(_validator);
         finalized = false;
-        InitiateChange(block.blockhash(block.number - 1), pendingList);
+        if (_shouldFireEvent) {
+            InitiateChange(block.blockhash(block.number - 1), pendingList);
+        }
     }
 
-    function removeValidator(address _validator) public onlyKeysManager isNotNewValidator(_validator) {
+    function removeValidator(address _validator, bool _shouldFireEvent) public onlyKeysManager isNotNewValidator(_validator) {
         uint256 removedIndex = validatorsState[_validator].index;
         // Can not remove the last validator.
         uint256 lastIndex = pendingList.length - 1;
@@ -128,6 +130,15 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         validatorsState[_validator].index = 0;
         validatorsState[_validator].isValidator = false;
         finalized = false;
+        if (_shouldFireEvent) {
+            InitiateChange(block.blockhash(block.number - 1), pendingList);
+        }
+    }
+
+    function swapValidatorKey(address _newKey, address _oldKey) public onlyKeysManager {
+        require(isValidator(_oldKey));
+        removeValidator(_oldKey, false);
+        addValidator(_newKey, false);
         InitiateChange(block.blockhash(block.number - 1), pendingList);
     }
 

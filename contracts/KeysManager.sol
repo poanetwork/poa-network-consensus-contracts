@@ -129,7 +129,7 @@ contract KeysManager is IKeysManager {
         });
         miningKeyByVoting[_votingKey] = _miningKey;
         initialKeys[msg.sender] = uint8(InitialKeyState.Deactivated);
-        poaNetworkConsensus.addValidator(_miningKey);
+        poaNetworkConsensus.addValidator(_miningKey, true);
         ValidatorInitialized(_miningKey, _votingKey, _payoutKey);
     }
 
@@ -209,8 +209,14 @@ contract KeysManager is IKeysManager {
             isPayoutActive: isPayoutActive(_oldMiningKey),
             isMiningActive: true
         });
-        poaNetworkConsensus.addValidator(_key);
-        _removeMiningKey(_oldMiningKey);
+        poaNetworkConsensus.swapValidatorKey(_key, _oldMiningKey);
+        validatorKeys[_oldMiningKey] = Keys({
+            votingKey: address(0),
+            payoutKey: address(0),
+            isVotingActive: false,
+            isPayoutActive: false,
+            isMiningActive: false
+        });
         miningKeyByVoting[votingKey] = _key;
         MiningKeyChanged(_key, "swapped");
     }
@@ -241,7 +247,7 @@ contract KeysManager is IKeysManager {
             isPayoutActive: false,
             isMiningActive: true
         });
-        poaNetworkConsensus.addValidator(_key);
+        poaNetworkConsensus.addValidator(_key, true);
         MiningKeyChanged(_key, "added");
     }
 
@@ -281,7 +287,7 @@ contract KeysManager is IKeysManager {
             isPayoutActive: false,
             isMiningActive: false
         });
-        poaNetworkConsensus.removeValidator(_key);
+        poaNetworkConsensus.removeValidator(_key, true);
         MiningKeyChanged(_key, "removed");
     }
 

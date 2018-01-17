@@ -66,7 +66,7 @@ contract('BallotsStorage [all features]', function (accounts) {
   describe('#getTotalNumberOfValidators', async () => {
     it('returns total number of validators', async () => {
       await proxyStorage.setKeysManagerMock(masterOfCeremony);
-      await poaNetworkConsensus.addValidator(accounts[1]);
+      await poaNetworkConsensus.addValidator(accounts[1], true);
       await poaNetworkConsensus.setSystemAddress(masterOfCeremony);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       const getValidators = await poaNetworkConsensus.getValidators();
@@ -78,11 +78,11 @@ contract('BallotsStorage [all features]', function (accounts) {
     it('returns total number of validators', async () => {
       new web3.BigNumber(1).should.be.bignumber.equal(await ballotsStorageMock.getProxyThreshold())
       await proxyStorage.setKeysManagerMock(masterOfCeremony);
-      await poaNetworkConsensus.addValidator(accounts[1]);
-      await poaNetworkConsensus.addValidator(accounts[2]);
-      await poaNetworkConsensus.addValidator(accounts[3]);
-      await poaNetworkConsensus.addValidator(accounts[4]);
-      await poaNetworkConsensus.addValidator(accounts[5]);
+      await poaNetworkConsensus.addValidator(accounts[1], true);
+      await poaNetworkConsensus.addValidator(accounts[2], true);
+      await poaNetworkConsensus.addValidator(accounts[3], true);
+      await poaNetworkConsensus.addValidator(accounts[4], true);
+      await poaNetworkConsensus.addValidator(accounts[5], true);
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       const getValidators = await poaNetworkConsensus.getValidators();

@@ -11,31 +11,35 @@ module.exports = async function(deployer, network, accounts) {
   let masterOfCeremony = process.env.MASTER_OF_CEREMONY;
   let poaNetworkConsensusAddress = process.env.POA_NETWORK_CONSENSUS_ADDRESS;
   if(network === 'sokol'){
-    poaNetworkConsensus = await PoaNetworkConsensus.at(poaNetworkConsensusAddress);
-    await deployer.deploy(ProxyStorage, poaNetworkConsensusAddress);
-    await poaNetworkConsensus.setProxyStorage(ProxyStorage.address);
-    await deployer.deploy(KeysManager, ProxyStorage.address, poaNetworkConsensusAddress, masterOfCeremony, "0x0000000000000000000000000000000000000000");
-    await deployer.deploy(BallotsStorage, ProxyStorage.address);
-    await deployer.deploy(ValidatorMetadata, ProxyStorage.address);
-    await deployer.deploy(VotingToChangeKeys, ProxyStorage.address);
-    await deployer.deploy(VotingToChangeMinThreshold, ProxyStorage.address);
-    await deployer.deploy(VotingToChangeProxyAddress, ProxyStorage.address);
-    let proxyStorage = await ProxyStorage.deployed();
-    await proxyStorage.initializeAddresses(KeysManager.address,
-      VotingToChangeKeys.address,
-      VotingToChangeMinThreshold.address,
-      VotingToChangeProxyAddress.address,
-      BallotsStorage.address)
-    console.log('Done')
-    console.log('ADDRESSES:\n', 
-   `VotingToChangeKeys.address ${VotingToChangeKeys.address} \n
-    VotingToChangeMinThreshold.address ${VotingToChangeMinThreshold.address} \n
-    VotingToChangeProxyAddress.address ${VotingToChangeProxyAddress.address} \n
-    BallotsStorage.address ${BallotsStorage.address} \n
-    KeysManager.address ${KeysManager.address} \n
-    ValidatorMetadata.address ${ValidatorMetadata.address} \n
-    ProxyStorage.address ${ProxyStorage.address} \n
-    `)
+    try {
+      poaNetworkConsensus = await PoaNetworkConsensus.at(poaNetworkConsensusAddress);
+      await deployer.deploy(ProxyStorage, poaNetworkConsensusAddress);
+      await deployer.deploy(KeysManager, ProxyStorage.address, poaNetworkConsensusAddress, masterOfCeremony, "0x0000000000000000000000000000000000000000");
+      await deployer.deploy(BallotsStorage, ProxyStorage.address);
+      await deployer.deploy(ValidatorMetadata, ProxyStorage.address);
+      await deployer.deploy(VotingToChangeKeys, ProxyStorage.address);
+      await deployer.deploy(VotingToChangeMinThreshold, ProxyStorage.address);
+      await deployer.deploy(VotingToChangeProxyAddress, ProxyStorage.address);
+      let proxyStorage = await ProxyStorage.deployed();
+      await poaNetworkConsensus.setProxyStorage(ProxyStorage.address);
+      await proxyStorage.initializeAddresses(KeysManager.address,
+        VotingToChangeKeys.address,
+        VotingToChangeMinThreshold.address,
+        VotingToChangeProxyAddress.address,
+        BallotsStorage.address)
+      console.log('Done')
+      console.log('ADDRESSES:\n', 
+     `VotingToChangeKeys.address ${VotingToChangeKeys.address} \n
+      VotingToChangeMinThreshold.address ${VotingToChangeMinThreshold.address} \n
+      VotingToChangeProxyAddress.address ${VotingToChangeProxyAddress.address} \n
+      BallotsStorage.address ${BallotsStorage.address} \n
+      KeysManager.address ${KeysManager.address} \n
+      ValidatorMetadata.address ${ValidatorMetadata.address} \n
+      ProxyStorage.address ${ProxyStorage.address} \n
+      `)
+    } catch (error) {
+      console.error(error);
+    }
 
   }
 };

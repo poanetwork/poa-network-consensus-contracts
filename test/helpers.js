@@ -6,7 +6,6 @@ async function addValidators({
   poaNetworkConsensusMock
 }) {
   arrayOfAddresses = arrayOfAddresses || arrayOfHundredAddresses;
-  console.log(arrayOfAddresses.length)
   await proxyStorageMock.setVotingContractMock(masterOfCeremony);
   for(let validator of arrayOfAddresses){
     await keysManager.addMiningKey(validator).should.be.fulfilled;
