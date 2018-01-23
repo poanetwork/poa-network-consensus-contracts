@@ -1,5 +1,9 @@
 var fs = require('fs');
-
+const OUTPUT_DIR = process.env.OUTPUT || '../build/abis';
+if (!fs.existsSync(OUTPUT_DIR)) {
+  // Do something
+  fs.mkdirSync(OUTPUT_DIR);
+}
 function readFiles(dirname, onFileContent, onError) {
   fs.readdir(dirname, function(err, filenames) {
     if (err) {
@@ -20,10 +24,9 @@ function readFiles(dirname, onFileContent, onError) {
 
 let dir = '../build/contracts/';
 readFiles(dir, function(filename, content) {
-	if (filename.includes(".abi.")) return;
-	let abi = JSON.stringify(JSON.parse(content).abi, null, 2);
-	let abiFileName = `${dir}${filename}.abi.json`;
-	fs.writeFileSync(abiFileName, abi);
+  if (filename.includes(".abi.")) return;
+  let abi = JSON.stringify(JSON.parse(content).abi, null, 2);
+  fs.writeFileSync(`${OUTPUT_DIR}${filename}.abi.json`, abi);
 }, function(err) {
   throw err;
 });
