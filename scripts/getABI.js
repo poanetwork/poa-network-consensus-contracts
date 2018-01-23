@@ -1,5 +1,5 @@
 var fs = require('fs');
-const OUTPUT_DIR = process.env.OUTPUT || '../build/abis';
+const OUTPUT_DIR = process.env.OUTPUT || '../build/abis/';
 if (!fs.existsSync(OUTPUT_DIR)) {
   // Do something
   fs.mkdirSync(OUTPUT_DIR);
