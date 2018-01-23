@@ -24,7 +24,7 @@ contract KeysManager is IKeysManager {
     uint256 public maxNumberOfInitialKeys = 12;
     uint256 public initialKeysCount = 0;
     uint256 public maxLimitValidators = 2000;
-    uint8 public contractVersion = 1;
+    uint8 public contractVersion = 2;
     mapping(address => uint8) public initialKeys;
     mapping(address => Keys) public validatorKeys;
     mapping(address => address) public miningKeyByVoting;
