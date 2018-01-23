@@ -24,9 +24,9 @@ function readFiles(dirname, onFileContent, onError) {
 
 let dir = '../build/contracts/';
 readFiles(dir, function(filename, content) {
-  if (filename.includes(".abi.")) return;
-  let abi = JSON.stringify(JSON.parse(content).abi, null, 2);
-  fs.writeFileSync(`${OUTPUT_DIR}${filename}.abi.json`, abi);
+	if (filename.includes(".abi.")) return;
+	let abi = JSON.stringify(JSON.parse(content).abi, null, 2);
+	fs.writeFileSync(`${OUTPUT_DIR}${filename}.abi.json`, abi);
 }, function(err) {
   throw err;
 });
