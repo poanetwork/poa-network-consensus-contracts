@@ -10,23 +10,35 @@ let VotingToChangeProxyAddress = artifacts.require('./mockContracts/VotingToChan
 module.exports = async function(deployer, network, accounts) {
   let masterOfCeremony = process.env.MASTER_OF_CEREMONY;
   let poaNetworkConsensusAddress = process.env.POA_NETWORK_CONSENSUS_ADDRESS;
+  let previousKeysManager = process.env.OLD_KEYSMANAGER || "0x0000000000000000000000000000000000000000";
+  let poaNetworkConsensus;
+  if(!!process.env.DEPLOY_POA === true && network === 'sokol'){
+    poaNetworkConsensus = await PoaNetworkConsensus.at(poaNetworkConsensusAddress);
+    let validators = await poaNetworkConsensus.getValidators();
+    let moc = validators.indexOf(masterOfCeremony.toLowerCase())
+    if(moc > -1) {
+      validators.splice(moc, 1);
+    }
+    poaNetworkConsensus = await deployer.deploy(PoaNetworkConsensus, masterOfCeremony, validators);
+    console.log(PoaNetworkConsensus.address)
+  }
   if(network === 'sokol'){
     try {
-      poaNetworkConsensus = await PoaNetworkConsensus.at(poaNetworkConsensusAddress);
-      await deployer.deploy(ProxyStorage, poaNetworkConsensusAddress);
-      await deployer.deploy(KeysManager, ProxyStorage.address, poaNetworkConsensusAddress, masterOfCeremony, "0x0000000000000000000000000000000000000000");
+      poaNetworkConsensus = poaNetworkConsensus || await PoaNetworkConsensus.at(poaNetworkConsensusAddress);
+      await deployer.deploy(ProxyStorage, PoaNetworkConsensus.address);
+      await deployer.deploy(KeysManager, ProxyStorage.address, PoaNetworkConsensus.address, masterOfCeremony, previousKeysManager);
       await deployer.deploy(BallotsStorage, ProxyStorage.address);
       await deployer.deploy(ValidatorMetadata, ProxyStorage.address);
       await deployer.deploy(VotingToChangeKeys, ProxyStorage.address);
       await deployer.deploy(VotingToChangeMinThreshold, ProxyStorage.address);
       await deployer.deploy(VotingToChangeProxyAddress, ProxyStorage.address);
       let proxyStorage = await ProxyStorage.deployed();
-      await poaNetworkConsensus.setProxyStorage(ProxyStorage.address);
       await proxyStorage.initializeAddresses(KeysManager.address,
         VotingToChangeKeys.address,
         VotingToChangeMinThreshold.address,
         VotingToChangeProxyAddress.address,
         BallotsStorage.address)
+      await poaNetworkConsensus.setProxyStorage(ProxyStorage.address);
       console.log('Done')
       console.log('ADDRESSES:\n', 
      `VotingToChangeKeys.address ${VotingToChangeKeys.address} \n
@@ -37,6 +49,7 @@ module.exports = async function(deployer, network, accounts) {
       ValidatorMetadata.address ${ValidatorMetadata.address} \n
       ProxyStorage.address ${ProxyStorage.address} \n
       `)
+      
     } catch (error) {
       console.error(error);
     }
@@ -44,4 +57,5 @@ module.exports = async function(deployer, network, accounts) {
   }
 };
 
-// POA_NETWORK_CONSENSUS_ADDRESS=0xf472e0e43570b9afaab67089615080cf7c20018d MASTER_OF_CEREMONY=0x0039F22efB07A647557C7C5d17854CFD6D489eF3 ./node_modules/.bin/truffle migrate --reset --network sokol
+// POA_NETWORK_CONSENSUS_ADDRESS=0x8bf38d4764929064f2d4d3a56520a76ab3df415b MASTER_OF_CEREMONY=0xCf260eA317555637C55F70e55dbA8D5ad8414Cb0 OLD_KEYSMANAGER=0xfc90125492e58dbfe80c0bfb6a2a759c4f703ca8 ./node_modules/.bin/truffle migrate --reset --network sokol
+// DEPLOY_POA=true POA_NETWORK_CONSENSUS_ADDRESS=0x8bf38d4764929064f2d4d3a56520a76ab3df415b MASTER_OF_CEREMONY=0xCf260eA317555637C55F70e55dbA8D5ad8414Cb0 OLD_KEYSMANAGER=0xfc90125492e58dbfe80c0bfb6a2a759c4f703ca8 ./node_modules/.bin/truffle migrate --reset --network sokol
