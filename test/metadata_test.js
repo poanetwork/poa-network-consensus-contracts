@@ -31,6 +31,8 @@ contract('ValidatorMetadata [all features]', function (accounts) {
   votingKey2 = accounts[3];
   miningKey = accounts[1];
   miningKey2 = accounts[4];
+  miningKey3 = accounts[5];
+  votingKey3 = accounts[7];
   beforeEach(async () => { 
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
     proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address);
@@ -44,6 +46,8 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     await keysManager.addVotingKey(votingKey, miningKey).should.be.fulfilled;
     await keysManager.addMiningKey(miningKey2).should.be.fulfilled;
     await keysManager.addVotingKey(votingKey2, miningKey2).should.be.fulfilled;
+    await keysManager.addMiningKey(miningKey3).should.be.fulfilled;
+    await keysManager.addVotingKey(votingKey3, miningKey3).should.be.fulfilled;
     await metadata.setTime(55555);
   })
   describe('#createMetadata', async () => {
@@ -287,6 +291,27 @@ contract('ValidatorMetadata [all features]', function (accounts) {
   describe('#getMinThreshold', async () => {
     it('returns default value', async () => {
       (await metadata.getMinThreshold()).should.be.bignumber.equal(2);
+    })
+  })
+  describe('#setProxyAddress', async () => {
+    let newProxy = "0xfb9c7fc2a00dffc53948e3bbeb11f3d4b56c31b8";
+    it('can request a new proxy address', async () => {
+      "0x0000000000000000000000000000000000000000".should.be.equal
+        (await metadata.pendingProxyStorage());
+      (await metadata.proxyStorage()).should.be.equal(proxyStorageMock.address);
+      const {logs} = await metadata.setProxyAddress(newProxy, {from: votingKey}).should.be.fulfilled;
+      (await metadata.pendingProxyStorage()).should.be.equal(newProxy);
+      (await metadata.pendingProxyConfirmations(newProxy)).should.be.bignumber.deep.equal(1);
+      logs[0].event.should.be.equal("RequestForNewProxy");
+      logs[0].args.newProxyAddress.should.be.equal(newProxy);
+      await metadata.confirmNewProxyAddress(newProxy, {from :votingKey2}).should.be.fulfilled;
+      (await metadata.pendingProxyConfirmations(newProxy)).should.be.bignumber.deep.equal(2);
+      let final = await metadata.confirmNewProxyAddress(newProxy, {from: votingKey3}).should.be.fulfilled;
+      final.logs[0].event.should.be.equal("ChangeProxyStorage");
+      final.logs[0].args.newProxyAddress.should.be.equal(newProxy);
+      "0x0000000000000000000000000000000000000000".should.be.equal
+        (await metadata.pendingProxyStorage());
+      (await metadata.proxyStorage()).should.be.equal(newProxy);
     })
   })
 })
