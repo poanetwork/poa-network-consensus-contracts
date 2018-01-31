@@ -127,10 +127,6 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       await metadata.changeRequest(...newMetadata, {from: accounts[4]}).should.be.rejectedWith(ERROR_MSG);
     })
     it('resets confirmations when changeRequest recreated', async () => {
-      miningKey3 = accounts[5];
-      votingKey3 = accounts[6];
-      await keysManager.addMiningKey(miningKey3).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey3, miningKey3).should.be.fulfilled;
       await metadata.setTime(4444);
       await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
       await metadata.confirmPendingChange(miningKey, {from: votingKey2});
@@ -243,10 +239,6 @@ contract('ValidatorMetadata [all features]', function (accounts) {
   });
   describe('#finalize', async ()=> {
     it('happy path', async ()=> {
-      miningKey3 = accounts[5];
-      votingKey3 = accounts[6];
-      await keysManager.addMiningKey(miningKey3).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey3, miningKey3).should.be.fulfilled;
       await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
       await metadata.setTime(4444);
       await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
