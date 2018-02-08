@@ -4,3 +4,4 @@ flat
 mochawesome-report
 coverageEnv
 .DS_Store
+contracts.json
