@@ -33,9 +33,13 @@ contract ValidatorMetadata {
     event CancelledRequest(address indexed miningKey);
     event Confirmed(address indexed miningKey, address votingSender);
     event FinalizedChange(address indexed miningKey);
+    event RequestForNewProxy(address newProxyAddress);
+    event ChangeProxyStorage(address newProxyAddress);
     mapping(address => Validator) public validators;
     mapping(address => Validator) public pendingChanges;
     mapping(address => Confirmation) public confirmations;
+    address public pendingProxyStorage;
+    mapping(address => Confirmation) public pendingProxyConfirmations;
 
     modifier onlyValidVotingKey(address _votingKey) {
         IKeysManager keysManager = IKeysManager(getKeysManager());
@@ -52,6 +56,31 @@ contract ValidatorMetadata {
 
     function ValidatorMetadata(address _proxyStorage) public {
         proxyStorage = IProxyStorage(_proxyStorage);
+    }
+
+    function setProxyAddress(address _newProxyAddress) public onlyValidVotingKey(msg.sender) {
+        require(pendingProxyStorage == address(0));
+        Confirmation storage confirmation = pendingProxyConfirmations[_newProxyAddress];
+        pendingProxyStorage = _newProxyAddress;
+        confirmation.count = 1;
+        confirmation.voters.push(msg.sender);
+        RequestForNewProxy(_newProxyAddress);
+    }
+    
+    function confirmNewProxyAddress(address _newProxyAddress) public onlyValidVotingKey(msg.sender) {
+        require(pendingProxyStorage != address(0));
+        Confirmation storage confirmation = pendingProxyConfirmations[_newProxyAddress];
+        require(!isAddressAlreadyVotedProxy(_newProxyAddress, msg.sender));
+        confirmation.count = confirmation.count.add(1);
+        confirmation.voters.push(msg.sender);
+        if(confirmation.count >= 3) {
+            proxyStorage = IProxyStorage(_newProxyAddress);
+            pendingProxyStorage = address(0);
+            delete pendingProxyConfirmations[_newProxyAddress];
+            ChangeProxyStorage(_newProxyAddress);
+        }
+        Confirmed(_newProxyAddress, msg.sender);
+
     }
 
     function createMetadata(
@@ -107,6 +136,35 @@ contract ValidatorMetadata {
         return true;
     }
 
+    function changeRequestForValidator(
+        bytes32 _firstName,
+        bytes32 _lastName,
+        bytes32 _licenseId,
+        string _fullAddress,
+        bytes32 _state,
+        uint256 _zipcode,
+        uint256 _expirationDate,
+        address _miningKey
+        ) public onlyValidVotingKey(msg.sender) returns(bool) 
+    {
+        Validator memory pendingChange = Validator({
+            firstName: _firstName,
+            lastName: _lastName,
+            licenseId: _licenseId,
+            fullAddress:_fullAddress,
+            state: _state,
+            zipcode: _zipcode,
+            expirationDate: _expirationDate,
+            createdDate: validators[_miningKey].createdDate,
+            updatedDate: getTime(),
+            minThreshold: validators[_miningKey].minThreshold
+        });
+        pendingChanges[_miningKey] = pendingChange;
+        delete confirmations[_miningKey];
+        ChangeRequestInitiated(_miningKey);
+        return true;
+    }
+
     function cancelPendingChange() public onlyValidVotingKey(msg.sender) returns(bool) {
         address miningKey = getMiningByVotingKey(msg.sender);
         delete pendingChanges[miningKey];
@@ -116,6 +174,16 @@ contract ValidatorMetadata {
 
     function isAddressAlreadyVoted(address _miningKey, address _voter) public view returns(bool) {
         Confirmation storage confirmation = confirmations[_miningKey];
+        for(uint256 i = 0; i < confirmation.voters.length; i++){
+            if(confirmation.voters[i] == _voter){
+                return true;   
+            }
+        }
+        return false;
+    }
+
+    function isAddressAlreadyVotedProxy(address _newProxy, address _voter) public view returns(bool) {
+        Confirmation storage confirmation = pendingProxyConfirmations[_newProxy];
         for(uint256 i = 0; i < confirmation.voters.length; i++){
             if(confirmation.voters[i] == _voter){
                 return true;   
