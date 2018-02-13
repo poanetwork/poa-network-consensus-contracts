@@ -22,12 +22,13 @@ module.exports = async function(deployer, network, accounts) {
     }
     poaNetworkConsensus = await deployer.deploy(PoaNetworkConsensus, masterOfCeremony, validators);
     console.log(PoaNetworkConsensus.address)
+    poaNetworkConsensusAddress = PoaNetworkConsensus.address
   }
   if(network === 'sokol'){
     try {
       poaNetworkConsensus = poaNetworkConsensus || await PoaNetworkConsensus.at(poaNetworkConsensusAddress);
-      await deployer.deploy(ProxyStorage, PoaNetworkConsensus.address);
-      await deployer.deploy(KeysManager, ProxyStorage.address, PoaNetworkConsensus.address, masterOfCeremony, previousKeysManager);
+      await deployer.deploy(ProxyStorage, poaNetworkConsensusAddress);
+      await deployer.deploy(KeysManager, ProxyStorage.address, poaNetworkConsensusAddress, masterOfCeremony, previousKeysManager);
       await deployer.deploy(BallotsStorage, ProxyStorage.address);
       await deployer.deploy(ValidatorMetadata, ProxyStorage.address);
       await deployer.deploy(VotingToChangeKeys, ProxyStorage.address);
