@@ -58,7 +58,7 @@ contract VotingToChangeProxyAddress {
         ) public onlyValidVotingKey(msg.sender) {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
-        require(_endTime.sub(_startTime) > 2 days);
+        //require(_endTime.sub(_startTime) > 2 days);
         require(_proposedValue != address(0));
         address creatorMiningKey = getMiningByVotingKey(msg.sender);
         require(withinLimit(creatorMiningKey));
