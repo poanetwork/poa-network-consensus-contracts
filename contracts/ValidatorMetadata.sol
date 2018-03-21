@@ -22,7 +22,6 @@ contract ValidatorMetadata {
     }
 
     struct Confirmation {
-
         uint256 count;
         address[] voters;
     }
@@ -48,7 +47,7 @@ contract ValidatorMetadata {
     }
 
     modifier onlyFirstTime(address _votingKey) {
-        address miningKey = getMiningByVotingKey(msg.sender);
+        address miningKey = getMiningByVotingKey(_votingKey);
         Validator storage validator = validators[miningKey];
         require(validator.createdDate == 0);
         _;
