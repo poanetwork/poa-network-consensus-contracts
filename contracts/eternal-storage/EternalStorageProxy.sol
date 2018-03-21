@@ -1,7 +1,6 @@
 pragma solidity ^0.4.18;
 
 import './EternalStorage.sol';
-import '../SafeMath.sol';
 
 /**
  * @title EternalStorageProxy
@@ -10,7 +9,6 @@ import '../SafeMath.sol';
  * authorization control functionalities
  */
 contract EternalStorageProxy is EternalStorage {
-  using SafeMath for uint256;
 
   address public proxyStorage;
 
@@ -36,7 +34,11 @@ contract EternalStorageProxy is EternalStorage {
    */
   function upgradeTo(address implementation) public onlyProxyStorage {
     require(_implementation != implementation);
-    _version = _version.add(1);
+
+    uint256 _newVersion = _version + 1;
+    assert(_newVersion > _version);
+    _version = _newVersion;
+
     _implementation = implementation;
     Upgraded(_version, _implementation);
   }
@@ -62,11 +64,13 @@ contract EternalStorageProxy is EternalStorage {
   * This function will return whatever the implementation call returns
   */
   function () payable public {
-    require(_implementation != address(0));
+    address _impl = _implementation;
+
+    require(_impl != address(0));
     bytes memory data = msg.data;
 
     assembly {
-      let result := delegatecall(gas, _implementation, add(data, 0x20), mload(data), 0, 0)
+      let result := delegatecall(gas, _impl, add(data, 0x20), mload(data), 0, 0)
       let size := returndatasize
 
       let ptr := mload(0x40)
