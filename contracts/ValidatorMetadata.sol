@@ -143,7 +143,7 @@ contract ValidatorMetadata is EternalStorage {
         
         RequestForNewProxy(_newProxyAddress);
     }
-    
+
     function confirmNewProxyAddress(address _newProxyAddress)
         public
         onlyValidVotingKey(msg.sender)

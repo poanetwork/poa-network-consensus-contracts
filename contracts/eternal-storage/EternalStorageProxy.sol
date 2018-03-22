@@ -10,7 +10,7 @@ import './EternalStorage.sol';
  */
 contract EternalStorageProxy is EternalStorage {
 
-  address public proxyStorage;
+  address public proxyStorageAddress;
 
   /**
   * @dev This event will be emitted every time the implementation gets upgraded
@@ -20,12 +20,12 @@ contract EternalStorageProxy is EternalStorage {
   event Upgraded(uint256 version, address indexed implementation);
 
   modifier onlyProxyStorage() {
-    require(msg.sender == proxyStorage);
+    require(msg.sender == proxyStorageAddress);
     _;
   }
 
   function EternalStorageProxy(address _proxyStorage, address _implementationAddress) public {
-    proxyStorage = _proxyStorage;
+    proxyStorageAddress = _proxyStorage;
     _implementation = _implementationAddress;
   }
 

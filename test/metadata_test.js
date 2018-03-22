@@ -28,6 +28,9 @@ let anotherData = [
   "Feodosiy", "Bush", "123123", "Petrovka 38", "ZA", 1337, 71
 ];
 contract('ValidatorMetadata [all features]', function (accounts) {
+  if (typeof masterOfCeremony === 'undefined') {
+  	masterOfCeremony = accounts[0];
+  }
   votingKey = accounts[2];
   votingKey2 = accounts[3];
   miningKey = accounts[1];
@@ -45,8 +48,8 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     metadata = await ValidatorMetadata.new();
     eternalStorageProxy = await EternalStorageProxy.new(proxyStorageMock.address, metadata.address);
     metadata = await ValidatorMetadata.at(eternalStorageProxy.address);
-
     await metadata.initProxyAddress(proxyStorageMock.address);
+    
     await keysManager.addMiningKey(miningKey).should.be.fulfilled;
     await keysManager.addVotingKey(votingKey, miningKey).should.be.fulfilled;
     await keysManager.addMiningKey(miningKey2).should.be.fulfilled;
@@ -118,9 +121,9 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     it('happy path', async () => {
       await metadata.setTime(4444);
       const {logs} = await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
-      pendingChangesDetails = await metadata.pendingChangeDetails(miningKey);
+      pendingChangeDetails = await metadata.pendingChangeDetails(miningKey);
       pendingChangeAddress = await metadata.pendingChangeAddress(miningKey);
-      pendingChangesDetails.should.be.deep.equal([
+      pendingChangeDetails.should.be.deep.equal([
         toHex("Feodosiy"),
         toHex("Kennedy"),
         pad(web3.toHex("123123")),
@@ -174,7 +177,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0)
       ]);
-      pendingChangesAddress.should.be.deep.equal([
+      pendingChangeAddress.should.be.deep.equal([
         "",
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         new web3.BigNumber(0)
@@ -215,7 +218,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         new web3.BigNumber(4444),
         new web3.BigNumber(2)
       ]);
-      pendingChangesAddress.should.be.deep.equal([
+      pendingChangeAddress.should.be.deep.equal([
         "Petrovka 38",
         toHex("ZA"),
         new web3.BigNumber(1337)
