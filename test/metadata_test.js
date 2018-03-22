@@ -3,6 +3,7 @@ let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let ValidatorMetadata = artifacts.require('./mockContracts/ValidatorMetadataMock');
 let BallotsStorage = artifacts.require('./BallotsStorage');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
+let EternalStorageProxy = artifacts.require('./EternalStorageProxy');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
 
@@ -15,7 +16,7 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
-let keysManager, ballotsStorage, poaNetworkConsensusMock, metadata;
+let keysManager, ballotsStorage, poaNetworkConsensusMock, metadata, eternalStorageProxy;
 let votingKey, votingKey2, votingKey3, miningKey;
 let fakeData = [
   "Djamshut", "Roosvelt", "123asd", "Moskva", "ZZ", 234,23423
@@ -41,7 +42,11 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, masterOfCeremony, masterOfCeremony, ballotsStorage.address);
 
-    metadata = await ValidatorMetadata.new(proxyStorageMock.address);
+    metadata = await ValidatorMetadata.new();
+    eternalStorageProxy = await EternalStorageProxy.new(proxyStorageMock.address, metadata.address);
+    metadata = await ValidatorMetadata.at(eternalStorageProxy.address);
+
+    await metadata.initProxyAddress(proxyStorageMock.address);
     await keysManager.addMiningKey(miningKey).should.be.fulfilled;
     await keysManager.addVotingKey(votingKey, miningKey).should.be.fulfilled;
     await keysManager.addMiningKey(miningKey2).should.be.fulfilled;
@@ -53,37 +58,43 @@ contract('ValidatorMetadata [all features]', function (accounts) {
   describe('#createMetadata', async () => {
     it('happy path', async () => {
       const {logs} = await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
-      const validator = await metadata.validators(miningKey);
-      validator.should.be.deep.equal([
+      const validatorDetails = await metadata.validatorDetails(miningKey);
+      const validatorAddress = await metadata.validatorAddress(miningKey);
+      validatorDetails.should.be.deep.equal([
         toHex("Djamshut"),
         toHex("Roosvelt"),
         pad(web3.toHex("123asd")),
-        "Moskva",
-        toHex("ZZ"),
-        new web3.BigNumber(234),
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
         new web3.BigNumber(2)
-      ])
+      ]);
+      validatorAddress.should.be.deep.equal([
+        "Moskva",
+        toHex("ZZ"),
+        new web3.BigNumber(234)
+      ]);
       logs[0].event.should.be.equal('MetadataCreated');
       logs[0].args.miningKey.should.be.equal(miningKey);
     })
     it('should not let create metadata if called by non-voting key', async () => {
       const {logs} = await metadata.createMetadata(...fakeData, {from: miningKey}).should.be.rejectedWith(ERROR_MSG);
-      const validator = await metadata.validators(miningKey);
-      validator.should.be.deep.equal([
+      const validatorDetails = await metadata.validatorDetails(miningKey);
+      const validatorAddress = await metadata.validatorAddress(miningKey);
+      validatorDetails.should.be.deep.equal([
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000000000000000000000000000',
-        "",
-        '0x0000000000000000000000000000000000000000000000000000000000000000',
-        new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0)
-      ])
+      ]);
+      validatorAddress.should.be.deep.equal([
+        "",
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+        new web3.BigNumber(0)
+      ]);
     })
     it('should not let create metadata if called second time', async () => {
       await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
@@ -100,26 +111,29 @@ contract('ValidatorMetadata [all features]', function (accounts) {
   })
 
   describe('#changeRequest', async () => {
-    let pendingChanges;
+    let pendingChangeDetails, pendingChangeAddress;
     beforeEach(async () => {
       const {logs} = await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
     })
     it('happy path', async () => {
       await metadata.setTime(4444);
       const {logs} = await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
-      pendingChanges = await metadata.pendingChanges(miningKey);
-      pendingChanges.should.be.deep.equal([
+      pendingChangesDetails = await metadata.pendingChangeDetails(miningKey);
+      pendingChangeAddress = await metadata.pendingChangeAddress(miningKey);
+      pendingChangesDetails.should.be.deep.equal([
         toHex("Feodosiy"),
         toHex("Kennedy"),
         pad(web3.toHex("123123")),
-        "Petrovka 38",
-        toHex("ZA"),
-        new web3.BigNumber(1337),
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
         new web3.BigNumber(2)
-      ])
+      ]);
+      pendingChangeAddress.should.be.deep.equal([
+        "Petrovka 38",
+        toHex("ZA"),
+        new web3.BigNumber(1337)
+      ]);
       logs[0].event.should.be.equal("ChangeRequestInitiated");
       logs[0].args.miningKey.should.be.equal(miningKey);
     })
@@ -132,13 +146,13 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       await metadata.confirmPendingChange(miningKey, {from: votingKey2});
       await metadata.confirmPendingChange(miningKey, {from: votingKey3});
       let confirmations = await metadata.confirmations(miningKey);
-      confirmations.should.be.bignumber.equal(2);
+      confirmations[0].should.be.bignumber.equal(2);
       const {logs} = await metadata.changeRequest(...anotherData, {from: votingKey}).should.be.fulfilled;
       confirmations = await metadata.confirmations(miningKey);
-      confirmations.should.be.bignumber.equal(0);
+      confirmations[0].should.be.bignumber.equal(0);
       await metadata.confirmPendingChange(miningKey, {from: votingKey2});
       confirmations = await metadata.confirmations(miningKey);
-      confirmations.should.be.bignumber.equal(1);
+      confirmations[0].should.be.bignumber.equal(1);
     })
   })
 
@@ -149,32 +163,38 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       await metadata.setTime(4444);
       const {logs} = await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
       await metadata.cancelPendingChange({from: votingKey}).should.be.fulfilled;
-      const pendingChanges = await metadata.pendingChanges(miningKey);
-      pendingChanges.should.be.deep.equal([
+      const pendingChangeDetails = await metadata.pendingChangeDetails(miningKey);
+      const pendingChangeAddress = await metadata.pendingChangeAddress(miningKey);
+      pendingChangeDetails.should.be.deep.equal([
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000000000000000000000000000',
-        "",
-        '0x0000000000000000000000000000000000000000000000000000000000000000',
-        new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0)
       ]);
-      const validator = await metadata.validators(miningKey);
-      validator.should.be.deep.equal([
+      pendingChangesAddress.should.be.deep.equal([
+        "",
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+        new web3.BigNumber(0)
+      ]);
+      const validatorDetails = await metadata.validatorDetails(miningKey);
+      const validatorAddress = await metadata.validatorAddress(miningKey);
+      validatorDetails.should.be.deep.equal([
         toHex("Djamshut"),
         toHex("Roosvelt"),
         pad(web3.toHex("123asd")),
-        "Moskva",
-        toHex("ZZ"),
-        new web3.BigNumber(234),
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
         new web3.BigNumber(2)
-      ])
+      ]);
+      validatorAddress.should.be.deep.equal([
+        "Moskva",
+        toHex("ZZ"),
+        new web3.BigNumber(234)
+      ]);
       logs[0].event.should.be.equal("ChangeRequestInitiated");
       logs[0].args.miningKey.should.be.equal(miningKey);
     })
@@ -184,32 +204,38 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       await metadata.setTime(4444);
       const {logs} = await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
       await metadata.cancelPendingChange({from: votingKey2}).should.be.fulfilled;
-      const pendingChanges = await metadata.pendingChanges(miningKey);
-      pendingChanges.should.be.deep.equal([
+      const pendingChangeDetails = await metadata.pendingChangeDetails(miningKey);
+      const pendingChangeAddress = await metadata.pendingChangeAddress(miningKey);
+      pendingChangeDetails.should.be.deep.equal([
         toHex("Feodosiy"),
         toHex("Kennedy"),
         pad(web3.toHex("123123")),
-        "Petrovka 38",
-        toHex("ZA"),
-        new web3.BigNumber(1337),
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
         new web3.BigNumber(2)
       ]);
-      const validator = await metadata.validators(miningKey);
-      validator.should.be.deep.equal([
+      pendingChangesAddress.should.be.deep.equal([
+        "Petrovka 38",
+        toHex("ZA"),
+        new web3.BigNumber(1337)
+      ]);
+      const validatorDetails = await metadata.validatorDetails(miningKey);
+      const validatorAddress = await metadata.validatorAddress(miningKey);
+      validatorDetails.should.be.deep.equal([
         toHex("Djamshut"),
         toHex("Roosvelt"),
         pad(web3.toHex("123asd")),
-        "Moskva",
-        toHex("ZZ"),
-        new web3.BigNumber(234),
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
         new web3.BigNumber(2)
-      ])
+      ]);
+      validatorAddress.should.be.deep.equal([
+        "Moskva",
+        toHex("ZZ"),
+        new web3.BigNumber(234)
+      ]);
     });
   })
   describe('#confirmPendingChange', async ()=> {
@@ -223,7 +249,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
       const {logs} = await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.fulfilled;
       const confirmations = await metadata.confirmations(miningKey);
-      confirmations.should.be.bignumber.equal(1);
+      confirmations[0].should.be.bignumber.equal(1);
       logs[0].event.should.be.equal('Confirmed');
       logs[0].args.miningKey.should.be.equal(miningKey);
       logs[0].args.votingSender.should.be.equal(votingKey2);
@@ -234,7 +260,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       const {logs} = await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.fulfilled;
       await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.rejectedWith(ERROR_MSG);
       const confirmations = await metadata.confirmations(miningKey);
-      confirmations.should.be.bignumber.equal(1);
+      confirmations[0].should.be.bignumber.equal(1);
     })
   });
   describe('#finalize', async ()=> {
@@ -246,37 +272,40 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       await metadata.confirmPendingChange(miningKey, {from: votingKey2});
       await metadata.confirmPendingChange(miningKey, {from: votingKey3});
       const {logs} = await metadata.finalize(miningKey, {from: votingKey});
-      const validator = await metadata.validators(miningKey);
-      validator.should.be.deep.equal([
+      const validatorDetails = await metadata.validatorDetails(miningKey);
+      const validatorAddress = await metadata.validatorAddress(miningKey);
+      validatorDetails.should.be.deep.equal([
         toHex("Feodosiy"),
         toHex("Kennedy"),
         pad(web3.toHex("123123")),
-        "Petrovka 38",
-        toHex("ZA"),
-        new web3.BigNumber(1337),
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
         new web3.BigNumber(2)
       ]);
-
-      const pendingChanges = await metadata.pendingChanges(miningKey);
-      pendingChanges.should.be.deep.equal([
+      validatorAddress.should.be.deep.equal([
+        "Petrovka 38",
+        toHex("ZA"),
+        new web3.BigNumber(1337)
+      ]);
+      const pendingChangeDetails = await metadata.pendingChangeDetails(miningKey);
+      const pendingChangeAddress = await metadata.pendingChangeAddress(miningKey);
+      pendingChangeDetails.should.be.deep.equal([
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000000000000000000000000000',
-        "",
-        '0x0000000000000000000000000000000000000000000000000000000000000000',
-        new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0)
       ]);
-
+      pendingChangeAddress.should.be.deep.equal([
+        "",
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+        new web3.BigNumber(0)
+      ]);
       logs[0].event.should.be.equal('FinalizedChange');
       logs[0].args.miningKey.should.be.equal(miningKey);
-
     });
   });
 
@@ -293,11 +322,11 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       (await metadata.proxyStorage()).should.be.equal(proxyStorageMock.address);
       const {logs} = await metadata.setProxyAddress(newProxy, {from: votingKey}).should.be.fulfilled;
       (await metadata.pendingProxyStorage()).should.be.equal(newProxy);
-      (await metadata.pendingProxyConfirmations(newProxy)).should.be.bignumber.deep.equal(1);
+      (await metadata.pendingProxyConfirmations(newProxy))[0].should.be.bignumber.deep.equal(1);
       logs[0].event.should.be.equal("RequestForNewProxy");
       logs[0].args.newProxyAddress.should.be.equal(newProxy);
       await metadata.confirmNewProxyAddress(newProxy, {from :votingKey2}).should.be.fulfilled;
-      (await metadata.pendingProxyConfirmations(newProxy)).should.be.bignumber.deep.equal(2);
+      (await metadata.pendingProxyConfirmations(newProxy))[0].should.be.bignumber.deep.equal(2);
       let final = await metadata.confirmNewProxyAddress(newProxy, {from: votingKey3}).should.be.fulfilled;
       final.logs[0].event.should.be.equal("ChangeProxyStorage");
       final.logs[0].args.newProxyAddress.should.be.equal(newProxy);

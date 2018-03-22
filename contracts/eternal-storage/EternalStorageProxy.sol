@@ -24,8 +24,9 @@ contract EternalStorageProxy is EternalStorage {
     _;
   }
 
-  function EternalStorageProxy(address _proxyStorage) public {
+  function EternalStorageProxy(address _proxyStorage, address _implementationAddress) public {
     proxyStorage = _proxyStorage;
+    _implementation = _implementationAddress;
   }
 
   /**

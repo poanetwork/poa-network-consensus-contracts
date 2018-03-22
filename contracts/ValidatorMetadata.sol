@@ -37,13 +37,10 @@ contract ValidatorMetadata is EternalStorage {
         return addressStorage[keccak256("pendingProxyStorage")];
     }
 
-    function validators(address _miningKey) public view returns (
+    function validatorDetails(address _miningKey) public view returns (
         bytes32 firstName,
         bytes32 lastName,
         bytes32 licenseId,
-        string fullAddress,
-        bytes32 state,
-        uint256 zipcode,
         uint256 expirationDate,
         uint256 createdDate,
         uint256 updatedDate,
@@ -53,9 +50,6 @@ contract ValidatorMetadata is EternalStorage {
             bytes32Storage[keccak256("validators", _miningKey, "firstName")],
             bytes32Storage[keccak256("validators", _miningKey, "lastName")],
             bytes32Storage[keccak256("validators", _miningKey, "licenseId")],
-            stringStorage[keccak256("validators", _miningKey, "fullAddress")],
-            bytes32Storage[keccak256("validators", _miningKey, "state")],
-            uintStorage[keccak256("validators", _miningKey, "zipcode")],
             uintStorage[keccak256("validators", _miningKey, "expirationDate")],
             uintStorage[keccak256("validators", _miningKey, "createdDate")],
             uintStorage[keccak256("validators", _miningKey, "updatedDate")],
@@ -63,13 +57,22 @@ contract ValidatorMetadata is EternalStorage {
         );
     }
 
-    function pendingChanges(address _miningKey) public view returns (
+    function validatorAddress(address _miningKey) public view returns (
+        string fullAddress,
+        bytes32 state,
+        uint256 zipcode
+    ) {
+        return (
+            stringStorage[keccak256("validators", _miningKey, "fullAddress")],
+            bytes32Storage[keccak256("validators", _miningKey, "state")],
+            uintStorage[keccak256("validators", _miningKey, "zipcode")]
+        );
+    }
+
+    function pendingChangeDetails(address _miningKey) public view returns (
         bytes32 firstName,
         bytes32 lastName,
         bytes32 licenseId,
-        string fullAddress,
-        bytes32 state,
-        uint256 zipcode,
         uint256 expirationDate,
         uint256 createdDate,
         uint256 updatedDate,
@@ -79,13 +82,22 @@ contract ValidatorMetadata is EternalStorage {
             bytes32Storage[keccak256("pendingChanges", _miningKey, "firstName")],
             bytes32Storage[keccak256("pendingChanges", _miningKey, "lastName")],
             bytes32Storage[keccak256("pendingChanges", _miningKey, "licenseId")],
-            stringStorage[keccak256("pendingChanges", _miningKey, "fullAddress")],
-            bytes32Storage[keccak256("pendingChanges", _miningKey, "state")],
-            uintStorage[keccak256("pendingChanges", _miningKey, "zipcode")],
             uintStorage[keccak256("pendingChanges", _miningKey, "expirationDate")],
             uintStorage[keccak256("pendingChanges", _miningKey, "createdDate")],
             uintStorage[keccak256("pendingChanges", _miningKey, "updatedDate")],
             uintStorage[keccak256("pendingChanges", _miningKey, "minThreshold")]
+        );
+    }
+
+    function pendingChangeAddress(address _miningKey) public view returns (
+        string fullAddress,
+        bytes32 state,
+        uint256 zipcode
+    ) {
+        return (
+            stringStorage[keccak256("pendingChanges", _miningKey, "fullAddress")],
+            bytes32Storage[keccak256("pendingChanges", _miningKey, "state")],
+            uintStorage[keccak256("pendingChanges", _miningKey, "zipcode")]
         );
     }
 
