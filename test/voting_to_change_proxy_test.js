@@ -38,7 +38,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
     beforeEach(async () => {
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
-      VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(30, 'years').unix();
       id = await voting.nextBallotId();
     })
@@ -116,7 +116,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       ])
     })
     it('should not let create more ballots than the limit', async () => {
-      const VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
+      const VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       const VOTING_END_DATE = moment.utc().add(30, 'years').unix();
       await voting.createBallotToChangeProxyAddress(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, "memo",{from: votingKey});
       await voting.createBallotToChangeProxyAddress(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, "memo",{from: votingKey});
@@ -133,7 +133,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
     let VOTING_START_DATE, VOTING_END_DATE;
     let id;
     beforeEach(async () => {
-      VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(30, 'years').unix();
       await proxyStorageMock.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
@@ -231,7 +231,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
     votingKey3 = accounts[5];
     let payoutKeyToAdd = accounts[0];
     beforeEach(async () => {
-      VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(30, 'years').unix();
       await proxyStorageMock.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;

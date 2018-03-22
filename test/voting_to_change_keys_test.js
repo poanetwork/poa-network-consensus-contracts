@@ -37,7 +37,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
-      const VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
+      const VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       const VOTING_END_DATE = moment.utc().add(30, 'years').unix();
       const id = await voting.nextBallotId();
       const {logs} = await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo",{from: votingKey});
@@ -68,7 +68,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
-      const VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
+      const VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       const VOTING_END_DATE = moment.utc().add(30, 'years').unix();
       await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo", {from: votingKey});
       await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo", {from: votingKey});
@@ -84,7 +84,7 @@ contract('Voting to change keys [all features]', function (accounts) {
     let VOTING_START_DATE, VOTING_END_DATE;
     let id;
     beforeEach(async ()=> {
-      VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(30, 'years').unix();
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
@@ -181,7 +181,7 @@ contract('Voting to change keys [all features]', function (accounts) {
     votingKey3 = accounts[5];
     let payoutKeyToAdd = accounts[0];
     beforeEach(async () => {
-      VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(30, 'years').unix();
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
