@@ -16,7 +16,8 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
-let keysManager, ballotsStorage, poaNetworkConsensusMock, metadata, eternalStorageProxy;
+let keysManager, ballotsStorage, poaNetworkConsensusMock;
+let metadata, metadataEternalStorage;
 let votingKey, votingKey2, votingKey3, miningKey;
 let fakeData = [
   "Djamshut", "Roosvelt", "123asd", "Moskva", "ZZ", 234,23423
@@ -46,8 +47,8 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, masterOfCeremony, masterOfCeremony, ballotsStorage.address);
 
     metadata = await ValidatorMetadata.new();
-    eternalStorageProxy = await EternalStorageProxy.new(proxyStorageMock.address, metadata.address);
-    metadata = await ValidatorMetadata.at(eternalStorageProxy.address);
+    metadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, metadata.address);
+    metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
     await metadata.initProxyAddress(proxyStorageMock.address);
     
     await keysManager.addMiningKey(miningKey).should.be.fulfilled;

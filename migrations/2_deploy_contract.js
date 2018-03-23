@@ -4,7 +4,7 @@ var ProxyStorage = artifacts.require("./ProxyStorage.sol");
 var KeysManager = artifacts.require("./KeysManager.sol");
 var BallotsStorage = artifacts.require("./BallotsStorage.sol");
 var ValidatorMetadata = artifacts.require("./ValidatorMetadata.sol");
-var EternalStorageProxy = artifacts.require("./eternal-storage/EternalStorageProxy.sol");
+var ValidatorMetadataEternalStorage = artifacts.require("./eternal-storage/EternalStorageProxy.sol");
 let VotingToChangeKeys = artifacts.require('./mockContracts/VotingToChangeKeys');
 let VotingToChangeMinThreshold = artifacts.require('./mockContracts/VotingToChangeMinThreshold');
 let VotingToChangeProxyAddress = artifacts.require('./mockContracts/VotingToChangeProxyAddress');
@@ -14,32 +14,30 @@ module.exports = async function(deployer, network, accounts) {
   let poaNetworkConsensusAddress = process.env.POA_NETWORK_CONSENSUS_ADDRESS;
   let previousKeysManager = process.env.OLD_KEYSMANAGER || "0x0000000000000000000000000000000000000000";
   let poaNetworkConsensus;
-  if(!!process.env.DEPLOY_POA === true && network === 'sokol'){
+  if (!!process.env.DEPLOY_POA === true && network === 'sokol') {
     poaNetworkConsensus = await PoaNetworkConsensus.at(poaNetworkConsensusAddress);
     let validators = await poaNetworkConsensus.getValidators();
     let moc = validators.indexOf(masterOfCeremony.toLowerCase())
-    if(moc > -1) {
+    if (moc > -1) {
       validators.splice(moc, 1);
     }
     poaNetworkConsensus = await deployer.deploy(PoaNetworkConsensus, masterOfCeremony, validators);
     console.log(PoaNetworkConsensus.address)
     poaNetworkConsensusAddress = PoaNetworkConsensus.address
   }
-  if(network === 'sokol'){
+  if (network === 'sokol') {
     try {
       poaNetworkConsensus = poaNetworkConsensus || await PoaNetworkConsensus.at(poaNetworkConsensusAddress);
       await deployer.deploy(ProxyStorage, poaNetworkConsensusAddress);
       await deployer.deploy(KeysManager, ProxyStorage.address, poaNetworkConsensusAddress, masterOfCeremony, previousKeysManager);
       await deployer.deploy(BallotsStorage, ProxyStorage.address);
       await deployer.deploy(ValidatorMetadata);
-      await deployer.deploy(EternalStorageProxy, ProxyStorage.address, ValidatorMetadata.address);
+      await deployer.deploy(ValidatorMetadataEternalStorage, ProxyStorage.address, ValidatorMetadata.address);
       await deployer.deploy(VotingToChangeKeys, ProxyStorage.address);
       await deployer.deploy(VotingToChangeMinThreshold, ProxyStorage.address);
       await deployer.deploy(VotingToChangeProxyAddress, ProxyStorage.address);
 
-      let validatorMetadata = await ValidatorMetadata.deployed();
-      let eternalStorageProxy = await EternalStorageProxy.deployed();
-      validatorMetadata = await ValidatorMetadata.at(EternalStorageProxy.address);
+      let validatorMetadata = await ValidatorMetadata.at(ValidatorMetadataEternalStorage.address);
       await validatorMetadata.initProxyAddress(ProxyStorage.address);
 
       let proxyStorage = await ProxyStorage.deployed();
@@ -58,7 +56,7 @@ module.exports = async function(deployer, network, accounts) {
           "BALLOTS_STORAGE_ADDRESS": BallotsStorage.address,
           "KEYS_MANAGER_ADDRESS": KeysManager.address,
           "METADATA_ADDRESS": ValidatorMetadata.address,
-          "ETERNAL_STORAGE_PROXY": EternalStorageProxy.address,
+          "METADATA_ETERNAL_STORAGE_ADDRESS": ValidatorMetadataEternalStorage.address,
           "PROXY_ADDRESS": ProxyStorage.address
         }
 
@@ -73,7 +71,7 @@ module.exports = async function(deployer, network, accounts) {
       BallotsStorage.address ${BallotsStorage.address} \n
       KeysManager.address ${KeysManager.address} \n
       ValidatorMetadata.address ${ValidatorMetadata.address} \n
-      EternalStorageProxy.address ${EternalStorageProxy.address} \n
+      ValidatorMetadataEternalStorage.address ${ValidatorMetadataEternalStorage.address} \n
       ProxyStorage.address ${ProxyStorage.address} \n
       `)
       
