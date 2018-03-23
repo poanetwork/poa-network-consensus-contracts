@@ -33,7 +33,15 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     voting = await Voting.new(proxyStorageMock.address);
-    await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, voting.address, masterOfCeremony, ballotsStorage.address);
+    await proxyStorageMock.initializeAddresses(
+      keysManager.address,
+      masterOfCeremony,
+      voting.address,
+      masterOfCeremony,
+      ballotsStorage.address,
+      masterOfCeremony,
+      masterOfCeremony
+    );
     await proxyStorageMock.setVotingContractMock(accounts[0]);
     await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
     await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;

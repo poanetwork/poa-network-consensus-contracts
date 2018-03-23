@@ -1,6 +1,7 @@
 pragma solidity ^0.4.18;
 
 import './EternalStorage.sol';
+import '../interfaces/IEternalStorageProxy.sol';
 
 /**
  * @title EternalStorageProxy
@@ -8,7 +9,7 @@ import './EternalStorage.sol';
  * Besides, it allows to upgrade the token's behaviour towards further implementations, and provides
  * authorization control functionalities
  */
-contract EternalStorageProxy is EternalStorage {
+contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
 
   address public proxyStorageAddress;
 

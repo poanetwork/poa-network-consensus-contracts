@@ -41,11 +41,15 @@ module.exports = async function(deployer, network, accounts) {
       await validatorMetadata.initProxyAddress(ProxyStorage.address);
 
       let proxyStorage = await ProxyStorage.deployed();
-      await proxyStorage.initializeAddresses(KeysManager.address,
+      await proxyStorage.initializeAddresses(
+        KeysManager.address,
         VotingToChangeKeys.address,
         VotingToChangeMinThreshold.address,
         VotingToChangeProxyAddress.address,
-        BallotsStorage.address)
+        BallotsStorage.address,
+        ValidatorMetadata.address,
+        ValidatorMetadataEternalStorage.address
+      );
       await poaNetworkConsensus.setProxyStorage(ProxyStorage.address);
 
       if (!!process.env.SAVE_TO_FILE === true) {

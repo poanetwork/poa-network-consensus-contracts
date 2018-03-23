@@ -44,10 +44,20 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
     ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
-    await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, masterOfCeremony, masterOfCeremony, ballotsStorage.address);
 
     metadata = await ValidatorMetadata.new();
     metadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, metadata.address);
+    
+    await proxyStorageMock.initializeAddresses(
+      keysManager.address,
+      masterOfCeremony,
+      masterOfCeremony,
+      masterOfCeremony,
+      ballotsStorage.address,
+      metadata.address,
+      metadataEternalStorage.address
+    );
+    
     metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
     await metadata.initProxyAddress(proxyStorageMock.address);
     

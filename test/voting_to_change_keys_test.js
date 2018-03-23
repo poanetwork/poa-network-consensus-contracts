@@ -29,8 +29,15 @@ contract('Voting to change keys [all features]', function (accounts) {
     ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     voting = await VotingToChangeKeysMock.new(proxyStorageMock.address);
-    await proxyStorageMock.initializeAddresses(keysManager.address, voting.address, masterOfCeremony, masterOfCeremony, ballotsStorage.address);
-
+    await proxyStorageMock.initializeAddresses(
+      keysManager.address,
+      voting.address,
+      masterOfCeremony,
+      masterOfCeremony,
+      ballotsStorage.address,
+      masterOfCeremony,
+      masterOfCeremony
+    );
   })
   describe('#constructor', async () => {
     it('happy path', async () => {
