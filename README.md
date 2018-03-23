@@ -52,7 +52,7 @@ Compile and deploy contracts in the next sequence:
 
 ```
   Contract: BallotsStorage [all features]
-    #contstuctor
+    #constructor
       ✓ sets MoC and Poa (50ms)
     #setThreshold
       ✓ can only be called from votingToChangeThreshold address (107ms)
@@ -180,7 +180,7 @@ Compile and deploy contracts in the next sequence:
     #isValidator
       ✓ returns address of miner (40ms)
   Contract: ProxyStorage [all features]
-    #contstuctor
+    #constructor
       ✓ sets MoC and Poa (49ms)
     #initializeAddresses
       ✓ sets all addresses (176ms)

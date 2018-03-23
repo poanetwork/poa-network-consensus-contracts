@@ -4,6 +4,8 @@ let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let VotingToChangeProxyAddress = artifacts.require('./mockContracts/VotingToChangeProxyAddressMock');
 let VotingForKeys = artifacts.require('./mockContracts/VotingToChangeKeysMock');
 let BallotsStorage = artifacts.require('./mockContracts/BallotsStorageMock');
+let ValidatorMetadata = artifacts.require('./ValidatorMetadata');
+let EternalStorageProxy = artifacts.require('./EternalStorageProxy');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
 const {addValidators} = require('./helpers')
@@ -19,6 +21,7 @@ require('chai')
 
 let keysManager, poaNetworkConsensusMock, ballotsStorage, voting;
 let votingKey, votingKey2, votingKey3, miningKeyForVotingKey;
+let validatorMetadata, validatorMetadataEternalStorage;
 contract('VotingToChangeProxyAddress [all features]', function (accounts) {
   votingKey = accounts[2];
   masterOfCeremony = accounts[0];
@@ -31,15 +34,22 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
     ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     voting = await VotingToChangeProxyAddress.new(proxyStorageMock.address);
+
+    validatorMetadata = await ValidatorMetadata.new();
+    validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, validatorMetadata.address);
+
     await proxyStorageMock.initializeAddresses(
       keysManager.address,
       masterOfCeremony,
       masterOfCeremony,
       voting.address,
       ballotsStorage.address,
-      masterOfCeremony,
-      masterOfCeremony
+      validatorMetadata.address,
+      validatorMetadataEternalStorage.address
     );
+
+    let metadata = await ValidatorMetadata.at(validatorMetadataEternalStorage.address);
+    await metadata.initProxyAddress(proxyStorageMock.address);
   })
   describe('#createBallotToChangeProxyAddress', async () => {
     let VOTING_START_DATE, VOTING_END_DATE, id;
@@ -331,13 +341,15 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
     })
     it('should change getValidatorMetadata', async () => {
       let contractType = 7;
-      let newAddress = accounts[5];
+      let validatorMetadataNew = await ValidatorMetadata.new();
+      let newAddress = validatorMetadataNew.address;
       await deployAndTest({contractType, newAddress})
       newAddress.should.be.equal(await proxyStorageMock.getValidatorMetadata());
     })
     it('should change getValidatorMetadataEternalStorage', async () => {
       let contractType = 8;
-      let newAddress = accounts[5];
+      let validatorMetadataEternalStorageNew = await EternalStorageProxy.new(proxyStorageMock.address, validatorMetadata.address);
+      let newAddress = validatorMetadataEternalStorageNew.address;
       await deployAndTest({contractType, newAddress})
       newAddress.should.be.equal(await proxyStorageMock.getValidatorMetadataEternalStorage());
     })
