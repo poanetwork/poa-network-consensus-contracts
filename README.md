@@ -41,7 +41,10 @@ Compile and deploy contracts in the next sequence:
 - `VotingToChangeKeys_flat.sol` - Select contract `VotingToChangeKeys` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
 - `VotingToChangeMinThreshold_flat.sol` - Select contract `VotingToChangeMinThreshold` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
 - `VotingToChangeProxyAddress_flat.sol` - Select contract `VotingToChangeProxyAddress` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
-- `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
+- `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata` and send transaction `initProxyAddress` with the address of ProxyStorage contract
+- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+`_proxyStorage` - address of ProxyStorage contract,
+`_implementationAddress` - address of ValidatorMetadata contract.
 -  Select deployed `ProxyStorage` contract and make a call from MoC address to `initializeAddresses` with relevant addresses.
 
 ## Unit tests
@@ -49,7 +52,7 @@ Compile and deploy contracts in the next sequence:
 
 ```
   Contract: BallotsStorage [all features]
-    #contstuctor
+    #constructor
       ✓ sets MoC and Poa (50ms)
     #setThreshold
       ✓ can only be called from votingToChangeThreshold address (107ms)
@@ -177,7 +180,7 @@ Compile and deploy contracts in the next sequence:
     #isValidator
       ✓ returns address of miner (40ms)
   Contract: ProxyStorage [all features]
-    #contstuctor
+    #constructor
       ✓ sets MoC and Poa (49ms)
     #initializeAddresses
       ✓ sets all addresses (176ms)

@@ -9,13 +9,22 @@ require('chai')
     .use(require('chai-bignumber')(web3.BigNumber))
     .should();
 
-let proxyStorage, masterOfCeremony, ballotsStorage;
+let proxyStorage, masterOfCeremony;
 contract('BallotsStorage [all features]', function (accounts) {
-  let {keysManager, votingToChangeKeys, votingToChangeMinThreshold, votingToChangeProxy, ballotsStorage} = {
+  let {
+    keysManager,
+    votingToChangeKeys,
+    votingToChangeMinThreshold,
+    votingToChangeProxy,
+    validatorMetadata,
+    validatorMetadataEternalStorage
+  } = {
     keysManager: '',
     votingToChangeKeys: accounts[0],
     votingToChangeMinThreshold: accounts[3],
-    votingToChangeProxy: accounts[4]
+    votingToChangeProxy: accounts[4],
+    validatorMetadata: accounts[6],
+    validatorMetadataEternalStorage: accounts[7]
   }
   masterOfCeremony = accounts[0];
   beforeEach(async () => {
@@ -24,10 +33,17 @@ contract('BallotsStorage [all features]', function (accounts) {
     ballotsStorageMock = await BallotsStorageMock.new(proxyStorage.address);
     keysManager = await KeysManagerMock.new(proxyStorage.address, poaNetworkConsensus.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
     await poaNetworkConsensus.setProxyStorage(proxyStorage.address);
-    await proxyStorage.initializeAddresses(keysManager.address, votingToChangeKeys, votingToChangeMinThreshold, votingToChangeProxy, ballotsStorageMock.address);
-
+    await proxyStorage.initializeAddresses(
+      keysManager.address,
+      votingToChangeKeys,
+      votingToChangeMinThreshold,
+      votingToChangeProxy,
+      ballotsStorageMock.address,
+      validatorMetadata,
+      validatorMetadataEternalStorage
+    );
   })
-  describe('#contstuctor', async () => {
+  describe('#constructor', async () => {
     it('sets MoC and Poa', async () => {
       new web3.BigNumber(3).should.be.bignumber.equal(
         await ballotsStorageMock.getBallotThreshold(1)
