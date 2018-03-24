@@ -43,7 +43,7 @@ contract('BallotsStorage [all features]', function (accounts) {
       validatorMetadataEternalStorage
     );
   })
-  describe('#contstuctor', async () => {
+  describe('#constructor', async () => {
     it('sets MoC and Poa', async () => {
       new web3.BigNumber(3).should.be.bignumber.equal(
         await ballotsStorageMock.getBallotThreshold(1)
