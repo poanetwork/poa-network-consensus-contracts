@@ -29,7 +29,7 @@ let newMetadata = [
 let anotherData = [
   "Feodosiy", "Bush", "123123", "Petrovka 38", "ZA", 1337, 71
 ];
-contract('ValidatorMetadata [all features]', function (accounts) {
+contract('ValidatorMetadata upgraded [all features]', function (accounts) {
   if (typeof masterOfCeremony === 'undefined') {
   	masterOfCeremony = accounts[0];
   }
@@ -61,6 +61,10 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     
     metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
     await metadata.initProxyAddress(proxyStorageMock.address);
+
+    let metadataNew = await ValidatorMetadataNew.new();
+    await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageMock.address});
+    metadata = await ValidatorMetadataNew.at(metadataEternalStorage.address);
     
     await keysManager.addMiningKey(miningKey).should.be.fulfilled;
     await keysManager.addVotingKey(votingKey, miningKey).should.be.fulfilled;
@@ -350,64 +354,6 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       (await metadata.proxyStorage()).should.be.equal(newProxy);
     })
   })
-  describe('#upgradeTo', async () => {
-    it('should change implementation address', async () => {
-      let metadataNew = await ValidatorMetadataNew.new();
-      let oldImplementation = await metadata.implementation();
-      let newImplementation = metadataNew.address;
-      (await metadataEternalStorage.implementation()).should.be.equal(oldImplementation);
-      await metadataEternalStorage.upgradeTo(newImplementation, {from: proxyStorageMock.address});
-      metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      (await metadataNew.implementation()).should.be.equal(newImplementation);
-      (await metadataEternalStorage.implementation()).should.be.equal(newImplementation);
-    });
-    it('should increment implementation version', async () => {
-      let metadataNew = await ValidatorMetadataNew.new();
-      let oldVersion = await metadata.version();
-      let newVersion = oldVersion + 1;
-      (await metadataEternalStorage.version()).should.be.equal(oldVersion);
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageMock.address});
-      metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      (await metadataNew.version()).should.be.equal(newVersion);
-      (await metadataEternalStorage.version()).should.be.equal(newVersion);
-    });
-    it('new implementation should work', async () => {
-      let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageMock.address});
-      metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      (await metadataNew.initialized()).should.be.equal(false);
-      await metadataNew.initialize();
-      (await metadataNew.initialized()).should.be.equal(true);
-    });
-    it('new implementation should use the same proxyStorage address', async () => {
-      let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageMock.address});
-      metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      (await metadataNew.proxyStorage()).should.be.equal(proxyStorageMock.address);
-    });
-    it('new implementation should use the same storage', async () => {
-      await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
-      let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageMock.address});
-      metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      const validatorDetails = await metadataNew.validatorDetails(miningKey);
-      const validatorAddress = await metadataNew.validatorAddress(miningKey);
-      validatorDetails.should.be.deep.equal([
-        toHex("Djamshut"),
-        toHex("Roosvelt"),
-        pad(web3.toHex("123asd")),
-        new web3.BigNumber(23423),
-        new web3.BigNumber(55555),
-        new web3.BigNumber(0),
-        new web3.BigNumber(2)
-      ]);
-      validatorAddress.should.be.deep.equal([
-        "Moskva",
-        toHex("ZZ"),
-        new web3.BigNumber(234)
-      ]);
-    });
-  });
 })
 
 var toUtf8 = function(hex) {
