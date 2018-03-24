@@ -351,12 +351,24 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     })
   })
   describe('#upgradeTo', async () => {
+    const proxyStorageStubAddress = accounts[8];
+    beforeEach(async () => {
+      metadata = await ValidatorMetadata.new();
+      metadataEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, metadata.address);
+      metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
+      await metadata.initProxyAddress(proxyStorageMock.address);
+    });
+    it('may be called only by ProxyStorage', async () => {
+      let metadataNew = await ValidatorMetadataNew.new();
+      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
+      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress}).should.be.fulfilled;
+    });
     it('should change implementation address', async () => {
       let metadataNew = await ValidatorMetadataNew.new();
       let oldImplementation = await metadata.implementation();
       let newImplementation = metadataNew.address;
       (await metadataEternalStorage.implementation()).should.be.equal(oldImplementation);
-      await metadataEternalStorage.upgradeTo(newImplementation, {from: proxyStorageMock.address});
+      await metadataEternalStorage.upgradeTo(newImplementation, {from: proxyStorageStubAddress});
       metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
       (await metadataNew.implementation()).should.be.equal(newImplementation);
       (await metadataEternalStorage.implementation()).should.be.equal(newImplementation);
@@ -364,16 +376,16 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     it('should increment implementation version', async () => {
       let metadataNew = await ValidatorMetadataNew.new();
       let oldVersion = await metadata.version();
-      let newVersion = oldVersion + 1;
-      (await metadataEternalStorage.version()).should.be.equal(oldVersion);
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageMock.address});
+      let newVersion = oldVersion.add(1);
+      (await metadataEternalStorage.version()).should.be.bignumber.equal(oldVersion);
+      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
       metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      (await metadataNew.version()).should.be.equal(newVersion);
-      (await metadataEternalStorage.version()).should.be.equal(newVersion);
+      (await metadataNew.version()).should.be.bignumber.equal(newVersion);
+      (await metadataEternalStorage.version()).should.be.bignumber.equal(newVersion);
     });
     it('new implementation should work', async () => {
       let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageMock.address});
+      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
       metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
       (await metadataNew.initialized()).should.be.equal(false);
       await metadataNew.initialize();
@@ -381,14 +393,15 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     });
     it('new implementation should use the same proxyStorage address', async () => {
       let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageMock.address});
+      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
       metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
       (await metadataNew.proxyStorage()).should.be.equal(proxyStorageMock.address);
     });
     it('new implementation should use the same storage', async () => {
+      await metadata.setTime(55555);
       await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
       let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageMock.address});
+      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
       metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
       const validatorDetails = await metadataNew.validatorDetails(miningKey);
       const validatorAddress = await metadataNew.validatorAddress(miningKey);

@@ -4,7 +4,7 @@ let ValidatorMetadata = artifacts.require('./mockContracts/ValidatorMetadataMock
 let ValidatorMetadataNew = artifacts.require('./upgradeContracts/ValidatorMetadataNew');
 let BallotsStorage = artifacts.require('./BallotsStorage');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
-let EternalStorageProxy = artifacts.require('./EternalStorageProxy');
+let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
 
@@ -48,7 +48,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
 
     metadata = await ValidatorMetadata.new();
     metadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, metadata.address);
-    
+
     await proxyStorageMock.initializeAddresses(
       keysManager.address,
       masterOfCeremony,
@@ -58,14 +58,16 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       metadata.address,
       metadataEternalStorage.address
     );
-    
+
     metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
     await metadata.initProxyAddress(proxyStorageMock.address);
 
     let metadataNew = await ValidatorMetadataNew.new();
-    await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageMock.address});
+    await metadataEternalStorage.setProxyStorage(accounts[6]);
+    await metadataEternalStorage.upgradeTo(metadataNew.address, {from: accounts[6]});
+    await metadataEternalStorage.setProxyStorage(proxyStorageMock.address);
     metadata = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-    
+
     await keysManager.addMiningKey(miningKey).should.be.fulfilled;
     await keysManager.addVotingKey(votingKey, miningKey).should.be.fulfilled;
     await keysManager.addMiningKey(miningKey2).should.be.fulfilled;
@@ -120,6 +122,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
     });
   })
+  
   describe('#getMiningByVotingKey', async () => {
     it('happy path', async () => {
       let actual = await metadata.getMiningByVotingKey(votingKey);
@@ -128,7 +131,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       '0x0000000000000000000000000000000000000000'.should.be.equal(actual);
     })
   })
-
+  
   describe('#changeRequest', async () => {
     let pendingChangeDetails, pendingChangeAddress;
     beforeEach(async () => {

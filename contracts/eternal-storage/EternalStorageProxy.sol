@@ -11,8 +11,6 @@ import '../interfaces/IEternalStorageProxy.sol';
  */
 contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
 
-  address public proxyStorageAddress;
-
   /**
   * @dev This event will be emitted every time the implementation gets upgraded
   * @param version representing the version number of the upgraded implementation
@@ -21,12 +19,12 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
   event Upgraded(uint256 version, address indexed implementation);
 
   modifier onlyProxyStorage() {
-    require(msg.sender == proxyStorageAddress);
+    require(msg.sender == addressStorage[keccak256("EternalStorageProxy.proxyStorage")]);
     _;
   }
 
   function EternalStorageProxy(address _proxyStorage, address _implementationAddress) public {
-    proxyStorageAddress = _proxyStorage;
+    addressStorage[keccak256("EternalStorageProxy.proxyStorage")] = _proxyStorage;
     _implementation = _implementationAddress;
   }
 
