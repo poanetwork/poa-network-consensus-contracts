@@ -59,8 +59,7 @@ module.exports = async function(deployer, network, accounts) {
           "VOTING_TO_CHANGE_PROXY_ADDRESS": VotingToChangeProxyAddress.address,
           "BALLOTS_STORAGE_ADDRESS": BallotsStorage.address,
           "KEYS_MANAGER_ADDRESS": KeysManager.address,
-          "METADATA_ADDRESS": ValidatorMetadata.address,
-          "METADATA_ETERNAL_STORAGE_ADDRESS": ValidatorMetadataEternalStorage.address,
+          "METADATA_ADDRESS": ValidatorMetadataEternalStorage.address,
           "PROXY_ADDRESS": ProxyStorage.address
         }
 
@@ -74,8 +73,7 @@ module.exports = async function(deployer, network, accounts) {
       VotingToChangeProxyAddress.address ${VotingToChangeProxyAddress.address} \n
       BallotsStorage.address ${BallotsStorage.address} \n
       KeysManager.address ${KeysManager.address} \n
-      ValidatorMetadata.address ${ValidatorMetadata.address} \n
-      ValidatorMetadataEternalStorage.address ${ValidatorMetadataEternalStorage.address} \n
+      ValidatorMetadata.address ${ValidatorMetadataEternalStorage.address} \n
       ProxyStorage.address ${ProxyStorage.address} \n
       `)
       
