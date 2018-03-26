@@ -47,7 +47,7 @@ contract VotingToChangeMinThreshold {
 
     modifier isValidProposedValue(uint256 _proposedValue) {
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
-        require(_proposedValue >= 1 && _proposedValue != getGlobalMinThresholdOfVoters());
+        require(_proposedValue >= 3 && _proposedValue != getGlobalMinThresholdOfVoters());
         require(_proposedValue <= ballotsStorage.getProxyThreshold());
         _;
     }
@@ -64,7 +64,7 @@ contract VotingToChangeMinThreshold {
         ) public onlyValidVotingKey(msg.sender) isValidProposedValue(_proposedValue) {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
-        //require(_endTime.sub(_startTime) > 2 days);
+        require(_endTime.sub(_startTime) > 2 days);
         address creatorMiningKey = getMiningByVotingKey(msg.sender);
         require(withinLimit(creatorMiningKey));
         VotingData memory data = VotingData({

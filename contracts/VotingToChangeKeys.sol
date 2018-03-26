@@ -65,7 +65,7 @@ contract VotingToChangeKeys {
     ) public onlyValidVotingKey(msg.sender) {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
-        //require(_endTime.sub(_startTime) > 2 days);
+        require(_endTime.sub(_startTime) > 2 days);
         //only if ballotType is swap or remove
         require(areBallotParamsValid(_ballotType, _affectedKey, _affectedKeyType, _miningKey));
         address creatorMiningKey = getMiningByVotingKey(msg.sender);
