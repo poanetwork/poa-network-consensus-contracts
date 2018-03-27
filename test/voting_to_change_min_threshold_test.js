@@ -229,8 +229,8 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
         [
           new web3.BigNumber(VOTING_START_DATE), //uint256 startTime;
           new web3.BigNumber(VOTING_END_DATE), //uint256 endTime
-          new web3.BigNumber(1),  //uint256 totalVoters
-          new web3.BigNumber(1), //int progress
+          new web3.BigNumber(0),  //uint256 totalVoters
+          new web3.BigNumber(0), //int progress
           true,                   //bool isFinalized
           new web3.BigNumber(3),  //uint8 quorumState
           new web3.BigNumber(0),  //uint256 index
