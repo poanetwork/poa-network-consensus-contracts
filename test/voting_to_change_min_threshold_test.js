@@ -241,7 +241,8 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
 
         ]
       )
-      true.should.be.equal(
+
+      false.should.be.equal(
         await voting.hasAlreadyVoted(votingId, votingKey)
       );
 
