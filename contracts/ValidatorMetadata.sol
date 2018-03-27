@@ -37,68 +37,52 @@ contract ValidatorMetadata is EternalStorage {
         return addressStorage[keccak256("pendingProxyStorage")];
     }
 
-    function validatorDetails(address _miningKey) public view returns (
+    function validators(address _miningKey) public view returns (
         bytes32 firstName,
         bytes32 lastName,
         bytes32 licenseId,
+        string fullAddress,
+        bytes32 state,
+        uint256 zipcode,
         uint256 expirationDate,
         uint256 createdDate,
         uint256 updatedDate,
         uint256 minThreshold
     ) {
-        return (
-            bytes32Storage[keccak256("validators", _miningKey, "firstName")],
-            bytes32Storage[keccak256("validators", _miningKey, "lastName")],
-            bytes32Storage[keccak256("validators", _miningKey, "licenseId")],
-            uintStorage[keccak256("validators", _miningKey, "expirationDate")],
-            uintStorage[keccak256("validators", _miningKey, "createdDate")],
-            uintStorage[keccak256("validators", _miningKey, "updatedDate")],
-            uintStorage[keccak256("validators", _miningKey, "minThreshold")]
-        );
+        firstName = bytes32Storage[keccak256("validators", _miningKey, "firstName")];
+        lastName = bytes32Storage[keccak256("validators", _miningKey, "lastName")];
+        licenseId = bytes32Storage[keccak256("validators", _miningKey, "licenseId")];
+        fullAddress = stringStorage[keccak256("validators", _miningKey, "fullAddress")];
+        state = bytes32Storage[keccak256("validators", _miningKey, "state")];
+        zipcode = uintStorage[keccak256("validators", _miningKey, "zipcode")];
+        expirationDate = uintStorage[keccak256("validators", _miningKey, "expirationDate")];
+        createdDate = uintStorage[keccak256("validators", _miningKey, "createdDate")];
+        updatedDate = uintStorage[keccak256("validators", _miningKey, "updatedDate")];
+        minThreshold = uintStorage[keccak256("validators", _miningKey, "minThreshold")];
     }
 
-    function validatorAddress(address _miningKey) public view returns (
-        string fullAddress,
-        bytes32 state,
-        uint256 zipcode
-    ) {
-        return (
-            stringStorage[keccak256("validators", _miningKey, "fullAddress")],
-            bytes32Storage[keccak256("validators", _miningKey, "state")],
-            uintStorage[keccak256("validators", _miningKey, "zipcode")]
-        );
-    }
-
-    function pendingChangeDetails(address _miningKey) public view returns (
+    function pendingChanges(address _miningKey) public view returns (
         bytes32 firstName,
         bytes32 lastName,
         bytes32 licenseId,
+        string fullAddress,
+        bytes32 state,
+        uint256 zipcode,
         uint256 expirationDate,
         uint256 createdDate,
         uint256 updatedDate,
         uint256 minThreshold
     ) {
-        return (
-            bytes32Storage[keccak256("pendingChanges", _miningKey, "firstName")],
-            bytes32Storage[keccak256("pendingChanges", _miningKey, "lastName")],
-            bytes32Storage[keccak256("pendingChanges", _miningKey, "licenseId")],
-            uintStorage[keccak256("pendingChanges", _miningKey, "expirationDate")],
-            uintStorage[keccak256("pendingChanges", _miningKey, "createdDate")],
-            uintStorage[keccak256("pendingChanges", _miningKey, "updatedDate")],
-            uintStorage[keccak256("pendingChanges", _miningKey, "minThreshold")]
-        );
-    }
-
-    function pendingChangeAddress(address _miningKey) public view returns (
-        string fullAddress,
-        bytes32 state,
-        uint256 zipcode
-    ) {
-        return (
-            stringStorage[keccak256("pendingChanges", _miningKey, "fullAddress")],
-            bytes32Storage[keccak256("pendingChanges", _miningKey, "state")],
-            uintStorage[keccak256("pendingChanges", _miningKey, "zipcode")]
-        );
+        firstName = bytes32Storage[keccak256("pendingChanges", _miningKey, "firstName")];
+        lastName = bytes32Storage[keccak256("pendingChanges", _miningKey, "lastName")];
+        licenseId = bytes32Storage[keccak256("pendingChanges", _miningKey, "licenseId")];
+        fullAddress = stringStorage[keccak256("pendingChanges", _miningKey, "fullAddress")];
+        state = bytes32Storage[keccak256("pendingChanges", _miningKey, "state")];
+        zipcode = uintStorage[keccak256("pendingChanges", _miningKey, "zipcode")];
+        expirationDate = uintStorage[keccak256("pendingChanges", _miningKey, "expirationDate")];
+        createdDate = uintStorage[keccak256("pendingChanges", _miningKey, "createdDate")];
+        updatedDate = uintStorage[keccak256("pendingChanges", _miningKey, "updatedDate")];
+        minThreshold = uintStorage[keccak256("pendingChanges", _miningKey, "minThreshold")];
     }
 
     function confirmations(address _miningKey) public view returns (
