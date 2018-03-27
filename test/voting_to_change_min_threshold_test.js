@@ -92,8 +92,8 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       logs[0].args.id.should.be.bignumber.equal(0);
       logs[0].args.creator.should.be.equal(votingKey);
     })
-    it('proposed value should be more than or equal to 3', async () => {
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 2,"memo", {from: votingKey}).should.be.fulfilled.rejectedWith(ERROR_MSG);
+    it('proposed value should be more than or equal to 1', async () => {
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 0,"memo", {from: votingKey}).should.be.fulfilled.rejectedWith(ERROR_MSG);
     })
     it('proposed value should not be equal to the same value', async () => {
       await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 3,"memo", {from: votingKey}).should.be.fulfilled.rejectedWith(ERROR_MSG);
@@ -234,7 +234,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
           true,                   //bool isFinalized
           new web3.BigNumber(3),  //uint8 quorumState
           new web3.BigNumber(0),  //uint256 index
-          new web3.BigNumber(3),   //uint256 minThresholdOfVoters
+          new web3.BigNumber(1),   //uint256 minThresholdOfVoters
           new web3.BigNumber(proposedValue), // uint256 proposedValue
           miningKeyForVotingKey,  // creator
           "memo"
@@ -246,7 +246,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       );
 
       const minThresholdOfVoters = await ballotsStorage.getBallotThreshold(1);
-      minThresholdOfVoters.should.be.bignumber.equal(3);
+      minThresholdOfVoters.should.be.bignumber.equal(1);
 
     });
 
@@ -279,7 +279,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
           true,                   //bool isFinalized
           new web3.BigNumber(2),  //uint8 quorumState
           new web3.BigNumber(0),  //uint256 index
-          new web3.BigNumber(3),   //uint256 minThresholdOfVoters
+          new web3.BigNumber(1),   //uint256 minThresholdOfVoters
           new web3.BigNumber(proposedValue), // uint256 proposedValue
           miningKeyForVotingKey,  //creator
           "memo"

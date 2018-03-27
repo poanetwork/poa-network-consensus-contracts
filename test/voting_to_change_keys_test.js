@@ -238,7 +238,7 @@ contract('Voting to change keys [all features]', function (accounts) {
           new web3.BigNumber(3),  //uint8 quorumState
           new web3.BigNumber(1),  //uint256 ballotType
           new web3.BigNumber(0),  //uint256 index
-          new web3.BigNumber(3),   //uint256 minThresholdOfVoters
+          new web3.BigNumber(1),   //uint256 minThresholdOfVoters
           miningKeyForVotingKey,   // miningKeyCreator
           "memo"
         ]
@@ -633,7 +633,7 @@ async function deployAndTestBallot({_affectedKey, _affectedKeyType, _miningKey, 
       new web3.BigNumber(2),  //uint8 quorumState [0,1,2,3] = Invalid, InProgress, Accepted, Rejected
       new web3.BigNumber(_ballotType),  //uint256 ballotType
       new web3.BigNumber(0),  //uint256 index
-      new web3.BigNumber(3),   //uint256 minThresholdOfVoters
+      new web3.BigNumber(1),   //uint256 minThresholdOfVoters
       miningKeyForVotingKey, //miningKeyCreator
       "memo"
     ]

@@ -84,7 +84,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
-        new web3.BigNumber(2)
+        new web3.BigNumber(1)
       ]);
       logs[0].event.should.be.equal('MetadataCreated');
       logs[0].args.miningKey.should.be.equal(miningKey);
@@ -138,7 +138,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
-        new web3.BigNumber(2)
+        new web3.BigNumber(1)
       ]);
       logs[0].event.should.be.equal("ChangeRequestInitiated");
       logs[0].args.miningKey.should.be.equal(miningKey);
@@ -193,7 +193,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
-        new web3.BigNumber(2)
+        new web3.BigNumber(1)
       ]);
       logs[0].event.should.be.equal("ChangeRequestInitiated");
       logs[0].args.miningKey.should.be.equal(miningKey);
@@ -215,7 +215,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
-        new web3.BigNumber(2)
+        new web3.BigNumber(1)
       ]);
       const validators = await metadata.validators(miningKey);
       validators.should.be.deep.equal([
@@ -228,7 +228,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
-        new web3.BigNumber(2)
+        new web3.BigNumber(1)
       ]);
     });
   })
@@ -277,7 +277,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
-        new web3.BigNumber(2)
+        new web3.BigNumber(1)
       ]);
       const pendingChanges = await metadata.pendingChanges(miningKey);
       pendingChanges.should.be.deep.equal([
@@ -299,7 +299,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
 
   describe('#getMinThreshold', async () => {
     it('returns default value', async () => {
-      (await metadata.getMinThreshold()).should.be.bignumber.equal(2);
+      (await metadata.getMinThreshold()).should.be.bignumber.equal(1);
     })
   })
   describe('#setProxyAddress', async () => {
@@ -387,7 +387,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
-        new web3.BigNumber(2)
+        new web3.BigNumber(1)
       ]);
     });
   });
