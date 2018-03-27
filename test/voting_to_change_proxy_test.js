@@ -305,7 +305,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
         await voting.hasAlreadyVoted(votingId, votingKey)
       );
       const minThresholdOfVoters = await ballotsStorage.getBallotThreshold(1);
-      minThresholdOfVoters.should.be.bignumber.equal(3);
+      minThresholdOfVoters.should.be.bignumber.equal(1);
     });
 
     it('should change getKeysManager address', async () => {

@@ -80,7 +80,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
         false,
         new web3.BigNumber(1),
         new web3.BigNumber(0),
-        new web3.BigNumber(3),
+        new web3.BigNumber(1),
         new web3.BigNumber(4),
         miningKeyForVotingKey,
         "memo"
@@ -96,7 +96,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 0,"memo", {from: votingKey}).should.be.fulfilled.rejectedWith(ERROR_MSG);
     })
     it('proposed value should not be equal to the same value', async () => {
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 3,"memo", {from: votingKey}).should.be.fulfilled.rejectedWith(ERROR_MSG);
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 1,"memo", {from: votingKey}).should.be.fulfilled.rejectedWith(ERROR_MSG);
     })
     it('should not let create more ballots than the limit', async () => {
       const VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
@@ -212,7 +212,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       votingId = await voting.nextBallotId();
       await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, proposedValue, "memo",{from: votingKey});
       await voting.setTime(VOTING_START_DATE);
-      await voting.vote(votingId, choice.accept, {from: votingKey}).should.be.fulfilled;
+      // await voting.vote(votingId, choice.accept, {from: votingKey}).should.be.fulfilled;
       // await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 1);
       const {logs} = await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
