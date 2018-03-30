@@ -41,7 +41,7 @@ Compile and deploy contracts in the next sequence:
 - `VotingToChangeKeys_flat.sol` - Select contract `VotingToChangeKeys` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
 - `VotingToChangeMinThreshold_flat.sol` - Select contract `VotingToChangeMinThreshold` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
 - `VotingToChangeProxyAddress_flat.sol` - Select contract `VotingToChangeProxyAddress` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
-- `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata` and send transaction `initProxyAddress` with the address of ProxyStorage contract
+- `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata`
 - `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of ValidatorMetadata contract.

@@ -37,9 +37,6 @@ module.exports = async function(deployer, network, accounts) {
       await deployer.deploy(VotingToChangeMinThreshold, ProxyStorage.address);
       await deployer.deploy(VotingToChangeProxyAddress, ProxyStorage.address);
 
-      let validatorMetadata = await ValidatorMetadata.at(ValidatorMetadataEternalStorage.address);
-      await validatorMetadata.initProxyAddress(ProxyStorage.address);
-
       let proxyStorage = await ProxyStorage.deployed();
       await proxyStorage.initializeAddresses(
         KeysManager.address,
