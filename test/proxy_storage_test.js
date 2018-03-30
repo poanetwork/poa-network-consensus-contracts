@@ -30,8 +30,6 @@ contract('ProxyStorage [all features]', function (accounts) {
     proxyStorage = await ProxyStorageMock.new(poaNetworkConsensus.address);
     validatorMetadata = await ValidatorMetadata.new();
     validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorage.address, validatorMetadata.address);
-    let metadata = await ValidatorMetadata.at(validatorMetadataEternalStorage.address);
-    await metadata.initProxyAddress(proxyStorage.address);
   })
   describe('#constructor', async () => {
     it('sets MoC and Poa', async () => {

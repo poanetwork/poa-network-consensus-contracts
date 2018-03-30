@@ -19,12 +19,12 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
   event Upgraded(uint256 version, address indexed implementation);
 
   modifier onlyProxyStorage() {
-    require(msg.sender == addressStorage[keccak256("EternalStorageProxy.proxyStorage")]);
+    require(msg.sender == addressStorage[keccak256("proxyStorage")]);
     _;
   }
 
   function EternalStorageProxy(address _proxyStorage, address _implementationAddress) public {
-    addressStorage[keccak256("EternalStorageProxy.proxyStorage")] = _proxyStorage;
+    addressStorage[keccak256("proxyStorage")] = _proxyStorage;
     _implementation = _implementationAddress;
   }
 

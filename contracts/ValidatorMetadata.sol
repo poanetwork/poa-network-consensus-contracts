@@ -108,13 +108,6 @@ contract ValidatorMetadata is EternalStorage {
         );
     }
 
-    function initProxyAddress(address _proxyStorage) public {
-        bytes32 proxyStorageHash = keccak256("proxyStorage");
-        require(_proxyStorage != address(0));
-        require(addressStorage[proxyStorageHash] == address(0));
-        addressStorage[proxyStorageHash] = _proxyStorage;
-    }
-
     function setProxyAddress(address _newProxyAddress) public onlyValidVotingKey(msg.sender) {
         bytes32 pendingProxyStorageHash =
             keccak256("pendingProxyStorage");

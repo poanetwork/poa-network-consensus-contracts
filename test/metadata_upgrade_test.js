@@ -59,8 +59,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       metadataEternalStorage.address
     );
 
-    metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
-    await metadata.initProxyAddress(proxyStorageMock.address);
+    //metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
 
     let metadataNew = await ValidatorMetadataNew.new();
     await metadataEternalStorage.setProxyStorage(accounts[6]);

@@ -4,7 +4,7 @@ let ValidatorMetadata = artifacts.require('./mockContracts/ValidatorMetadataMock
 let ValidatorMetadataNew = artifacts.require('./upgradeContracts/ValidatorMetadataNew');
 let BallotsStorage = artifacts.require('./BallotsStorage');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
-let EternalStorageProxy = artifacts.require('./EternalStorageProxy');
+let EternalStorageProxy = artifacts.require('./EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
 
@@ -60,7 +60,6 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     );
     
     metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
-    await metadata.initProxyAddress(proxyStorageMock.address);
     
     await keysManager.addMiningKey(miningKey).should.be.fulfilled;
     await keysManager.addVotingKey(votingKey, miningKey).should.be.fulfilled;
@@ -120,14 +119,13 @@ contract('ValidatorMetadata [all features]', function (accounts) {
   })
 
   describe('#changeRequest', async () => {
-    let pendingChangeDetails, pendingChangeAddress;
     beforeEach(async () => {
       const {logs} = await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
     })
     it('happy path', async () => {
       await metadata.setTime(4444);
       const {logs} = await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
-      pendingChanges = await metadata.pendingChanges(miningKey);
+      const pendingChanges = await metadata.pendingChanges(miningKey);
       pendingChanges.should.be.deep.equal([
         toHex("Feodosiy"),
         toHex("Kennedy"),
@@ -329,7 +327,6 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       metadata = await ValidatorMetadata.new();
       metadataEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, metadata.address);
       metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
-      await metadata.initProxyAddress(proxyStorageMock.address);
     });
     it('may be called only by ProxyStorage', async () => {
       let metadataNew = await ValidatorMetadataNew.new();
@@ -368,11 +365,13 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       let metadataNew = await ValidatorMetadataNew.new();
       await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
       metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      (await metadataNew.proxyStorage()).should.be.equal(proxyStorageMock.address);
+      (await metadataNew.proxyStorage()).should.be.equal(proxyStorageStubAddress);
     });
     it('new implementation should use the same storage', async () => {
       await metadata.setTime(55555);
+      await metadataEternalStorage.setProxyStorage(proxyStorageMock.address);
       await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
+      await metadataEternalStorage.setProxyStorage(proxyStorageStubAddress);
       let metadataNew = await ValidatorMetadataNew.new();
       await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
       metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);

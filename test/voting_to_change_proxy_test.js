@@ -47,9 +47,6 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       validatorMetadata.address,
       validatorMetadataEternalStorage.address
     );
-
-    let metadata = await ValidatorMetadata.at(validatorMetadataEternalStorage.address);
-    await metadata.initProxyAddress(proxyStorageMock.address);
   })
   describe('#createBallotToChangeProxyAddress', async () => {
     let VOTING_START_DATE, VOTING_END_DATE, id;
