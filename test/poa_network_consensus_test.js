@@ -20,7 +20,6 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
             masterOfCeremony,
             masterOfCeremony,
             masterOfCeremony,
-            masterOfCeremony,
             masterOfCeremony
         );
     });

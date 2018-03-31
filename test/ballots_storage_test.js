@@ -16,14 +16,12 @@ contract('BallotsStorage [all features]', function (accounts) {
     votingToChangeKeys,
     votingToChangeMinThreshold,
     votingToChangeProxy,
-    validatorMetadata,
     validatorMetadataEternalStorage
   } = {
     keysManager: '',
     votingToChangeKeys: accounts[0],
     votingToChangeMinThreshold: accounts[3],
     votingToChangeProxy: accounts[4],
-    validatorMetadata: accounts[6],
     validatorMetadataEternalStorage: accounts[7]
   }
   masterOfCeremony = accounts[0];
@@ -39,7 +37,6 @@ contract('BallotsStorage [all features]', function (accounts) {
       votingToChangeMinThreshold,
       votingToChangeProxy,
       ballotsStorageMock.address,
-      validatorMetadata,
       validatorMetadataEternalStorage
     );
   })

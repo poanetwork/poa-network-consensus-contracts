@@ -44,7 +44,6 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       masterOfCeremony,
       voting.address,
       ballotsStorage.address,
-      validatorMetadata.address,
       validatorMetadataEternalStorage.address
     );
   })
@@ -336,19 +335,21 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       await deployAndTest({contractType, newAddress})
       newAddress.should.be.equal(await proxyStorageMock.getBallotsStorage());
     })
-    it('should change getValidatorMetadata', async () => {
+    it('should change ValidatorMetadata implementation', async () => {
       let contractType = 7;
       let validatorMetadataNew = await ValidatorMetadata.new();
       let newAddress = validatorMetadataNew.address;
       await deployAndTest({contractType, newAddress})
-      newAddress.should.be.equal(await proxyStorageMock.getValidatorMetadata());
+      let eternalProxyAddress = await proxyStorageMock.getValidatorMetadata();
+      let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
+      newAddress.should.be.equal(await eternalProxy.implementation());
     })
-    it('should change getValidatorMetadataEternalStorage', async () => {
+    it('should change ValidatorMetadata storage', async () => {
       let contractType = 8;
       let validatorMetadataEternalStorageNew = await EternalStorageProxy.new(proxyStorageMock.address, validatorMetadata.address);
       let newAddress = validatorMetadataEternalStorageNew.address;
       await deployAndTest({contractType, newAddress})
-      newAddress.should.be.equal(await proxyStorageMock.getValidatorMetadataEternalStorage());
+      newAddress.should.be.equal(await proxyStorageMock.getValidatorMetadata());
     })
 
     it('prevents double finalize', async () => {

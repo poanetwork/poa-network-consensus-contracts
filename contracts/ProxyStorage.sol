@@ -11,7 +11,6 @@ contract ProxyStorage is IProxyStorage {
     address votingToChangeMinThreshold;
     address votingToChangeProxy;
     address ballotsStorage;
-    address validatorMetadata;
     address validatorMetadataEternalStorage;
     bool public mocInitialized;
     uint8 public contractVersion = 1;
@@ -34,7 +33,6 @@ contract ProxyStorage is IProxyStorage {
         address votingToChangeMinThreshold,
         address votingToChangeProxy,
         address ballotsStorage,
-        address validatorMetadata,
         address validatorMetadataEternalStorage
     );
 
@@ -74,10 +72,6 @@ contract ProxyStorage is IProxyStorage {
     }
 
     function getValidatorMetadata() public view returns(address) {
-        return validatorMetadata;
-    }
-
-    function getValidatorMetadataEternalStorage() public view returns(address) {
         return validatorMetadataEternalStorage;
     }
 
@@ -87,7 +81,6 @@ contract ProxyStorage is IProxyStorage {
         address _votingToChangeMinThreshold,
         address _votingToChangeProxy,
         address _ballotsStorage,
-        address _validatorMetadata,
         address _validatorMetadataEternalStorage
     )
         public
@@ -99,7 +92,6 @@ contract ProxyStorage is IProxyStorage {
         votingToChangeMinThreshold = _votingToChangeMinThreshold;
         votingToChangeProxy = _votingToChangeProxy;
         ballotsStorage = _ballotsStorage;
-        validatorMetadata = _validatorMetadata;
         validatorMetadataEternalStorage = _validatorMetadataEternalStorage;
         mocInitialized = true;
         ProxyInitialized(
@@ -108,7 +100,6 @@ contract ProxyStorage is IProxyStorage {
             votingToChangeMinThreshold,
             votingToChangeProxy,
             ballotsStorage,
-            validatorMetadata,
             validatorMetadataEternalStorage
         );
     }
@@ -131,9 +122,8 @@ contract ProxyStorage is IProxyStorage {
         } else if (_contractType == uint8(ContractTypes.PoaConsensus)) {
             poaConsensus = _contractAddress;
         } else if (_contractType == uint8(ContractTypes.ValidatorMetadata)) {
-            validatorMetadata = _contractAddress;
             IEternalStorageProxy esp = IEternalStorageProxy(validatorMetadataEternalStorage);
-            esp.upgradeTo(validatorMetadata);
+            esp.upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.ValidatorMetadataEternalStorage)) {
             validatorMetadataEternalStorage = _contractAddress;
         }

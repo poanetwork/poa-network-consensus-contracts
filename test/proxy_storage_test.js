@@ -49,7 +49,6 @@ contract('ProxyStorage [all features]', function (accounts) {
         votingToChangeMinThreshold,
         votingToChangeProxy,
         ballotsStorage,
-        validatorMetadata.address,
         validatorMetadataEternalStorage.address,
         {from: accounts[2]}
       ).should.be.rejectedWith(ERROR_MSG);
@@ -59,7 +58,6 @@ contract('ProxyStorage [all features]', function (accounts) {
         votingToChangeMinThreshold,
         votingToChangeProxy,
         ballotsStorage,
-        validatorMetadata.address,
         validatorMetadataEternalStorage.address,
       ).should.be.fulfilled;
       keysManager.should.be.equal(
@@ -77,11 +75,8 @@ contract('ProxyStorage [all features]', function (accounts) {
       ballotsStorage.should.be.equal(
         await proxyStorage.getBallotsStorage()
       );
-      validatorMetadata.address.should.be.equal(
-        await proxyStorage.getValidatorMetadata()
-      );
       validatorMetadataEternalStorage.address.should.be.equal(
-        await proxyStorage.getValidatorMetadataEternalStorage()
+        await proxyStorage.getValidatorMetadata()
       );
       logs[0].event.should.be.equal('ProxyInitialized');
       logs[0].args.keysManager.should.be.equal(keysManager);
@@ -89,7 +84,6 @@ contract('ProxyStorage [all features]', function (accounts) {
       logs[0].args.votingToChangeMinThreshold.should.be.equal(votingToChangeMinThreshold);
       logs[0].args.votingToChangeProxy.should.be.equal(votingToChangeProxy);
       logs[0].args.ballotsStorage.should.be.equal(ballotsStorage);
-      logs[0].args.validatorMetadata.should.be.equal(validatorMetadata.address);
       logs[0].args.validatorMetadataEternalStorage.should.be.equal(validatorMetadataEternalStorage.address);
     })
     it('prevents Moc to call it more than once', async () => {
@@ -100,7 +94,6 @@ contract('ProxyStorage [all features]', function (accounts) {
         votingToChangeMinThreshold,
         votingToChangeProxy,
         ballotsStorage,
-        validatorMetadata.address,
         validatorMetadataEternalStorage.address
       ).should.be.fulfilled;
       true.should.be.equal(await proxyStorage.mocInitialized());
@@ -110,7 +103,6 @@ contract('ProxyStorage [all features]', function (accounts) {
         votingToChangeMinThreshold,
         votingToChangeProxy,
         ballotsStorage,
-        validatorMetadata.address,
         validatorMetadataEternalStorage.address
       ).should.be.rejectedWith(ERROR_MSG);
     })
@@ -124,7 +116,6 @@ contract('ProxyStorage [all features]', function (accounts) {
         votingToChangeMinThreshold,
         votingToChangeProxy,
         ballotsStorage,
-        validatorMetadata.address,
         validatorMetadataEternalStorage.address,
         {from: masterOfCeremony}
       ).should.be.fulfilled;
@@ -175,15 +166,19 @@ contract('ProxyStorage [all features]', function (accounts) {
     it('sets validatorMetadata', async () => {
       let validatorMetadataNew = await ValidatorMetadata.new();
       await proxyStorage.setContractAddress(7, validatorMetadataNew.address, {from: votingToChangeProxy}).should.be.fulfilled;
+      
+      let eternalProxyAddress = await proxyStorage.getValidatorMetadata();
+      let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
+
       validatorMetadataNew.address.should.be.equal(
-        await proxyStorage.getValidatorMetadata()
+        await eternalProxy.implementation()
       )
     })
     it('sets validatorMetadataEternalStorage', async () => {
       let validatorMetadataEternalStorageNew = await EternalStorageProxy.new(proxyStorage.address, validatorMetadata.address);
       await proxyStorage.setContractAddress(8, validatorMetadataEternalStorageNew.address, {from: votingToChangeProxy}).should.be.fulfilled;
       validatorMetadataEternalStorageNew.address.should.be.equal(
-        await proxyStorage.getValidatorMetadataEternalStorage()
+        await proxyStorage.getValidatorMetadata()
       )
     })
   })  
