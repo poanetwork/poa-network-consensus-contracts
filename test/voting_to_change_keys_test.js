@@ -35,7 +35,6 @@ contract('Voting to change keys [all features]', function (accounts) {
       masterOfCeremony,
       masterOfCeremony,
       ballotsStorage.address,
-      masterOfCeremony,
       masterOfCeremony
     );
   })

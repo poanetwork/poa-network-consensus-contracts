@@ -55,7 +55,6 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       masterOfCeremony,
       masterOfCeremony,
       ballotsStorage.address,
-      metadata.address,
       metadataEternalStorage.address
     );
     

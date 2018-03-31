@@ -39,7 +39,6 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       voting.address,
       masterOfCeremony,
       ballotsStorage.address,
-      masterOfCeremony,
       masterOfCeremony
     );
     await proxyStorageMock.setVotingContractMock(accounts[0]);

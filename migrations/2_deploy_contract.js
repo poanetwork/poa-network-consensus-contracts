@@ -44,7 +44,6 @@ module.exports = async function(deployer, network, accounts) {
         VotingToChangeMinThreshold.address,
         VotingToChangeProxyAddress.address,
         BallotsStorage.address,
-        ValidatorMetadata.address,
         ValidatorMetadataEternalStorage.address
       );
       await poaNetworkConsensus.setProxyStorage(ProxyStorage.address);
@@ -70,7 +69,8 @@ module.exports = async function(deployer, network, accounts) {
       VotingToChangeProxyAddress.address ${VotingToChangeProxyAddress.address} \n
       BallotsStorage.address ${BallotsStorage.address} \n
       KeysManager.address ${KeysManager.address} \n
-      ValidatorMetadata.address ${ValidatorMetadataEternalStorage.address} \n
+      ValidatorMetadata.address (implementation) ${ValidatorMetadata.address} \n
+      ValidatorMetadata.address (storage) ${ValidatorMetadataEternalStorage.address} \n
       ProxyStorage.address ${ProxyStorage.address} \n
       `)
       
