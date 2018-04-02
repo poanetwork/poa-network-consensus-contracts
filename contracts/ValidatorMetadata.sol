@@ -43,7 +43,7 @@ contract ValidatorMetadata is EternalStorage {
         bytes32 licenseId,
         string fullAddress,
         bytes32 state,
-        uint256 zipcode,
+        bytes32 zipcode,
         uint256 expirationDate,
         uint256 createdDate,
         uint256 updatedDate,
@@ -54,7 +54,7 @@ contract ValidatorMetadata is EternalStorage {
         licenseId = bytes32Storage[keccak256("validators", _miningKey, "licenseId")];
         fullAddress = stringStorage[keccak256("validators", _miningKey, "fullAddress")];
         state = bytes32Storage[keccak256("validators", _miningKey, "state")];
-        zipcode = uintStorage[keccak256("validators", _miningKey, "zipcode")];
+        zipcode = bytes32Storage[keccak256("validators", _miningKey, "zipcode")];
         expirationDate = uintStorage[keccak256("validators", _miningKey, "expirationDate")];
         createdDate = uintStorage[keccak256("validators", _miningKey, "createdDate")];
         updatedDate = uintStorage[keccak256("validators", _miningKey, "updatedDate")];
@@ -67,7 +67,7 @@ contract ValidatorMetadata is EternalStorage {
         bytes32 licenseId,
         string fullAddress,
         bytes32 state,
-        uint256 zipcode,
+        bytes32 zipcode,
         uint256 expirationDate,
         uint256 createdDate,
         uint256 updatedDate,
@@ -78,7 +78,7 @@ contract ValidatorMetadata is EternalStorage {
         licenseId = bytes32Storage[keccak256("pendingChanges", _miningKey, "licenseId")];
         fullAddress = stringStorage[keccak256("pendingChanges", _miningKey, "fullAddress")];
         state = bytes32Storage[keccak256("pendingChanges", _miningKey, "state")];
-        zipcode = uintStorage[keccak256("pendingChanges", _miningKey, "zipcode")];
+        zipcode = bytes32Storage[keccak256("pendingChanges", _miningKey, "zipcode")];
         expirationDate = uintStorage[keccak256("pendingChanges", _miningKey, "expirationDate")];
         createdDate = uintStorage[keccak256("pendingChanges", _miningKey, "createdDate")];
         updatedDate = uintStorage[keccak256("pendingChanges", _miningKey, "updatedDate")];
@@ -153,7 +153,7 @@ contract ValidatorMetadata is EternalStorage {
         bytes32 _licenseId,
         string _fullAddress,
         bytes32 _state,
-        uint256 _zipcode,
+        bytes32 _zipcode,
         uint256 _expirationDate
     )
         public
@@ -166,7 +166,7 @@ contract ValidatorMetadata is EternalStorage {
         bytes32Storage[keccak256("validators", miningKey, "licenseId")] = _licenseId;
         bytes32Storage[keccak256("validators", miningKey, "state")] = _state;
         stringStorage[keccak256("validators", miningKey, "fullAddress")] = _fullAddress;
-        uintStorage[keccak256("validators", miningKey, "zipcode")] = _zipcode;
+        bytes32Storage[keccak256("validators", miningKey, "zipcode")] = _zipcode;
         uintStorage[keccak256("validators", miningKey, "expirationDate")] = _expirationDate;
         uintStorage[keccak256("validators", miningKey, "createdDate")] = getTime();
         uintStorage[keccak256("validators", miningKey, "updatedDate")] = 0;
@@ -180,7 +180,7 @@ contract ValidatorMetadata is EternalStorage {
         bytes32 _licenseId,
         string _fullAddress,
         bytes32 _state,
-        uint256 _zipcode,
+        bytes32 _zipcode,
         uint256 _expirationDate
     )
         public
@@ -206,7 +206,7 @@ contract ValidatorMetadata is EternalStorage {
         bytes32 _licenseId,
         string _fullAddress,
         bytes32 _state,
-        uint256 _zipcode,
+        bytes32 _zipcode,
         uint256 _expirationDate,
         address _miningKey
     )
@@ -219,7 +219,7 @@ contract ValidatorMetadata is EternalStorage {
         bytes32Storage[keccak256("pendingChanges", _miningKey, "licenseId")] = _licenseId;
         bytes32Storage[keccak256("pendingChanges", _miningKey, "state")] = _state;
         stringStorage[keccak256("pendingChanges", _miningKey, "fullAddress")] = _fullAddress;
-        uintStorage[keccak256("pendingChanges", _miningKey, "zipcode")] = _zipcode;
+        bytes32Storage[keccak256("pendingChanges", _miningKey, "zipcode")] = _zipcode;
         uintStorage[keccak256("pendingChanges", _miningKey, "expirationDate")] = _expirationDate;
         uintStorage[keccak256("pendingChanges", _miningKey, "createdDate")] =
             uintStorage[keccak256("validators", _miningKey, "createdDate")];
@@ -297,8 +297,8 @@ contract ValidatorMetadata is EternalStorage {
             bytes32Storage[keccak256("pendingChanges", _miningKey, "state")];
         stringStorage[keccak256("validators", _miningKey, "fullAddress")] = 
             stringStorage[keccak256("pendingChanges", _miningKey, "fullAddress")];
-        uintStorage[keccak256("validators", _miningKey, "zipcode")] = 
-            uintStorage[keccak256("pendingChanges", _miningKey, "zipcode")];
+        bytes32Storage[keccak256("validators", _miningKey, "zipcode")] = 
+            bytes32Storage[keccak256("pendingChanges", _miningKey, "zipcode")];
         uintStorage[keccak256("validators", _miningKey, "expirationDate")] = 
             uintStorage[keccak256("pendingChanges", _miningKey, "expirationDate")];
         uintStorage[keccak256("validators", _miningKey, "createdDate")] = 
@@ -345,7 +345,7 @@ contract ValidatorMetadata is EternalStorage {
         delete bytes32Storage[keccak256("pendingChanges", _miningKey, "licenseId")];
         delete bytes32Storage[keccak256("pendingChanges", _miningKey, "state")];
         delete stringStorage[keccak256("pendingChanges", _miningKey, "fullAddress")];
-        delete uintStorage[keccak256("pendingChanges", _miningKey, "zipcode")];
+        delete bytes32Storage[keccak256("pendingChanges", _miningKey, "zipcode")];
         delete uintStorage[keccak256("pendingChanges", _miningKey, "expirationDate")];
         delete uintStorage[keccak256("pendingChanges", _miningKey, "createdDate")];
         delete uintStorage[keccak256("pendingChanges", _miningKey, "updatedDate")];

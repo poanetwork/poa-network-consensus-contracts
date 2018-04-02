@@ -21,13 +21,13 @@ let keysManager, ballotsStorage, poaNetworkConsensusMock;
 let metadata, metadataEternalStorage;
 let votingKey, votingKey2, votingKey3, miningKey;
 let fakeData = [
-  "Djamshut", "Roosvelt", "123asd", "Moskva", "ZZ", 234,23423
-]
+  "Djamshut", "Roosvelt", "123asd", "Moskva", "ZZ", "234", 23423
+];
 let newMetadata = [
-  "Feodosiy", "Kennedy", "123123", "Petrovka 38", "ZA", 1337, 71
+  "Feodosiy", "Kennedy", "123123", "Petrovka 38", "ZA", "1337", 71
 ];
 let anotherData = [
-  "Feodosiy", "Bush", "123123", "Petrovka 38", "ZA", 1337, 71
+  "Feodosiy", "Bush", "123123", "Petrovka 38", "ZA", "1337", 71
 ];
 contract('ValidatorMetadata [all features]', function (accounts) {
   if (typeof masterOfCeremony === 'undefined') {
@@ -78,7 +78,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         pad(web3.toHex("123asd")),
         "Moskva",
         toHex("ZZ"),
-        new web3.BigNumber(234),
+        pad(web3.toHex("234")),
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
@@ -96,7 +96,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         "",
         '0x0000000000000000000000000000000000000000000000000000000000000000',
-        new web3.BigNumber(0),
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
@@ -131,7 +131,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         pad(web3.toHex("123123")),
         "Petrovka 38",
         toHex("ZA"),
-        new web3.BigNumber(1337),
+        pad(web3.toHex("1337")),
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
@@ -173,7 +173,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         "",
         '0x0000000000000000000000000000000000000000000000000000000000000000',
-        new web3.BigNumber(0),
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
@@ -186,7 +186,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         pad(web3.toHex("123asd")),
         "Moskva",
         toHex("ZZ"),
-        new web3.BigNumber(234),
+        pad(web3.toHex("234")),
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
@@ -208,7 +208,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         pad(web3.toHex("123123")),
         "Petrovka 38",
         toHex("ZA"),
-        new web3.BigNumber(1337),
+        pad(web3.toHex("1337")),
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
@@ -221,7 +221,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         pad(web3.toHex("123asd")),
         "Moskva",
         toHex("ZZ"),
-        new web3.BigNumber(234),
+        pad(web3.toHex("234")),
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
@@ -270,7 +270,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         pad(web3.toHex("123123")),
         "Petrovka 38",
         toHex("ZA"),
-        new web3.BigNumber(1337),
+        pad(web3.toHex("1337")),
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
@@ -283,7 +283,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         "",
         '0x0000000000000000000000000000000000000000000000000000000000000000',
-        new web3.BigNumber(0),
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
@@ -381,7 +381,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
         pad(web3.toHex("123asd")),
         "Moskva",
         toHex("ZZ"),
-        new web3.BigNumber(234),
+        pad(web3.toHex("234")),
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
