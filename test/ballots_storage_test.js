@@ -100,7 +100,7 @@ contract('BallotsStorage [all features]', function (accounts) {
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       const getValidators = await poaNetworkConsensus.getValidators();
       new web3.BigNumber(6).should.be.bignumber.equal(getValidators.length);
-      new web3.BigNumber(4).should.be.bignumber.equal(await ballotsStorageMock.getProxyThreshold())
+      new web3.BigNumber(3).should.be.bignumber.equal(await ballotsStorageMock.getProxyThreshold())
     })
   })
   describe('#getVotingToChangeThreshold', async () => {
@@ -116,6 +116,7 @@ contract('BallotsStorage [all features]', function (accounts) {
       limit.should.be.bignumber.equal(200);
 
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       limit = await ballotsStorageMock.getBallotLimitPerValidator();

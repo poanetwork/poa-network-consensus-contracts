@@ -135,9 +135,9 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       const VOTING_END_DATE = moment.utc().add(30, 'years').unix();
       await voting.createBallotToChangeProxyAddress(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, "memo",{from: votingKey});
       await voting.createBallotToChangeProxyAddress(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, "memo",{from: votingKey});
-      // we have 7 validators, so 200 limit / 7 = 28.5 ~ 28
+      // we have 1 validator, so 200 limit / 1 = 200
       new web3.BigNumber(200).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
-      await addValidators({proxyStorageMock, keysManager, poaNetworkConsensusMock}); //add 100 validators, so total will be 101 validator
+      await addValidators({proxyStorageMock, keysManager, poaNetworkConsensusMock}); // add 100 validators, so total will be 101 validator
       new web3.BigNumber(1).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
       await voting.createBallotToChangeProxyAddress(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, "memo",{from: votingKey}).should.be.rejectedWith(ERROR_MSG)
     })
@@ -291,7 +291,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
         true, //isFinalized
         new web3.BigNumber(3), //quorumState enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
         new web3.BigNumber(0), //index
-        new web3.BigNumber(3), //minThreshold
+        new web3.BigNumber(2), //minThreshold
         accounts[5], //porposedValue
         new web3.BigNumber(contractType),
         miningKeyForVotingKey, //creator
@@ -395,7 +395,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
         true, //isFinalized
         new web3.BigNumber(2), //quorumState enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
         new web3.BigNumber(0), //index
-        new web3.BigNumber(3), //minThreshold
+        new web3.BigNumber(2), //minThreshold
         newAddress1, //proposedValue
         new web3.BigNumber(contractType1),
         miningKeyForVotingKey, //creator
@@ -411,7 +411,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
         true, //isFinalized
         new web3.BigNumber(3), //quorumState enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
         new web3.BigNumber(0), //index
-        new web3.BigNumber(3), //minThreshold
+        new web3.BigNumber(2), //minThreshold
         newAddress2, //proposedValue
         new web3.BigNumber(contractType2),
         miningKeyForVotingKey, //creator
@@ -454,7 +454,7 @@ async function deployAndTest({
     true, //isFinalized
     new web3.BigNumber(2), //quorumState enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
     new web3.BigNumber(0), //index
-    new web3.BigNumber(3), //minThreshold
+    new web3.BigNumber(2), //minThreshold
     newAddress, //proposedValue
     new web3.BigNumber(contractType),
     miningKeyForVotingKey, //creator
