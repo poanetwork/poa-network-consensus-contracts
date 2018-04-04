@@ -9,13 +9,20 @@ require('chai')
     .use(require('chai-bignumber')(web3.BigNumber))
     .should();
 
-let proxyStorage, masterOfCeremony, ballotsStorage;
+let proxyStorage, masterOfCeremony;
 contract('BallotsStorage [all features]', function (accounts) {
-  let {keysManager, votingToChangeKeys, votingToChangeMinThreshold, votingToChangeProxy, ballotsStorage} = {
+  let {
+    keysManager,
+    votingToChangeKeys,
+    votingToChangeMinThreshold,
+    votingToChangeProxy,
+    validatorMetadataEternalStorage
+  } = {
     keysManager: '',
     votingToChangeKeys: accounts[0],
     votingToChangeMinThreshold: accounts[3],
-    votingToChangeProxy: accounts[4]
+    votingToChangeProxy: accounts[4],
+    validatorMetadataEternalStorage: accounts[7]
   }
   masterOfCeremony = accounts[0];
   beforeEach(async () => {
@@ -24,10 +31,16 @@ contract('BallotsStorage [all features]', function (accounts) {
     ballotsStorageMock = await BallotsStorageMock.new(proxyStorage.address);
     keysManager = await KeysManagerMock.new(proxyStorage.address, poaNetworkConsensus.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
     await poaNetworkConsensus.setProxyStorage(proxyStorage.address);
-    await proxyStorage.initializeAddresses(keysManager.address, votingToChangeKeys, votingToChangeMinThreshold, votingToChangeProxy, ballotsStorageMock.address);
-
+    await proxyStorage.initializeAddresses(
+      keysManager.address,
+      votingToChangeKeys,
+      votingToChangeMinThreshold,
+      votingToChangeProxy,
+      ballotsStorageMock.address,
+      validatorMetadataEternalStorage
+    );
   })
-  describe('#contstuctor', async () => {
+  describe('#constructor', async () => {
     it('sets MoC and Poa', async () => {
       new web3.BigNumber(3).should.be.bignumber.equal(
         await ballotsStorageMock.getBallotThreshold(1)
@@ -87,7 +100,7 @@ contract('BallotsStorage [all features]', function (accounts) {
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       const getValidators = await poaNetworkConsensus.getValidators();
       new web3.BigNumber(6).should.be.bignumber.equal(getValidators.length);
-      new web3.BigNumber(4).should.be.bignumber.equal(await ballotsStorageMock.getProxyThreshold())
+      new web3.BigNumber(3).should.be.bignumber.equal(await ballotsStorageMock.getProxyThreshold())
     })
   })
   describe('#getVotingToChangeThreshold', async () => {
@@ -103,6 +116,7 @@ contract('BallotsStorage [all features]', function (accounts) {
       limit.should.be.bignumber.equal(200);
 
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       limit = await ballotsStorageMock.getBallotLimitPerValidator();

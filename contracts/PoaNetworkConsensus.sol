@@ -17,7 +17,6 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     /// signal will not be recognized.
     event InitiateChange(bytes32 indexed parentHash, address[] newSet);
     event ChangeFinalized(address[] newSet);
-    event ChangeReference(string nameOfContract, address newAddress);
     event MoCInitializedProxyStorage(address proxyStorage);
     
     struct ValidatorState {
@@ -39,11 +38,6 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
 
     modifier onlySystemAndNotFinalized() {
         require(msg.sender == systemAddress && !finalized);
-        _;
-    }
-
-    modifier onlyVotingContract() {
-        require(msg.sender == getVotingToChangeKeys());
         _;
     }
 

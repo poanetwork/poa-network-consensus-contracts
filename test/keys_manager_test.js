@@ -17,7 +17,14 @@ contract('KeysManager [all features]', function (accounts) {
     proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address);
     keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
-    await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, masterOfCeremony, masterOfCeremony, masterOfCeremony);
+    await proxyStorageMock.initializeAddresses(
+      keysManager.address,
+      masterOfCeremony,
+      masterOfCeremony,
+      masterOfCeremony,
+      masterOfCeremony,
+      masterOfCeremony
+    );
   });
 
   describe('#constructor', async () => {

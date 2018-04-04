@@ -33,7 +33,14 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     voting = await Voting.new(proxyStorageMock.address);
-    await proxyStorageMock.initializeAddresses(keysManager.address, masterOfCeremony, voting.address, masterOfCeremony, ballotsStorage.address);
+    await proxyStorageMock.initializeAddresses(
+      keysManager.address,
+      masterOfCeremony,
+      voting.address,
+      masterOfCeremony,
+      ballotsStorage.address,
+      masterOfCeremony
+    );
     await proxyStorageMock.setVotingContractMock(accounts[0]);
     await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
     await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
@@ -51,11 +58,12 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
     await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
   })
+
   describe('#createBallotToChangeThreshold', async () => {
     let VOTING_START_DATE, VOTING_END_DATE, id;
     beforeEach(async () => {
-      VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
-      VOTING_END_DATE = moment.utc().add(30, 'years').unix();
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(10, 'days').unix();
       id = await voting.nextBallotId();
     })
     it('happy path', async () => {
@@ -91,16 +99,15 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 3,"memo", {from: votingKey}).should.be.fulfilled.rejectedWith(ERROR_MSG);
     })
     it('should not let create more ballots than the limit', async () => {
-      const VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
-      const VOTING_END_DATE = moment.utc().add(30, 'years').unix();
+      const VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
+      const VOTING_END_DATE = moment.utc().add(10, 'days').unix();
       await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4,"memo", {from: votingKey});
       await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4,"memo", {from: votingKey});
-      // we have 7 validators, so 200 limit / 7 = 28.5 ~ 28
-      new web3.BigNumber(28).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
-      await addValidators({proxyStorageMock, keysManager, poaNetworkConsensusMock}); //add 100 validators, so total will be 101 validator
+      // we have 6 validators, so 200 limit / 6 = 33.3 ~ 33
+      new web3.BigNumber(33).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
+      await addValidators({proxyStorageMock, keysManager, poaNetworkConsensusMock}); // add 100 validators, so total will be 106 validators
       new web3.BigNumber(1).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
       await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, "memo",{from: votingKey}).should.be.rejectedWith(ERROR_MSG)
-
     })
   })
 
@@ -108,11 +115,10 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     let VOTING_START_DATE, VOTING_END_DATE;
     let id;
     beforeEach(async ()=> {
-      VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
-      VOTING_END_DATE = moment.utc().add(30, 'years').unix();
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(10, 'days').unix();
 
       id = await voting.nextBallotId();
-      let fiftyOnePercent = await ballotsStorage.getProxyThreshold();
       let validators = await poaNetworkConsensusMock.getValidators();
       await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, 4, "memo",{from: votingKey});
     })
@@ -196,8 +202,8 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     let votingId;
     let payoutKeyToAdd = accounts[0];
     beforeEach(async () => {
-      VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
-      VOTING_END_DATE = moment.utc().add(30, 'years').unix();      
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(10, 'days').unix();      
     })
     it('doesnot change if it did not pass minimum threshold', async () => {
       let proposedValue = 4;
@@ -302,9 +308,10 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       let proposedValue1 = 4;
       let proposedValue2 = 5;
       await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, proposedValue1, "memo",{from: votingKey});
-            
+
       await proxyStorageMock.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey("0xa6Bf70bd230867c870eF13631D7EFf1AE8Ab85c9").should.be.fulfilled;
+      await keysManager.addMiningKey("0xa6Bf70bd230867c870eF13631D7EFf1AE8Ab85d9").should.be.fulfilled;
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
 

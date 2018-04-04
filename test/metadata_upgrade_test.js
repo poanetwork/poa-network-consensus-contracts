@@ -4,7 +4,7 @@ let ValidatorMetadata = artifacts.require('./mockContracts/ValidatorMetadataMock
 let ValidatorMetadataNew = artifacts.require('./upgradeContracts/ValidatorMetadataNew');
 let BallotsStorage = artifacts.require('./BallotsStorage');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
-let EternalStorageProxy = artifacts.require('./EternalStorageProxyMock');
+let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
 
@@ -29,7 +29,7 @@ let newMetadata = [
 let anotherData = [
   "Feodosiy", "Bush", "123123", "Petrovka 38", "ZA", "1337", 71
 ];
-contract('ValidatorMetadata [all features]', function (accounts) {
+contract('ValidatorMetadata upgraded [all features]', function (accounts) {
   if (typeof masterOfCeremony === 'undefined') {
   	masterOfCeremony = accounts[0];
   }
@@ -48,7 +48,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
 
     metadata = await ValidatorMetadata.new();
     metadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, metadata.address);
-    
+
     await proxyStorageMock.initializeAddresses(
       keysManager.address,
       masterOfCeremony,
@@ -57,9 +57,15 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       ballotsStorage.address,
       metadataEternalStorage.address
     );
-    
-    metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
-    
+
+    //metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
+
+    let metadataNew = await ValidatorMetadataNew.new();
+    await metadataEternalStorage.setProxyStorage(accounts[6]);
+    await metadataEternalStorage.upgradeTo(metadataNew.address, {from: accounts[6]});
+    await metadataEternalStorage.setProxyStorage(proxyStorageMock.address);
+    metadata = await ValidatorMetadataNew.at(metadataEternalStorage.address);
+
     await keysManager.addMiningKey(miningKey).should.be.fulfilled;
     await keysManager.addVotingKey(votingKey, miningKey).should.be.fulfilled;
     await keysManager.addMiningKey(miningKey2).should.be.fulfilled;
@@ -108,6 +114,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
     });
   })
+  
   describe('#getMiningByVotingKey', async () => {
     it('happy path', async () => {
       let actual = await metadata.getMiningByVotingKey(votingKey);
@@ -116,15 +123,16 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       '0x0000000000000000000000000000000000000000'.should.be.equal(actual);
     })
   })
-
+  
   describe('#changeRequest', async () => {
+    let pendingChangeDetails, pendingChangeAddress;
     beforeEach(async () => {
       const {logs} = await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
     })
     it('happy path', async () => {
       await metadata.setTime(4444);
       const {logs} = await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
-      const pendingChanges = await metadata.pendingChanges(miningKey);
+      pendingChanges = await metadata.pendingChanges(miningKey);
       pendingChanges.should.be.deep.equal([
         toHex("Feodosiy"),
         toHex("Kennedy"),
@@ -320,75 +328,6 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       (await metadata.proxyStorage()).should.be.equal(newProxy);
     })
   })
-  describe('#upgradeTo', async () => {
-    const proxyStorageStubAddress = accounts[8];
-    beforeEach(async () => {
-      metadata = await ValidatorMetadata.new();
-      metadataEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, metadata.address);
-      metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
-    });
-    it('may be called only by ProxyStorage', async () => {
-      let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress}).should.be.fulfilled;
-    });
-    it('should change implementation address', async () => {
-      let metadataNew = await ValidatorMetadataNew.new();
-      let oldImplementation = await metadata.implementation();
-      let newImplementation = metadataNew.address;
-      (await metadataEternalStorage.implementation()).should.be.equal(oldImplementation);
-      await metadataEternalStorage.upgradeTo(newImplementation, {from: proxyStorageStubAddress});
-      metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      (await metadataNew.implementation()).should.be.equal(newImplementation);
-      (await metadataEternalStorage.implementation()).should.be.equal(newImplementation);
-    });
-    it('should increment implementation version', async () => {
-      let metadataNew = await ValidatorMetadataNew.new();
-      let oldVersion = await metadata.version();
-      let newVersion = oldVersion.add(1);
-      (await metadataEternalStorage.version()).should.be.bignumber.equal(oldVersion);
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
-      metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      (await metadataNew.version()).should.be.bignumber.equal(newVersion);
-      (await metadataEternalStorage.version()).should.be.bignumber.equal(newVersion);
-    });
-    it('new implementation should work', async () => {
-      let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
-      metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      (await metadataNew.initialized()).should.be.equal(false);
-      await metadataNew.initialize();
-      (await metadataNew.initialized()).should.be.equal(true);
-    });
-    it('new implementation should use the same proxyStorage address', async () => {
-      let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
-      metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      (await metadataNew.proxyStorage()).should.be.equal(proxyStorageStubAddress);
-    });
-    it('new implementation should use the same storage', async () => {
-      await metadata.setTime(55555);
-      await metadataEternalStorage.setProxyStorage(proxyStorageMock.address);
-      await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
-      await metadataEternalStorage.setProxyStorage(proxyStorageStubAddress);
-      let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
-      metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      const validators = await metadataNew.validators(miningKey);
-      validators.should.be.deep.equal([
-        toHex("Djamshut"),
-        toHex("Roosvelt"),
-        pad(web3.toHex("123asd")),
-        "Moskva",
-        toHex("ZZ"),
-        pad(web3.toHex("234")),
-        new web3.BigNumber(23423),
-        new web3.BigNumber(55555),
-        new web3.BigNumber(0),
-        new web3.BigNumber(2)
-      ]);
-    });
-  });
 })
 
 var toUtf8 = function(hex) {

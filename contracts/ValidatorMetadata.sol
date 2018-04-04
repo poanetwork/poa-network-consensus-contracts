@@ -1,33 +1,14 @@
 pragma solidity ^0.4.18;
+
 import "./SafeMath.sol";
 import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IKeysManager.sol";
+import "./eternal-storage/EternalStorage.sol";
 
-
-contract ValidatorMetadata {
+contract ValidatorMetadata is EternalStorage {
     using SafeMath for uint256;
 
-    struct Validator {
-        bytes32 firstName;
-        bytes32 lastName;
-        bytes32 licenseId;
-        string fullAddress;
-        bytes32 state;
-        uint256 zipcode;
-        uint256 expirationDate;
-        uint256 createdDate;
-        uint256 updatedDate;
-        uint256 minThreshold;
-    }
-
-    struct Confirmation {
-
-        uint256 count;
-        address[] voters;
-    }
-    
-    IProxyStorage public proxyStorage;
     event MetadataCreated(address indexed miningKey);
     event ChangeRequestInitiated(address indexed miningKey);
     event CancelledRequest(address indexed miningKey);
@@ -35,11 +16,6 @@ contract ValidatorMetadata {
     event FinalizedChange(address indexed miningKey);
     event RequestForNewProxy(address newProxyAddress);
     event ChangeProxyStorage(address newProxyAddress);
-    mapping(address => Validator) public validators;
-    mapping(address => Validator) public pendingChanges;
-    mapping(address => Confirmation) public confirmations;
-    address public pendingProxyStorage;
-    mapping(address => Confirmation) public pendingProxyConfirmations;
 
     modifier onlyValidVotingKey(address _votingKey) {
         IKeysManager keysManager = IKeysManager(getKeysManager());
@@ -48,39 +24,127 @@ contract ValidatorMetadata {
     }
 
     modifier onlyFirstTime(address _votingKey) {
-        address miningKey = getMiningByVotingKey(msg.sender);
-        Validator storage validator = validators[miningKey];
-        require(validator.createdDate == 0);
+        address miningKey = getMiningByVotingKey(_votingKey);
+        require(uintStorage[keccak256("validators", miningKey, "createdDate")] == 0);
         _;
     }
 
-    function ValidatorMetadata(address _proxyStorage) public {
-        proxyStorage = IProxyStorage(_proxyStorage);
+    function proxyStorage() public view returns (address) {
+        return addressStorage[keccak256("proxyStorage")];
+    }
+
+    function pendingProxyStorage() public view returns (address) {
+        return addressStorage[keccak256("pendingProxyStorage")];
+    }
+
+    function validators(address _miningKey) public view returns (
+        bytes32 firstName,
+        bytes32 lastName,
+        bytes32 licenseId,
+        string fullAddress,
+        bytes32 state,
+        bytes32 zipcode,
+        uint256 expirationDate,
+        uint256 createdDate,
+        uint256 updatedDate,
+        uint256 minThreshold
+    ) {
+        firstName = bytes32Storage[keccak256("validators", _miningKey, "firstName")];
+        lastName = bytes32Storage[keccak256("validators", _miningKey, "lastName")];
+        licenseId = bytes32Storage[keccak256("validators", _miningKey, "licenseId")];
+        fullAddress = stringStorage[keccak256("validators", _miningKey, "fullAddress")];
+        state = bytes32Storage[keccak256("validators", _miningKey, "state")];
+        zipcode = bytes32Storage[keccak256("validators", _miningKey, "zipcode")];
+        expirationDate = uintStorage[keccak256("validators", _miningKey, "expirationDate")];
+        createdDate = uintStorage[keccak256("validators", _miningKey, "createdDate")];
+        updatedDate = uintStorage[keccak256("validators", _miningKey, "updatedDate")];
+        minThreshold = uintStorage[keccak256("validators", _miningKey, "minThreshold")];
+    }
+
+    function pendingChanges(address _miningKey) public view returns (
+        bytes32 firstName,
+        bytes32 lastName,
+        bytes32 licenseId,
+        string fullAddress,
+        bytes32 state,
+        bytes32 zipcode,
+        uint256 expirationDate,
+        uint256 createdDate,
+        uint256 updatedDate,
+        uint256 minThreshold
+    ) {
+        firstName = bytes32Storage[keccak256("pendingChanges", _miningKey, "firstName")];
+        lastName = bytes32Storage[keccak256("pendingChanges", _miningKey, "lastName")];
+        licenseId = bytes32Storage[keccak256("pendingChanges", _miningKey, "licenseId")];
+        fullAddress = stringStorage[keccak256("pendingChanges", _miningKey, "fullAddress")];
+        state = bytes32Storage[keccak256("pendingChanges", _miningKey, "state")];
+        zipcode = bytes32Storage[keccak256("pendingChanges", _miningKey, "zipcode")];
+        expirationDate = uintStorage[keccak256("pendingChanges", _miningKey, "expirationDate")];
+        createdDate = uintStorage[keccak256("pendingChanges", _miningKey, "createdDate")];
+        updatedDate = uintStorage[keccak256("pendingChanges", _miningKey, "updatedDate")];
+        minThreshold = uintStorage[keccak256("pendingChanges", _miningKey, "minThreshold")];
+    }
+
+    function confirmations(address _miningKey) public view returns (
+        uint256 count,
+        address[] voters
+    ) {
+        return (
+            uintStorage[keccak256("confirmations", _miningKey, "count")],
+            addressArrayStorage[keccak256("confirmations", _miningKey, "voters")]
+        );
+    }
+
+    function pendingProxyConfirmations(address _newProxyAddress) public view returns (
+        uint256 count,
+        address[] voters
+    ) {
+        bytes32 countHash = keccak256("pendingProxyConfirmations", _newProxyAddress, "count");
+        bytes32 votersHash = keccak256("pendingProxyConfirmations", _newProxyAddress, "voters");
+
+        return (
+            uintStorage[countHash],
+            addressArrayStorage[votersHash]
+        );
     }
 
     function setProxyAddress(address _newProxyAddress) public onlyValidVotingKey(msg.sender) {
-        require(pendingProxyStorage == address(0));
-        Confirmation storage confirmation = pendingProxyConfirmations[_newProxyAddress];
-        pendingProxyStorage = _newProxyAddress;
-        confirmation.count = 1;
-        confirmation.voters.push(msg.sender);
+        bytes32 pendingProxyStorageHash =
+            keccak256("pendingProxyStorage");
+
+        require(addressStorage[pendingProxyStorageHash] == address(0));
+        
+        addressStorage[pendingProxyStorageHash] = _newProxyAddress;
+        uintStorage[keccak256("pendingProxyConfirmations", _newProxyAddress, "count")] = 1;
+        addressArrayStorage[keccak256("pendingProxyConfirmations", _newProxyAddress, "voters")].push(msg.sender);
+        
         RequestForNewProxy(_newProxyAddress);
     }
-    
-    function confirmNewProxyAddress(address _newProxyAddress) public onlyValidVotingKey(msg.sender) {
-        require(pendingProxyStorage != address(0));
-        Confirmation storage confirmation = pendingProxyConfirmations[_newProxyAddress];
+
+    function confirmNewProxyAddress(address _newProxyAddress)
+        public
+        onlyValidVotingKey(msg.sender)
+    {
+        bytes32 proxyStorageHash = keccak256("proxyStorage");
+        bytes32 pendingProxyStorageHash = keccak256("pendingProxyStorage");
+        bytes32 countHash = keccak256("pendingProxyConfirmations", _newProxyAddress, "count");
+        bytes32 votersHash = keccak256("pendingProxyConfirmations", _newProxyAddress, "voters");
+        
+        require(addressStorage[pendingProxyStorageHash] != address(0));
         require(!isAddressAlreadyVotedProxy(_newProxyAddress, msg.sender));
-        confirmation.count = confirmation.count.add(1);
-        confirmation.voters.push(msg.sender);
-        if(confirmation.count >= 3) {
-            proxyStorage = IProxyStorage(_newProxyAddress);
-            pendingProxyStorage = address(0);
-            delete pendingProxyConfirmations[_newProxyAddress];
+
+        uintStorage[countHash] = uintStorage[countHash].add(1);
+        addressArrayStorage[votersHash].push(msg.sender);
+        
+        if (uintStorage[countHash] >= 3) {
+            addressStorage[proxyStorageHash] = _newProxyAddress;
+            addressStorage[pendingProxyStorageHash] = address(0);
+            delete uintStorage[countHash];
+            delete addressArrayStorage[votersHash];
             ChangeProxyStorage(_newProxyAddress);
         }
+        
         Confirmed(_newProxyAddress, msg.sender);
-
     }
 
     function createMetadata(
@@ -89,22 +153,24 @@ contract ValidatorMetadata {
         bytes32 _licenseId,
         string _fullAddress,
         bytes32 _state,
-        uint256 _zipcode,
-        uint256 _expirationDate ) public onlyValidVotingKey(msg.sender) onlyFirstTime(msg.sender) {
-        Validator memory validator = Validator({
-            firstName: _firstName,
-            lastName: _lastName,
-            licenseId: _licenseId,
-            fullAddress: _fullAddress,
-            zipcode: _zipcode,
-            state: _state,
-            expirationDate: _expirationDate,
-            createdDate: getTime(),
-            updatedDate: 0,
-            minThreshold: getMinThreshold()
-        });
+        bytes32 _zipcode,
+        uint256 _expirationDate
+    )
+        public
+        onlyValidVotingKey(msg.sender)
+        onlyFirstTime(msg.sender)
+    {
         address miningKey = getMiningByVotingKey(msg.sender);
-        validators[miningKey] = validator;
+        bytes32Storage[keccak256("validators", miningKey, "firstName")] = _firstName;
+        bytes32Storage[keccak256("validators", miningKey, "lastName")] = _lastName;
+        bytes32Storage[keccak256("validators", miningKey, "licenseId")] = _licenseId;
+        bytes32Storage[keccak256("validators", miningKey, "state")] = _state;
+        stringStorage[keccak256("validators", miningKey, "fullAddress")] = _fullAddress;
+        bytes32Storage[keccak256("validators", miningKey, "zipcode")] = _zipcode;
+        uintStorage[keccak256("validators", miningKey, "expirationDate")] = _expirationDate;
+        uintStorage[keccak256("validators", miningKey, "createdDate")] = getTime();
+        uintStorage[keccak256("validators", miningKey, "updatedDate")] = 0;
+        uintStorage[keccak256("validators", miningKey, "minThreshold")] = getMinThreshold();
         MetadataCreated(miningKey);
     }
 
@@ -114,26 +180,24 @@ contract ValidatorMetadata {
         bytes32 _licenseId,
         string _fullAddress,
         bytes32 _state,
-        uint256 _zipcode,
+        bytes32 _zipcode,
         uint256 _expirationDate
-        ) public onlyValidVotingKey(msg.sender) returns(bool) {
+    )
+        public
+        onlyValidVotingKey(msg.sender)
+        returns(bool)
+    {
         address miningKey = getMiningByVotingKey(msg.sender);
-        Validator memory pendingChange = Validator({
-            firstName: _firstName,
-            lastName: _lastName,
-            licenseId: _licenseId,
-            fullAddress:_fullAddress,
-            state: _state,
-            zipcode: _zipcode,
-            expirationDate: _expirationDate,
-            createdDate: validators[miningKey].createdDate,
-            updatedDate: getTime(),
-            minThreshold: validators[miningKey].minThreshold
-        });
-        pendingChanges[miningKey] = pendingChange;
-        delete confirmations[miningKey];
-        ChangeRequestInitiated(miningKey);
-        return true;
+        return changeRequestForValidator(
+            _firstName,
+            _lastName,
+            _licenseId,
+            _fullAddress,
+            _state,
+            _zipcode,
+            _expirationDate,
+            miningKey
+        );
     }
 
     function changeRequestForValidator(
@@ -142,40 +206,46 @@ contract ValidatorMetadata {
         bytes32 _licenseId,
         string _fullAddress,
         bytes32 _state,
-        uint256 _zipcode,
+        bytes32 _zipcode,
         uint256 _expirationDate,
         address _miningKey
-        ) public onlyValidVotingKey(msg.sender) returns(bool) 
+    )
+        public
+        onlyValidVotingKey(msg.sender)
+        returns(bool) 
     {
-        Validator memory pendingChange = Validator({
-            firstName: _firstName,
-            lastName: _lastName,
-            licenseId: _licenseId,
-            fullAddress:_fullAddress,
-            state: _state,
-            zipcode: _zipcode,
-            expirationDate: _expirationDate,
-            createdDate: validators[_miningKey].createdDate,
-            updatedDate: getTime(),
-            minThreshold: validators[_miningKey].minThreshold
-        });
-        pendingChanges[_miningKey] = pendingChange;
-        delete confirmations[_miningKey];
+        bytes32Storage[keccak256("pendingChanges", _miningKey, "firstName")] = _firstName;
+        bytes32Storage[keccak256("pendingChanges", _miningKey, "lastName")] = _lastName;
+        bytes32Storage[keccak256("pendingChanges", _miningKey, "licenseId")] = _licenseId;
+        bytes32Storage[keccak256("pendingChanges", _miningKey, "state")] = _state;
+        stringStorage[keccak256("pendingChanges", _miningKey, "fullAddress")] = _fullAddress;
+        bytes32Storage[keccak256("pendingChanges", _miningKey, "zipcode")] = _zipcode;
+        uintStorage[keccak256("pendingChanges", _miningKey, "expirationDate")] = _expirationDate;
+        uintStorage[keccak256("pendingChanges", _miningKey, "createdDate")] =
+            uintStorage[keccak256("validators", _miningKey, "createdDate")];
+        uintStorage[keccak256("pendingChanges", _miningKey, "updatedDate")] = getTime();
+        uintStorage[keccak256("pendingChanges", _miningKey, "minThreshold")] =
+            uintStorage[keccak256("validators", _miningKey, "minThreshold")];
+        
+        delete uintStorage[keccak256("confirmations", _miningKey, "count")];
+        delete addressArrayStorage[keccak256("confirmations", _miningKey, "voters")];
+        
         ChangeRequestInitiated(_miningKey);
         return true;
     }
 
     function cancelPendingChange() public onlyValidVotingKey(msg.sender) returns(bool) {
         address miningKey = getMiningByVotingKey(msg.sender);
-        delete pendingChanges[miningKey];
+        _deletePendingChange(miningKey);
         CancelledRequest(miningKey);
         return true;
     }
 
     function isAddressAlreadyVoted(address _miningKey, address _voter) public view returns(bool) {
-        Confirmation storage confirmation = confirmations[_miningKey];
-        for(uint256 i = 0; i < confirmation.voters.length; i++){
-            if(confirmation.voters[i] == _voter){
+        bytes32 hash = keccak256("confirmations", _miningKey, "voters");
+        uint256 length = addressArrayStorage[hash].length;
+        for (uint256 i = 0; i < length; i++) {
+            if (addressArrayStorage[hash][i] == _voter) {
                 return true;   
             }
         }
@@ -183,9 +253,10 @@ contract ValidatorMetadata {
     }
 
     function isAddressAlreadyVotedProxy(address _newProxy, address _voter) public view returns(bool) {
-        Confirmation storage confirmation = pendingProxyConfirmations[_newProxy];
-        for(uint256 i = 0; i < confirmation.voters.length; i++){
-            if(confirmation.voters[i] == _voter){
+        bytes32 hash = keccak256("pendingProxyConfirmations", _newProxy, "voters");
+        uint256 length = addressArrayStorage[hash].length;
+        for (uint256 i = 0; i < length; i++) {
+            if (addressArrayStorage[hash][i] == _voter) {
                 return true;   
             }
         }
@@ -193,21 +264,51 @@ contract ValidatorMetadata {
     }
 
     function confirmPendingChange(address _miningKey) public onlyValidVotingKey(msg.sender) {
-        Confirmation storage confirmation = confirmations[_miningKey];
+        bytes32 votersHash = keccak256("confirmations", _miningKey, "voters");
+        bytes32 countHash = keccak256("confirmations", _miningKey, "count");
+        
         require(!isAddressAlreadyVoted(_miningKey, msg.sender));
-        require(confirmation.voters.length <= 50); // no need for more confirmations
+        require(addressArrayStorage[votersHash].length <= 50); // no need for more confirmations
+
         address miningKey = getMiningByVotingKey(msg.sender);
         require(miningKey != _miningKey);
-        confirmation.voters.push(msg.sender);
-        confirmation.count = confirmation.count.add(1);
+
+        addressArrayStorage[votersHash].push(msg.sender);
+        uintStorage[countHash] = uintStorage[countHash].add(1);
         Confirmed(_miningKey, msg.sender);
     }
 
     function finalize(address _miningKey) public onlyValidVotingKey(msg.sender) {
-        require(confirmations[_miningKey].count >= pendingChanges[_miningKey].minThreshold);
+        uint256 count =
+            uintStorage[keccak256("confirmations", _miningKey, "count")];
+        uint256 minThreshold =
+            uintStorage[keccak256("pendingChanges", _miningKey, "minThreshold")];
+
+        require(count >= minThreshold);
         require(onlyIfChangeExist(_miningKey));
-        validators[_miningKey] = pendingChanges[_miningKey];
-        delete pendingChanges[_miningKey];
+
+        bytes32Storage[keccak256("validators", _miningKey, "firstName")] = 
+            bytes32Storage[keccak256("pendingChanges", _miningKey, "firstName")];
+        bytes32Storage[keccak256("validators", _miningKey, "lastName")] = 
+            bytes32Storage[keccak256("pendingChanges", _miningKey, "lastName")];
+        bytes32Storage[keccak256("validators", _miningKey, "licenseId")] = 
+            bytes32Storage[keccak256("pendingChanges", _miningKey, "licenseId")];
+        bytes32Storage[keccak256("validators", _miningKey, "state")] = 
+            bytes32Storage[keccak256("pendingChanges", _miningKey, "state")];
+        stringStorage[keccak256("validators", _miningKey, "fullAddress")] = 
+            stringStorage[keccak256("pendingChanges", _miningKey, "fullAddress")];
+        bytes32Storage[keccak256("validators", _miningKey, "zipcode")] = 
+            bytes32Storage[keccak256("pendingChanges", _miningKey, "zipcode")];
+        uintStorage[keccak256("validators", _miningKey, "expirationDate")] = 
+            uintStorage[keccak256("pendingChanges", _miningKey, "expirationDate")];
+        uintStorage[keccak256("validators", _miningKey, "createdDate")] = 
+            uintStorage[keccak256("pendingChanges", _miningKey, "createdDate")];
+        uintStorage[keccak256("validators", _miningKey, "updatedDate")] = 
+            uintStorage[keccak256("pendingChanges", _miningKey, "updatedDate")];
+        uintStorage[keccak256("validators", _miningKey, "minThreshold")] = 
+            uintStorage[keccak256("pendingChanges", _miningKey, "minThreshold")];
+        
+        _deletePendingChange(_miningKey);
         FinalizedChange(_miningKey);
     }
 
@@ -227,15 +328,28 @@ contract ValidatorMetadata {
     }
 
     function getBallotsStorage() public view returns(address) {
-        return proxyStorage.getBallotsStorage();
+        return IProxyStorage(proxyStorage()).getBallotsStorage();
     }
 
     function getKeysManager() public view returns(address) {
-        return proxyStorage.getKeysManager();
+        return IProxyStorage(proxyStorage()).getKeysManager();
     }
 
     function onlyIfChangeExist(address _miningKey) public view returns(bool) {
-        return pendingChanges[_miningKey].zipcode > 0;
+        return uintStorage[keccak256("pendingChanges", _miningKey, "createdDate")] > 0;
+    }
+
+    function _deletePendingChange(address _miningKey) private {
+        delete bytes32Storage[keccak256("pendingChanges", _miningKey, "firstName")];
+        delete bytes32Storage[keccak256("pendingChanges", _miningKey, "lastName")];
+        delete bytes32Storage[keccak256("pendingChanges", _miningKey, "licenseId")];
+        delete bytes32Storage[keccak256("pendingChanges", _miningKey, "state")];
+        delete stringStorage[keccak256("pendingChanges", _miningKey, "fullAddress")];
+        delete bytes32Storage[keccak256("pendingChanges", _miningKey, "zipcode")];
+        delete uintStorage[keccak256("pendingChanges", _miningKey, "expirationDate")];
+        delete uintStorage[keccak256("pendingChanges", _miningKey, "createdDate")];
+        delete uintStorage[keccak256("pendingChanges", _miningKey, "updatedDate")];
+        delete uintStorage[keccak256("pendingChanges", _miningKey, "minThreshold")];
     }
 
 }
