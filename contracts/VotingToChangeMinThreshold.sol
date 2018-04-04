@@ -64,7 +64,9 @@ contract VotingToChangeMinThreshold {
         ) public onlyValidVotingKey(msg.sender) isValidProposedValue(_proposedValue) {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
-        require(_endTime.sub(_startTime) > 2 days);
+        uint256 diffTime = _endTime.sub(_startTime);
+        require(diffTime > 2 days);
+        require(diffTime <= 14 days);
         address creatorMiningKey = getMiningByVotingKey(msg.sender);
         require(withinLimit(creatorMiningKey));
         VotingData memory data = VotingData({
