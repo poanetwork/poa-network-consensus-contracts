@@ -13,7 +13,7 @@ contract ProxyStorage is IProxyStorage {
     address ballotsStorage;
     address validatorMetadataEternalStorage;
     bool public mocInitialized;
-    uint8 public contractVersion = 1;
+    uint8 public contractVersion = 2;
 
     enum ContractTypes {
         Invalid,
