@@ -42,11 +42,6 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         _;
     }
 
-    modifier onlyVotingContract() {
-        require(msg.sender == getVotingToChangeKeys());
-        _;
-    }
-
     modifier onlyKeysManager() {
         require(msg.sender == getKeysManager());
         _;
