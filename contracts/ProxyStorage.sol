@@ -1,6 +1,8 @@
 pragma solidity ^0.4.18;
+
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
+import "./interfaces/IEternalStorageProxy.sol";
 
 contract ProxyStorage is IProxyStorage {
     address poaConsensus;
@@ -9,6 +11,7 @@ contract ProxyStorage is IProxyStorage {
     address votingToChangeMinThreshold;
     address votingToChangeProxy;
     address ballotsStorage;
+    address validatorMetadataEternalStorage;
     bool public mocInitialized;
     uint8 public contractVersion = 1;
 
@@ -19,7 +22,9 @@ contract ProxyStorage is IProxyStorage {
         VotingToChangeMinThreshold,
         VotingToChangeProxy,
         BallotsStorage, 
-        PoaConsensus
+        PoaConsensus,
+        ValidatorMetadata,
+        ValidatorMetadataEternalStorage
     }
 
     event ProxyInitialized(
@@ -27,7 +32,9 @@ contract ProxyStorage is IProxyStorage {
         address votingToChangeKeys,
         address votingToChangeMinThreshold,
         address votingToChangeProxy,
-        address ballotsStorage);
+        address ballotsStorage,
+        address validatorMetadataEternalStorage
+    );
 
     event AddressSet(uint256 contractType, address contractAddress);
 
@@ -64,13 +71,19 @@ contract ProxyStorage is IProxyStorage {
         return ballotsStorage;
     }
 
+    function getValidatorMetadata() public view returns(address) {
+        return validatorMetadataEternalStorage;
+    }
+
     function initializeAddresses(
         address _keysManager,
         address _votingToChangeKeys,
         address _votingToChangeMinThreshold,
         address _votingToChangeProxy,
-        address _ballotsStorage
-    ) public 
+        address _ballotsStorage,
+        address _validatorMetadataEternalStorage
+    )
+        public
     {
         require(isValidator(msg.sender));
         require(!mocInitialized);
@@ -79,16 +92,22 @@ contract ProxyStorage is IProxyStorage {
         votingToChangeMinThreshold = _votingToChangeMinThreshold;
         votingToChangeProxy = _votingToChangeProxy;
         ballotsStorage = _ballotsStorage;
+        validatorMetadataEternalStorage = _validatorMetadataEternalStorage;
         mocInitialized = true;
         ProxyInitialized(
             keysManager,
             votingToChangeKeys,
             votingToChangeMinThreshold,
             votingToChangeProxy,
-            ballotsStorage);
+            ballotsStorage,
+            validatorMetadataEternalStorage
+        );
     }
 
-    function setContractAddress(uint256 _contractType, address _contractAddress) public onlyVotingToChangeProxy {
+    function setContractAddress(uint256 _contractType, address _contractAddress)
+        public
+        onlyVotingToChangeProxy
+    {
         require(_contractAddress != address(0));
         if (_contractType == uint8(ContractTypes.KeysManager)) {
             keysManager = _contractAddress;
@@ -102,6 +121,11 @@ contract ProxyStorage is IProxyStorage {
             ballotsStorage = _contractAddress;
         } else if (_contractType == uint8(ContractTypes.PoaConsensus)) {
             poaConsensus = _contractAddress;
+        } else if (_contractType == uint8(ContractTypes.ValidatorMetadata)) {
+            IEternalStorageProxy esp = IEternalStorageProxy(validatorMetadataEternalStorage);
+            esp.upgradeTo(_contractAddress);
+        } else if (_contractType == uint8(ContractTypes.ValidatorMetadataEternalStorage)) {
+            validatorMetadataEternalStorage = _contractAddress;
         }
         AddressSet(_contractType, _contractAddress);
     }

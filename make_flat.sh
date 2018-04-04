@@ -11,3 +11,4 @@ solidity_flattener contracts/ValidatorMetadata.sol | sed "1s/.*/pragma solidity 
 solidity_flattener contracts/ProxyStorage.sol | sed "1s/.*/pragma solidity ^0.4.18;/" > flat/ProxyStorage_flat.sol
 solidity_flattener contracts/BallotsStorage.sol | sed "1s/.*/pragma solidity ^0.4.18;/" > flat/BallotsStorage_flat.sol
 solidity_flattener contracts/VotingToChangeProxyAddress.sol | sed "1s/.*/pragma solidity ^0.4.18;/" > flat/VotingToChangeProxyAddress_flat.sol
+solidity_flattener contracts/eternal-storage/EternalStorageProxy.sol | sed "1s/.*/pragma solidity ^0.4.18;/" > flat/EternalStorageProxy_flat.sol
