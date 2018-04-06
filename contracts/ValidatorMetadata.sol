@@ -147,6 +147,37 @@ contract ValidatorMetadata is EternalStorage {
         Confirmed(_newProxyAddress, msg.sender);
     }
 
+    function initMetadata(
+        bytes32 _firstName,
+        bytes32 _lastName,
+        bytes32 _licenseId,
+        string _fullAddress,
+        bytes32 _state,
+        bytes32 _zipcode,
+        uint256 _expirationDate,
+        uint256 _createdDate,
+        uint256 _updatedDate,
+        uint256 _minThreshold,
+        address _miningKey
+    )
+        public
+    {
+        IKeysManager keysManager = IKeysManager(getKeysManager());
+        require(keysManager.isMiningActive(_miningKey));
+        require(uintStorage[keccak256("validators", _miningKey, "createdDate")] == 0);
+        require(_createdDate != 0);
+        bytes32Storage[keccak256("validators", _miningKey, "firstName")] = _firstName;
+        bytes32Storage[keccak256("validators", _miningKey, "lastName")] = _lastName;
+        bytes32Storage[keccak256("validators", _miningKey, "licenseId")] = _licenseId;
+        bytes32Storage[keccak256("validators", _miningKey, "state")] = _state;
+        stringStorage[keccak256("validators", _miningKey, "fullAddress")] = _fullAddress;
+        bytes32Storage[keccak256("validators", _miningKey, "zipcode")] = _zipcode;
+        uintStorage[keccak256("validators", _miningKey, "expirationDate")] = _expirationDate;
+        uintStorage[keccak256("validators", _miningKey, "createdDate")] = _createdDate;
+        uintStorage[keccak256("validators", _miningKey, "updatedDate")] = _updatedDate;
+        uintStorage[keccak256("validators", _miningKey, "minThreshold")] = _minThreshold;
+    }
+
     function createMetadata(
         bytes32 _firstName,
         bytes32 _lastName,
