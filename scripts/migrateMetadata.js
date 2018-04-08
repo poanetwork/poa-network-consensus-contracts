@@ -14,7 +14,7 @@ const GAS_PRICE = web3.utils.toWei('1', 'gwei');
 const GAS_LIMIT = 4700000;
 
 const metadataOldAbi = [{"constant": true,"inputs": [],"name": "proxyStorage","outputs": [{"name": "","type": "address"}],"payable": false,"stateMutability": "view","type": "function"},{"constant": true,"inputs": [{"name": "","type": "address"}],"name": "validators","outputs": [{"name": "firstName","type": "bytes32"},{"name": "lastName","type": "bytes32"},{"name": "licenseId","type": "bytes32"},{"name": "fullAddress","type": "string"},{"name": "state","type": "bytes32"},{"name": "zipcode","type": "uint256"},{"name": "expirationDate","type": "uint256"},{"name": "createdDate","type": "uint256"},{"name": "updatedDate","type": "uint256"},{"name": "minThreshold","type": "uint256"}],"payable": false,"stateMutability": "view","type": "function"}];
-const metadataNewAbi = [{"constant": false,"inputs": [{"name": "_firstName","type": "bytes32"},{"name": "_lastName","type": "bytes32"},{"name": "_licenseId","type": "bytes32"},{"name": "_fullAddress","type": "string"},{"name": "_state","type": "bytes32"},{"name": "_zipcode","type": "bytes32"},{"name": "_expirationDate","type": "uint256"},{"name": "_createdDate","type": "uint256"},{"name": "_updatedDate","type": "uint256"},{"name": "_minThreshold","type": "uint256"},{"name": "_miningKey","type": "address"}],"name": "initMetadata","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},{"constant": true,"inputs": [{"name": "_miningKey","type": "address"}],"name": "validators","outputs": [{"name": "firstName","type": "bytes32"},{"name": "lastName","type": "bytes32"},{"name": "licenseId","type": "bytes32"},{"name": "fullAddress","type": "string"},{"name": "state","type": "bytes32"},{"name": "zipcode","type": "bytes32"},{"name": "expirationDate","type": "uint256"},{"name": "createdDate","type": "uint256"},{"name": "updatedDate","type": "uint256"},{"name": "minThreshold","type": "uint256"}],"payable": false,"stateMutability": "view","type": "function"}];
+const metadataNewAbi = [{"constant": false,"inputs": [{"name": "_firstName","type": "bytes32"},{"name": "_lastName","type": "bytes32"},{"name": "_licenseId","type": "bytes32"},{"name": "_fullAddress","type": "string"},{"name": "_state","type": "bytes32"},{"name": "_zipcode","type": "bytes32"},{"name": "_expirationDate","type": "uint256"},{"name": "_createdDate","type": "uint256"},{"name": "_updatedDate","type": "uint256"},{"name": "_minThreshold","type": "uint256"},{"name": "_miningKey","type": "address"}],"name": "initMetadata","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"},{"constant": true,"inputs": [{"name": "_miningKey","type": "address"}],"name": "validators","outputs": [{"name": "firstName","type": "bytes32"},{"name": "lastName","type": "bytes32"},{"name": "licenseId","type": "bytes32"},{"name": "fullAddress","type": "string"},{"name": "state","type": "bytes32"},{"name": "zipcode","type": "bytes32"},{"name": "expirationDate","type": "uint256"},{"name": "createdDate","type": "uint256"},{"name": "updatedDate","type": "uint256"},{"name": "minThreshold","type": "uint256"}],"payable": false,"stateMutability": "view","type": "function"},{"constant": false,"inputs": [],"name": "initMetadataDisable","outputs": [],"payable": false,"stateMutability": "nonpayable","type": "function"}];
 const proxyStorageAbi = [{"constant": true,"inputs": [],"name": "getPoaConsensus","outputs": [{"name": "","type": "address"}],"payable": false,"stateMutability": "view","type": "function"}];
 const poaConsensusAbi = [{"constant": true,"inputs": [],"name": "currentValidatorsLength","outputs": [{"name": "","type": "uint256"}],"payable": false,"stateMutability": "view","type": "function"},{"constant": true,"inputs": [{"name": "","type": "uint256"}],"name": "currentValidators","outputs": [{"name": "","type": "address"}],"payable": false,"stateMutability": "view","type": "function"}];
 
@@ -36,6 +36,8 @@ async function migrate(privateKey) {
 	const poaConsensusInstance = new web3.eth.Contract(poaConsensusAbi, poaConsensusAddress);
 	
 	const validatorsLength = await poaConsensusInstance.methods.currentValidatorsLength().call();
+	
+	let success = true;
 	
 	for (let i = 0; i < validatorsLength; i++) {
 		const miningKey = await poaConsensusInstance.methods.currentValidators(i).call();
@@ -60,7 +62,7 @@ async function migrate(privateKey) {
 		validatorArray.push(miningKey);
 
 		const initMetadata = metadataNewInstance.methods.initMetadata(...validatorArray);
-		
+
 		let estimateGas;
 
 		try {
@@ -83,6 +85,7 @@ async function migrate(privateKey) {
 				console.log(miningKey + '...success (already exists)');
 			} else {
 				console.log(miningKey + '...failed');
+				success = false;
 			}
 			continue;
 		}
@@ -103,7 +106,7 @@ async function migrate(privateKey) {
 
 		tx.sign(privateKeyBuf);
 
-		var serializedTx = tx.serialize();
+		const serializedTx = tx.serialize();
 
 		try {
 			await web3.eth.sendSignedTransaction("0x" + serializedTx.toString('hex'))
@@ -122,9 +125,47 @@ async function migrate(privateKey) {
 				console.log(miningKey + '...success');
 			} else {
 				console.log(miningKey + '...failed');
+				success = false;
 			}
 		} catch (err) {
 			console.log(miningKey + '...failed');
+			success = false;
+		}
+	}
+	
+	if (success) {
+		// Disable migration if all metadata successfully migrated
+		const initMetadataDisable = metadataNewInstance.methods.initMetadataDisable();
+		
+		try {
+			const estimateGas = await initMetadataDisable.estimateGas({
+				from: senderAddress,
+				gas: web3.utils.toHex(GAS_LIMIT)
+			});
+			
+			const nonce = await web3.eth.getTransactionCount(senderAddress);
+			const nonceHex = web3.utils.toHex(nonce);
+			const data = await initMetadataDisable.encodeABI();
+
+			var tx = new EthereumTx({
+				nonce: nonceHex,
+				gasPrice: web3.utils.toHex(GAS_PRICE),
+				gasLimit: web3.utils.toHex(estimateGas),
+				to: METADATA_NEW_ADDRESS,
+				value: '0x00',
+				data: data,
+				chainId: chainId
+			});
+
+			tx.sign(privateKeyBuf);
+
+			const serializedTx = tx.serialize();
+			
+			await web3.eth.sendSignedTransaction("0x" + serializedTx.toString('hex'))
+			
+			console.log('Migration successful');
+		} catch (err) {
+			console.log(err.message);
 		}
 	}
 }
@@ -156,4 +197,4 @@ async function main() {
 	mutableStdout.muted = true;
 }
 
-// NETWORK=sokol METADATA_OLD_ADDRESS=0x1ce9ad5614d3e00b88affdfa64e65e52f2e4e0f4 METADATA_NEW_ADDRESS=0x6d23b4f00fedb122ed823cb0393d8656d8f78b3c node migrateMetadata
+// NETWORK=sokol METADATA_OLD_ADDRESS=0x1ce9ad5614d3e00b88affdfa64e65e52f2e4e0f4 METADATA_NEW_ADDRESS=0x56ce06301b1904aa1d1669c6bf8248da0a9fcf17 node migrateMetadata

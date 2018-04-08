@@ -29,6 +29,11 @@ contract ValidatorMetadata is EternalStorage {
         _;
     }
 
+    modifier onlyOwner() {
+        require(msg.sender == addressStorage[keccak256("owner")]);
+        _;
+    }
+
     function proxyStorage() public view returns (address) {
         return addressStorage[keccak256("proxyStorage")];
     }
@@ -161,11 +166,13 @@ contract ValidatorMetadata is EternalStorage {
         address _miningKey
     )
         public
+        onlyOwner
     {
         IKeysManager keysManager = IKeysManager(getKeysManager());
         require(keysManager.isMiningActive(_miningKey));
         require(uintStorage[keccak256("validators", _miningKey, "createdDate")] == 0);
         require(_createdDate != 0);
+        require(!boolStorage[keccak256("initMetadataDisabled")]);
         bytes32Storage[keccak256("validators", _miningKey, "firstName")] = _firstName;
         bytes32Storage[keccak256("validators", _miningKey, "lastName")] = _lastName;
         bytes32Storage[keccak256("validators", _miningKey, "licenseId")] = _licenseId;
@@ -176,6 +183,10 @@ contract ValidatorMetadata is EternalStorage {
         uintStorage[keccak256("validators", _miningKey, "createdDate")] = _createdDate;
         uintStorage[keccak256("validators", _miningKey, "updatedDate")] = _updatedDate;
         uintStorage[keccak256("validators", _miningKey, "minThreshold")] = _minThreshold;
+    }
+
+    function initMetadataDisable() public onlyOwner {
+        boolStorage[keccak256("initMetadataDisabled")] = true;
     }
 
     function createMetadata(
