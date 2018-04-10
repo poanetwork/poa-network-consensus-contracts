@@ -7,7 +7,7 @@ import '../../contracts/BallotsStorage.sol';
 contract VotingToChangeMinThresholdMock is VotingToChangeMinThreshold {
   uint256 public time;
   function VotingToChangeMinThresholdMock(address _proxyStorage)
-    VotingToChangeMinThreshold(_proxyStorage)
+    VotingToChangeMinThreshold(_proxyStorage, false)
   {
   }
 

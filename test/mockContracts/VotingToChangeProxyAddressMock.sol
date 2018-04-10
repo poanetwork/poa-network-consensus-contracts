@@ -7,7 +7,7 @@ import '../../contracts/BallotsStorage.sol';
 contract VotingToChangeProxyAddressMock is VotingToChangeProxyAddress {
   uint256 public time;
   function VotingToChangeProxyAddressMock(address _proxyStorage)
-    VotingToChangeProxyAddress(_proxyStorage)
+    VotingToChangeProxyAddress(_proxyStorage, false)
   {
   }
 
