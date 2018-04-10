@@ -16,6 +16,7 @@ contract VotingToChangeMinThreshold {
     uint256[] public activeBallots;
     uint256 public activeBallotsLength;
     uint8 thresholdForKeysType = 1;
+    bool public demoMode = false;
 
     struct VotingData {
         uint256 startTime;
@@ -47,13 +48,18 @@ contract VotingToChangeMinThreshold {
 
     modifier isValidProposedValue(uint256 _proposedValue) {
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
-        require(_proposedValue >= 3 && _proposedValue != getGlobalMinThresholdOfVoters());
+        if (demoMode) {
+            require(_proposedValue >= 1 && _proposedValue != getGlobalMinThresholdOfVoters());
+        } else {
+            require(_proposedValue >= 3 && _proposedValue != getGlobalMinThresholdOfVoters());
+        }
         require(_proposedValue <= ballotsStorage.getProxyThreshold());
         _;
     }
 
-    function VotingToChangeMinThreshold(address _proxyStorage) public {
+    function VotingToChangeMinThreshold(address _proxyStorage, bool _demoMode) public {
         proxyStorage = IProxyStorage(_proxyStorage);
+        demoMode = _demoMode;
     }
 
     function createBallotToChangeThreshold(
@@ -61,11 +67,13 @@ contract VotingToChangeMinThreshold {
         uint256 _endTime,
         uint256 _proposedValue,
         string memo
-        ) public onlyValidVotingKey(msg.sender) isValidProposedValue(_proposedValue) {
+    ) public onlyValidVotingKey(msg.sender) isValidProposedValue(_proposedValue) {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
         uint256 diffTime = _endTime.sub(_startTime);
-        require(diffTime > 2 days);
+        if (!demoMode) {
+            require(diffTime > 2 days);
+        }
         require(diffTime <= 14 days);
         address creatorMiningKey = getMiningByVotingKey(msg.sender);
         require(withinLimit(creatorMiningKey));

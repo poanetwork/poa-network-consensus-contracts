@@ -18,10 +18,10 @@ contract BallotsStorage is IBallotsStorage {
         _;
     }
 
-    function BallotsStorage(address _proxyStorage) public {
+    function BallotsStorage(address _proxyStorage, bool _demoMode) public {
         proxyStorage = IProxyStorage(_proxyStorage);
-        ballotThresholds[uint8(ThresholdTypes.Keys)] = 3;
-        ballotThresholds[uint8(ThresholdTypes.MetadataChange)] = 2;
+        ballotThresholds[uint8(ThresholdTypes.Keys)] = _demoMode ? 1 : 3;
+        ballotThresholds[uint8(ThresholdTypes.MetadataChange)] = _demoMode ? 1 : 2;
     }
 
     function setThreshold(uint256 _newValue, uint8 _thresholdType) public onlyVotingToChangeThreshold {

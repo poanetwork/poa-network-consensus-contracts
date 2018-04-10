@@ -37,11 +37,19 @@ Compile and deploy contracts in the next sequence:
 `_moc` - address of Master of Ceremony. 
 -  Select `poaNetworkConsensus` contract and send transaction `setProxyStorage` with the address of ProxyStorage contract.
 - `KeysManager_flat.sol` - Select contract `KeysManager` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract, `_poaConsensus` - address of poaConsensus contract, `_moc` - address of Master of Ceremony.
-- `BallotsStorage_flat.sol` - Select contract `BallotsStorage` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
-- `VotingToChangeKeys_flat.sol` - Select contract `VotingToChangeKeys` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
-- `VotingToChangeMinThreshold_flat.sol` - Select contract `VotingToChangeMinThreshold` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
-- `VotingToChangeProxyAddress_flat.sol` - Select contract `VotingToChangeProxyAddress` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
-- `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata`
+- `BallotsStorage_flat.sol` - Select contract `BallotsStorage` with constructor parameters: <br />
+`_proxyStorage` - address of ProxyStorage contract,
+`_demoMode` - equal to false.
+- `VotingToChangeKeys_flat.sol` - Select contract `VotingToChangeKeys` with constructor parameters: <br />
+`_proxyStorage` - address of ProxyStorage contract,
+`_demoMode` - equal to false.
+- `VotingToChangeMinThreshold_flat.sol` - Select contract `VotingToChangeMinThreshold` with constructor parameters: <br />
+`_proxyStorage` - address of ProxyStorage contract,
+`_demoMode` - equal to false.
+- `VotingToChangeProxyAddress_flat.sol` - Select contract `VotingToChangeProxyAddress` with constructor parameters: <br />
+`_proxyStorage` - address of ProxyStorage contract,
+`_demoMode` - equal to false.
+- `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata`.
 - `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of ValidatorMetadata contract.
