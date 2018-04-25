@@ -78,7 +78,7 @@ module.exports = async function(deployer, network, accounts) {
       console.log('Done')
       console.log('ADDRESSES:\n', 
      `VotingToChangeKeys.address (implementation) ${VotingToChangeKeys.address} \n
-     `VotingToChangeKeys.address (storage) ${VotingToChangeKeysEternalStorage.address} \n
+      VotingToChangeKeys.address (storage) ${VotingToChangeKeysEternalStorage.address} \n
       VotingToChangeMinThreshold.address ${VotingToChangeMinThreshold.address} \n
       VotingToChangeProxyAddress.address ${VotingToChangeProxyAddress.address} \n
       BallotsStorage.address (implementation) ${BallotsStorage.address} \n
