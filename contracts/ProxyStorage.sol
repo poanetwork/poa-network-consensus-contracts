@@ -7,13 +7,13 @@ import "./interfaces/IEternalStorageProxy.sol";
 contract ProxyStorage is IProxyStorage {
     address poaConsensus;
     address keysManager;
-    address votingToChangeKeys;
+    address votingToChangeKeysEternalStorage;
     address votingToChangeMinThreshold;
     address votingToChangeProxy;
-    address ballotsStorage;
+    address ballotsStorageEternalStorage;
     address validatorMetadataEternalStorage;
     bool public mocInitialized;
-    uint8 public contractVersion = 2;
+    uint8 public contractVersion = 3;
 
     enum ContractTypes {
         Invalid,
@@ -21,18 +21,20 @@ contract ProxyStorage is IProxyStorage {
         VotingToChangeKeys,
         VotingToChangeMinThreshold,
         VotingToChangeProxy,
-        BallotsStorage, 
+        BallotsStorage,
         PoaConsensus,
         ValidatorMetadata,
-        ValidatorMetadataEternalStorage
+        ValidatorMetadataEternalStorage,
+        BallotsStorageEternalStorage,
+        VotingToChangeKeysEternalStorage
     }
 
     event ProxyInitialized(
         address keysManager,
-        address votingToChangeKeys,
+        address votingToChangeKeysEternalStorage,
         address votingToChangeMinThreshold,
         address votingToChangeProxy,
-        address ballotsStorage,
+        address ballotsStorageEternalStorage,
         address validatorMetadataEternalStorage
     );
 
@@ -52,7 +54,7 @@ contract ProxyStorage is IProxyStorage {
     }
 
     function getVotingToChangeKeys() public view returns(address) {
-        return votingToChangeKeys;
+        return votingToChangeKeysEternalStorage;
     }
 
     function getVotingToChangeMinThreshold() public view returns(address) {
@@ -68,7 +70,7 @@ contract ProxyStorage is IProxyStorage {
     }
 
     function getBallotsStorage() public view returns(address) {
-        return ballotsStorage;
+        return ballotsStorageEternalStorage;
     }
 
     function getValidatorMetadata() public view returns(address) {
@@ -77,10 +79,10 @@ contract ProxyStorage is IProxyStorage {
 
     function initializeAddresses(
         address _keysManager,
-        address _votingToChangeKeys,
+        address _votingToChangeKeysEternalStorage,
         address _votingToChangeMinThreshold,
         address _votingToChangeProxy,
-        address _ballotsStorage,
+        address _ballotsStorageEternalStorage,
         address _validatorMetadataEternalStorage
     )
         public
@@ -88,18 +90,18 @@ contract ProxyStorage is IProxyStorage {
         require(isValidator(msg.sender));
         require(!mocInitialized);
         keysManager = _keysManager;
-        votingToChangeKeys = _votingToChangeKeys;
+        votingToChangeKeysEternalStorage = _votingToChangeKeysEternalStorage;
         votingToChangeMinThreshold = _votingToChangeMinThreshold;
         votingToChangeProxy = _votingToChangeProxy;
-        ballotsStorage = _ballotsStorage;
+        ballotsStorageEternalStorage = _ballotsStorageEternalStorage;
         validatorMetadataEternalStorage = _validatorMetadataEternalStorage;
         mocInitialized = true;
         ProxyInitialized(
             keysManager,
-            votingToChangeKeys,
+            votingToChangeKeysEternalStorage,
             votingToChangeMinThreshold,
             votingToChangeProxy,
-            ballotsStorage,
+            ballotsStorageEternalStorage,
             validatorMetadataEternalStorage
         );
     }
@@ -112,18 +114,21 @@ contract ProxyStorage is IProxyStorage {
         if (_contractType == uint8(ContractTypes.KeysManager)) {
             keysManager = _contractAddress;
         } else if (_contractType == uint8(ContractTypes.VotingToChangeKeys)) {
-            votingToChangeKeys = _contractAddress;
+            IEternalStorageProxy(votingToChangeKeysEternalStorage).upgradeTo(_contractAddress);
+        } else if (_contractType == uint8(ContractTypes.VotingToChangeKeysEternalStorage)) {
+            votingToChangeKeysEternalStorage = _contractAddress;
         } else if (_contractType == uint8(ContractTypes.VotingToChangeMinThreshold)) {
             votingToChangeMinThreshold = _contractAddress;
         } else if (_contractType == uint8(ContractTypes.VotingToChangeProxy)) {
             votingToChangeProxy = _contractAddress;
         } else if (_contractType == uint8(ContractTypes.BallotsStorage)) {
-            ballotsStorage = _contractAddress;
+            IEternalStorageProxy(ballotsStorageEternalStorage).upgradeTo(_contractAddress);
+        } else if (_contractType == uint8(ContractTypes.BallotsStorageEternalStorage)) {
+            ballotsStorageEternalStorage = _contractAddress;
         } else if (_contractType == uint8(ContractTypes.PoaConsensus)) {
             poaConsensus = _contractAddress;
         } else if (_contractType == uint8(ContractTypes.ValidatorMetadata)) {
-            IEternalStorageProxy esp = IEternalStorageProxy(validatorMetadataEternalStorage);
-            esp.upgradeTo(_contractAddress);
+            IEternalStorageProxy(validatorMetadataEternalStorage).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.ValidatorMetadataEternalStorage)) {
             validatorMetadataEternalStorage = _contractAddress;
         }

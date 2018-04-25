@@ -2,7 +2,7 @@ let PoaNetworkConsensusMock = artifacts.require('./mockContracts/PoaNetworkConse
 let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let ValidatorMetadata = artifacts.require('./mockContracts/ValidatorMetadataMock');
 let ValidatorMetadataNew = artifacts.require('./upgradeContracts/ValidatorMetadataNew');
-let BallotsStorage = artifacts.require('./mockContracts/BallotsStorageMock');
+let BallotsStorage = artifacts.require('./BallotsStorage');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
 let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
@@ -17,7 +17,7 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
-let keysManager, ballotsStorage, poaNetworkConsensusMock;
+let keysManager, poaNetworkConsensusMock;
 let metadata, metadataEternalStorage;
 let votingKey, votingKey2, votingKey3, miningKey;
 let fakeData = [
@@ -43,22 +43,25 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
     proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address);
     keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
-    ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
+    
+    let ballotsStorage = await BallotsStorage.new();
+    const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
+    ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
+    await ballotsStorage.init(false).should.be.fulfilled;
+    
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
 
     metadata = await ValidatorMetadata.new();
     metadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, metadata.address);
-
+    
     await proxyStorageMock.initializeAddresses(
       keysManager.address,
       masterOfCeremony,
       masterOfCeremony,
       masterOfCeremony,
-      ballotsStorage.address,
+      ballotsEternalStorage.address,
       metadataEternalStorage.address
     );
-
-    //metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
 
     let metadataNew = await ValidatorMetadataNew.new();
     await metadataEternalStorage.setProxyStorage(accounts[6]);
@@ -114,7 +117,6 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
     });
   })
-  
   describe('#getMiningByVotingKey', async () => {
     it('happy path', async () => {
       let actual = await metadata.getMiningByVotingKey(votingKey);
@@ -123,16 +125,15 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       '0x0000000000000000000000000000000000000000'.should.be.equal(actual);
     })
   })
-  
+
   describe('#changeRequest', async () => {
-    let pendingChangeDetails, pendingChangeAddress;
     beforeEach(async () => {
       const {logs} = await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
     })
     it('happy path', async () => {
       await metadata.setTime(4444);
       const {logs} = await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
-      pendingChanges = await metadata.pendingChanges(miningKey);
+      const pendingChanges = await metadata.pendingChanges(miningKey);
       pendingChanges.should.be.deep.equal([
         toHex("Feodosiy"),
         toHex("Kennedy"),

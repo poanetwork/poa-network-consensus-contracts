@@ -21,7 +21,7 @@ contract ProxyStorageMock is ProxyStorage {
 
 
     function setVotingContractMock(address _newAddress) public {
-        votingToChangeKeys = _newAddress;
+        votingToChangeKeysEternalStorage = _newAddress;
     }
 
     function setVotingToChangeMinThresholdMock(address _newAddress) public {

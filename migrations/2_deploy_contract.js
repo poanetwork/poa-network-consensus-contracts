@@ -3,11 +3,13 @@ var PoaNetworkConsensus = artifacts.require("./PoaNetworkConsensus.sol");
 var ProxyStorage = artifacts.require("./ProxyStorage.sol");
 var KeysManager = artifacts.require("./KeysManager.sol");
 var BallotsStorage = artifacts.require("./BallotsStorage.sol");
+var BallotsStorageEternalStorage = artifacts.require("./eternal-storage/EternalStorageProxy.sol");
 var ValidatorMetadata = artifacts.require("./ValidatorMetadata.sol");
 var ValidatorMetadataEternalStorage = artifacts.require("./eternal-storage/EternalStorageProxy.sol");
-let VotingToChangeKeys = artifacts.require('./mockContracts/VotingToChangeKeys');
-let VotingToChangeMinThreshold = artifacts.require('./mockContracts/VotingToChangeMinThreshold');
-let VotingToChangeProxyAddress = artifacts.require('./mockContracts/VotingToChangeProxyAddress');
+let VotingToChangeKeys = artifacts.require("./VotingToChangeKeys");
+let VotingToChangeKeysEternalStorage = artifacts.require("./eternal-storage/EternalStorageProxy.sol");
+let VotingToChangeMinThreshold = artifacts.require("./VotingToChangeMinThreshold");
+let VotingToChangeProxyAddress = artifacts.require("./VotingToChangeProxyAddress");
 
 module.exports = async function(deployer, network, accounts) {
   let masterOfCeremony = process.env.MASTER_OF_CEREMONY;
@@ -31,30 +33,40 @@ module.exports = async function(deployer, network, accounts) {
       poaNetworkConsensus = poaNetworkConsensus || await PoaNetworkConsensus.at(poaNetworkConsensusAddress);
       await deployer.deploy(ProxyStorage, poaNetworkConsensusAddress);
       await deployer.deploy(KeysManager, ProxyStorage.address, poaNetworkConsensusAddress, masterOfCeremony, previousKeysManager);
-      await deployer.deploy(BallotsStorage, ProxyStorage.address, demoMode);
+      
+      await deployer.deploy(BallotsStorage);
+      await deployer.deploy(BallotsStorageEternalStorage, ProxyStorage.address, BallotsStorage.address);
+      let ballotsStorage = await BallotsStorage.deployed();
+      ballotsStorage.init(demoMode);
+      
       await deployer.deploy(ValidatorMetadata);
       await deployer.deploy(ValidatorMetadataEternalStorage, ProxyStorage.address, ValidatorMetadata.address);
-      await deployer.deploy(VotingToChangeKeys, ProxyStorage.address, demoMode);
+      
+      await deployer.deploy(VotingToChangeKeys);
+      await deployer.deploy(VotingToChangeKeysEternalStorage, ProxyStorage.address, VotingToChangeKeys.address);
+      let votingToChangeKeys = await VotingToChangeKeys.deployed();
+      votingToChangeKeys.init(demoMode);
+      
       await deployer.deploy(VotingToChangeMinThreshold, ProxyStorage.address, demoMode);
       await deployer.deploy(VotingToChangeProxyAddress, ProxyStorage.address, demoMode);
 
       let proxyStorage = await ProxyStorage.deployed();
       await proxyStorage.initializeAddresses(
         KeysManager.address,
-        VotingToChangeKeys.address,
+        VotingToChangeKeysEternalStorage.address,
         VotingToChangeMinThreshold.address,
         VotingToChangeProxyAddress.address,
-        BallotsStorage.address,
+        BallotsStorageEternalStorage.address,
         ValidatorMetadataEternalStorage.address
       );
       await poaNetworkConsensus.setProxyStorage(ProxyStorage.address);
 
       if (!!process.env.SAVE_TO_FILE === true) {
         let contracts = {
-          "VOTING_TO_CHANGE_KEYS_ADDRESS": VotingToChangeKeys.address,
+          "VOTING_TO_CHANGE_KEYS_ADDRESS": VotingToChangeKeysEternalStorage.address,
           "VOTING_TO_CHANGE_MIN_THRESHOLD_ADDRESS": VotingToChangeMinThreshold.address,
           "VOTING_TO_CHANGE_PROXY_ADDRESS": VotingToChangeProxyAddress.address,
-          "BALLOTS_STORAGE_ADDRESS": BallotsStorage.address,
+          "BALLOTS_STORAGE_ADDRESS": BallotsStorageEternalStorage.address,
           "KEYS_MANAGER_ADDRESS": KeysManager.address,
           "METADATA_ADDRESS": ValidatorMetadataEternalStorage.address,
           "PROXY_ADDRESS": ProxyStorage.address
@@ -65,10 +77,12 @@ module.exports = async function(deployer, network, accounts) {
 
       console.log('Done')
       console.log('ADDRESSES:\n', 
-     `VotingToChangeKeys.address ${VotingToChangeKeys.address} \n
+     `VotingToChangeKeys.address (implementation) ${VotingToChangeKeys.address} \n
+     `VotingToChangeKeys.address (storage) ${VotingToChangeKeysEternalStorage.address} \n
       VotingToChangeMinThreshold.address ${VotingToChangeMinThreshold.address} \n
       VotingToChangeProxyAddress.address ${VotingToChangeProxyAddress.address} \n
-      BallotsStorage.address ${BallotsStorage.address} \n
+      BallotsStorage.address (implementation) ${BallotsStorage.address} \n
+      BallotsStorage.address (storage) ${BallotsStorageEternalStorage.address} \n
       KeysManager.address ${KeysManager.address} \n
       ValidatorMetadata.address (implementation) ${ValidatorMetadata.address} \n
       ValidatorMetadata.address (storage) ${ValidatorMetadataEternalStorage.address} \n

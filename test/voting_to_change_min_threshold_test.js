@@ -3,7 +3,8 @@ let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
 let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let Voting = artifacts.require('./mockContracts/VotingToChangeMinThresholdMock');
 let VotingForKeys = artifacts.require('./mockContracts/VotingToChangeKeysMock');
-let BallotsStorage = artifacts.require('./mockContracts/BallotsStorageMock');
+let BallotsStorage = artifacts.require('./BallotsStorage');
+let EternalStorageProxy = artifacts.require('./EternalStorageProxy');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
 const {addValidators} = require('./helpers')
@@ -30,7 +31,10 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
     proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address);
     keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
-    ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
+    
+    ballotsStorage = await BallotsStorage.new();
+    const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
+    
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     voting = await Voting.new(proxyStorageMock.address);
     await proxyStorageMock.initializeAddresses(
@@ -38,9 +42,13 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       masterOfCeremony,
       voting.address,
       masterOfCeremony,
-      ballotsStorage.address,
+      ballotsEternalStorage.address,
       masterOfCeremony
     );
+    
+    ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
+    await ballotsStorage.init(false).should.be.fulfilled;
+
     await proxyStorageMock.setVotingContractMock(accounts[0]);
     await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
     await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
@@ -205,7 +213,8 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();      
     })
-    it('doesnot change if it did not pass minimum threshold', async () => {
+
+    it('does not change if it did not pass minimum threshold', async () => {
       let proposedValue = 4;
       votingId = await voting.nextBallotId();
       await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, proposedValue, "memo",{from: votingKey});
@@ -245,13 +254,13 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
 
       const minThresholdOfVoters = await ballotsStorage.getBallotThreshold(1);
       minThresholdOfVoters.should.be.bignumber.equal(3);
-
     });
 
     it('should change to proposedValue when quorum is reached', async () => {
       let proposedValue = 4;
       votingId = await voting.nextBallotId();
-      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, proposedValue, "memo",{from: votingKey});
+      await voting.createBallotToChangeThreshold(VOTING_START_DATE, VOTING_END_DATE, proposedValue, "memo", {from: votingKey});
+
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(votingId, choice.accept, {from: votingKey}).should.be.fulfilled;
       await voting.vote(votingId, choice.accept, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
@@ -296,9 +305,13 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
 
       const minThresholdOfVoters = await ballotsStorage.getBallotThreshold(1);
       minThresholdOfVoters.should.be.bignumber.equal(proposedValue);
-      let votingForKeys = await VotingForKeys.new(proxyStorageMock.address);
-      
-      let nextId = await votingForKeys.nextBallotId();
+
+      let votingForKeys = await VotingForKeys.new();
+      const votingForKeysEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingForKeys.address);
+      votingForKeys = await VotingForKeys.at(votingForKeysEternalStorage.address);
+      await votingForKeys.init(false);
+
+      const nextId = await votingForKeys.nextBallotId();
       await votingForKeys.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 3, accounts[1], 1, "memo", {from: votingKey});
       const minThresholdVotingForKeys = await votingForKeys.getMinThresholdOfVoters(nextId);
       minThresholdVotingForKeys.should.be.bignumber.equal(proposedValue);

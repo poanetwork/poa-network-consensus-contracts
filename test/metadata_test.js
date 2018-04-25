@@ -2,9 +2,9 @@ let PoaNetworkConsensusMock = artifacts.require('./mockContracts/PoaNetworkConse
 let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let ValidatorMetadata = artifacts.require('./mockContracts/ValidatorMetadataMock');
 let ValidatorMetadataNew = artifacts.require('./upgradeContracts/ValidatorMetadataNew');
-let BallotsStorage = artifacts.require('./mockContracts/BallotsStorageMock');
+let BallotsStorage = artifacts.require('./BallotsStorage');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
-let EternalStorageProxy = artifacts.require('./EternalStorageProxyMock');
+let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
 
@@ -17,7 +17,7 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
-let keysManager, ballotsStorage, poaNetworkConsensusMock;
+let keysManager, poaNetworkConsensusMock;
 let metadata, metadataEternalStorage;
 let votingKey, votingKey2, votingKey3, miningKey;
 let fakeData = [
@@ -43,7 +43,12 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
     proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address);
     keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
-    ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
+    
+    let ballotsStorage = await BallotsStorage.new();
+    const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
+    ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
+    await ballotsStorage.init(false).should.be.fulfilled;
+    
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
 
     metadata = await ValidatorMetadata.new();
@@ -54,7 +59,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       masterOfCeremony,
       masterOfCeremony,
       masterOfCeremony,
-      ballotsStorage.address,
+      ballotsEternalStorage.address,
       metadataEternalStorage.address
     );
     
