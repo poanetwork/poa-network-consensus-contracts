@@ -310,6 +310,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       "0x0000000000000000000000000000000000000000".should.be.equal
         (await metadata.pendingProxyStorage());
       (await metadata.proxyStorage()).should.be.equal(proxyStorageMock.address);
+	  await metadata.setProxyAddress(newProxy, {from: miningKey}).should.be.rejectedWith(ERROR_MSG);
       const {logs} = await metadata.setProxyAddress(newProxy, {from: votingKey}).should.be.fulfilled;
       (await metadata.pendingProxyStorage()).should.be.equal(newProxy);
       (await metadata.pendingProxyConfirmations(newProxy))[0].should.be.bignumber.deep.equal(1);

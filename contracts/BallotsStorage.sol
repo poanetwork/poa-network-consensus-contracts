@@ -6,7 +6,7 @@ import "./eternal-storage/EternalStorage.sol";
 import "./SafeMath.sol";
 
 
-contract BallotsStorage is IBallotsStorage, EternalStorage {
+contract BallotsStorage is EternalStorage, IBallotsStorage {
     using SafeMath for uint256;
 
     enum ThresholdTypes {Invalid, Keys, MetadataChange}

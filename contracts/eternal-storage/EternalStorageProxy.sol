@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
 import "./EternalStorage.sol";
-import "../interfaces/IEternalStorageProxy.sol";
+import "./IEternalStorageProxy.sol";
 
 
 /**
@@ -38,15 +38,13 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
     */
     function () public payable {
         address _impl = _implementation;
-
         require(_impl != address(0));
-        bytes memory data = msg.data;
 
         assembly {
-            let result := delegatecall(gas, _impl, add(data, 0x20), mload(data), 0, 0)
-            let size := returndatasize
-
             let ptr := mload(0x40)
+            calldatacopy(ptr, 0, calldatasize)
+            let result := delegatecall(gas, _impl, ptr, calldatasize, 0, 0)
+            let size := returndatasize
             returndatacopy(ptr, 0, size)
 
             switch result
@@ -61,6 +59,7 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
      */
     function upgradeTo(address implementation) public onlyProxyStorage {
         require(_implementation != implementation);
+        require(implementation != address(0));
 
         uint256 _newVersion = _version + 1;
         assert(_newVersion > _version);

@@ -50,6 +50,7 @@ contract('BallotsStorage [all features]', function (accounts) {
     await ballotsStorage.init(false, {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
     await ballotsStorage.init(false).should.be.fulfilled;
   })
+  
   describe('#init', async () => {
     it('prevent from double init', async () => {
       await ballotsStorage.init(false).should.be.rejectedWith(ERROR_MSG);

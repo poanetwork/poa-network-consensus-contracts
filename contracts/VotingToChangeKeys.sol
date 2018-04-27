@@ -4,10 +4,12 @@ import "./SafeMath.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IKeysManager.sol";
+import "./interfaces/IVotingToChangeKeys.sol";
+import "./interfaces/IPoaNetworkConsensus.sol";
 import "./eternal-storage/EternalStorage.sol";
 
 
-contract VotingToChangeKeys is EternalStorage {
+contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
     using SafeMath for uint256;
 
     enum BallotTypes {Invalid, Adding, Removal, Swap}
@@ -18,7 +20,7 @@ contract VotingToChangeKeys is EternalStorage {
     uint8 constant public maxOldMiningKeysDeepCheck = 25;
     uint8 constant thresholdForKeysType = 1;
 
-    event Vote(uint256 indexed id, uint256 decision, address indexed voter, uint256 time );
+    event Vote(uint256 indexed id, uint256 decision, address indexed voter, uint256 time, address voterMiningKey);
     event BallotFinalized(uint256 indexed id, address indexed voter);
     event BallotCreated(uint256 indexed id, uint256 indexed ballotType, address indexed creator);
 
@@ -128,7 +130,7 @@ contract VotingToChangeKeys is EternalStorage {
         }
         uintStorage[keccak256("votingState", _id, "totalVoters")]++;
         boolStorage[keccak256("votingState", _id, "voters", miningKey)] = true;
-        Vote(_id, _choice, msg.sender, getTime());
+        Vote(_id, _choice, msg.sender, getTime(), miningKey);
     }
 
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
@@ -230,9 +232,13 @@ contract VotingToChangeKeys is EternalStorage {
         return stringStorage[keccak256("votingState", _id, "memo")];
     }
 
+    function hasMiningKeyAlreadyVoted(uint256 _id, address _miningKey) public view returns(bool) {
+        return boolStorage[keccak256("votingState", _id, "voters", _miningKey)];
+    }
+
     function hasAlreadyVoted(uint256 _id, address _votingKey) public view returns(bool) {
         address miningKey = getMiningByVotingKey(_votingKey);
-        return boolStorage[keccak256("votingState", _id, "voters", miningKey)];
+        return hasMiningKeyAlreadyVoted(_id, miningKey);
     }
 
     function isValidVote(uint256 _id, address _votingKey) public view returns(bool) {
@@ -249,7 +255,7 @@ contract VotingToChangeKeys is EternalStorage {
             if (oldMiningKey == address(0)) {
                 return false;
             }
-            if (boolStorage[keccak256("votingState", _id, "voters", oldMiningKey)]) {
+            if (hasMiningKeyAlreadyVoted(_id, oldMiningKey)) {
                 return true;
             } else {
                 _miningKey = oldMiningKey;
@@ -325,6 +331,86 @@ contract VotingToChangeKeys is EternalStorage {
             }       
         }
         return true;
+    }
+
+    function migrateBasicAll(address _prevVotingToChangeKeys) public onlyOwner {
+        require(_prevVotingToChangeKeys != address(0));
+        require(!boolStorage[keccak256("migrateDisabled")]);
+
+        IVotingToChangeKeys prev =
+            IVotingToChangeKeys(_prevVotingToChangeKeys);
+        IPoaNetworkConsensusForVotingToChange poa =
+            IPoaNetworkConsensusForVotingToChange(IProxyStorage(proxyStorage()).getPoaConsensus());
+
+        uint256 _nextBallotId = prev.nextBallotId();
+        uint256 _activeBallotsLength = prev.activeBallotsLength();
+        uintStorage[keccak256("nextBallotId")] = _nextBallotId;
+        uintStorage[keccak256("activeBallotsLength")] = _activeBallotsLength;
+
+        bytes32 activeBallotsHash = keccak256("activeBallots");
+        delete uintArrayStorage[activeBallotsHash];
+        for (uint256 i = 0; i < _activeBallotsLength; i++) {
+            uintArrayStorage[activeBallotsHash].push(prev.activeBallots(i));
+        }
+
+        uint256 currentValidatorsLength = poa.getCurrentValidatorsLength();
+        for (i = 0; i < currentValidatorsLength; i++) {
+            address miningKey = poa.currentValidators(i);
+            uintStorage[keccak256("validatorActiveBallots", miningKey)] = 
+                prev.validatorActiveBallots(miningKey);
+        }
+    }
+
+    function migrateBasicOne(
+        uint256 _id,
+        address _prevVotingToChangeKeys,
+        uint8 _quorumState,
+        uint256 _index,
+        address _creator,
+        string _memo,
+        address[] _voters
+    ) public onlyOwner {
+        require(_prevVotingToChangeKeys != address(0));
+        require(!boolStorage[keccak256("migrateDisabled")]);
+        
+        IVotingToChangeKeys prev =
+            IVotingToChangeKeys(_prevVotingToChangeKeys);
+        
+        uintStorage[keccak256("votingState", _id, "startTime")] =
+            prev.getStartTime(_id);
+        uintStorage[keccak256("votingState", _id, "endTime")] =
+            prev.getEndTime(_id);
+        addressStorage[keccak256("votingState", _id, "affectedKey")] =
+            prev.getAffectedKey(_id);
+        uintStorage[keccak256("votingState", _id, "affectedKeyType")] = 
+            prev.getAffectedKeyType(_id);
+        addressStorage[keccak256("votingState", _id, "miningKey")] = 
+            prev.getMiningKey(_id);
+        uintStorage[keccak256("votingState", _id, "totalVoters")] = 
+            prev.getTotalVoters(_id);
+        intStorage[keccak256("votingState", _id, "progress")] = 
+            prev.getProgress(_id);
+        boolStorage[keccak256("votingState", _id, "isFinalized")] = 
+            prev.getIsFinalized(_id);
+        uintStorage[keccak256("votingState", _id, "quorumState")] =
+            _quorumState;
+        uintStorage[keccak256("votingState", _id, "ballotType")] = 
+            prev.getBallotType(_id);
+        uintStorage[keccak256("votingState", _id, "index")] =
+            _index;
+        uintStorage[keccak256("votingState", _id, "minThresholdOfVoters")] = 
+            prev.getMinThresholdOfVoters(_id);
+        for (uint256 i = 0; i < _voters.length; i++) {
+            address miningKey = _voters[i];
+            boolStorage[keccak256("votingState", _id, "voters", miningKey)] = true;
+        }
+        addressStorage[keccak256("votingState", _id, "creator")] = _creator;
+        stringStorage[keccak256("votingState", _id, "memo")] = _memo;
+    }
+
+    function migrateDisable() public onlyOwner {
+        require(!boolStorage[keccak256("migrateDisabled")]);
+        boolStorage[keccak256("migrateDisabled")] = true;
     }
 
     function finalizeBallot(uint256 _id) private {

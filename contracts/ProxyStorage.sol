@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
-import "./interfaces/IEternalStorageProxy.sol";
+import "./eternal-storage/IEternalStorageProxy.sol";
 
 contract ProxyStorage is IProxyStorage {
     address poaConsensus;

@@ -11,3 +11,8 @@ interface IPoaNetworkConsensus {
     function getCurrentValidatorsLength() public view returns(uint256);
     function swapValidatorKey(address, address) public;
 }
+
+interface IPoaNetworkConsensusForVotingToChange {
+    function currentValidators(uint256) public view returns(address);
+    function getCurrentValidatorsLength() public view returns(uint256);
+}
