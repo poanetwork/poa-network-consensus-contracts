@@ -1,6 +1,7 @@
 let PoaNetworkConsensusMock = artifacts.require('./PoaNetworkConsensusMock');
 let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
+let EternalStorageProxy = artifacts.require('./EternalStorageProxy');
 
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 require('chai')
@@ -14,7 +15,12 @@ contract('KeysManager [all features]', function (accounts) {
 
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
-    proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address);
+    
+    proxyStorageMock = await ProxyStorageMock.new();
+    const proxyStorageEternalStorage = await EternalStorageProxy.new(0, proxyStorageMock.address);
+    proxyStorageMock = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
+    await proxyStorageMock.init(poaNetworkConsensusMock.address).should.be.fulfilled;
+    
     keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     await proxyStorageMock.initializeAddresses(

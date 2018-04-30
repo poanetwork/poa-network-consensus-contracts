@@ -36,8 +36,11 @@ Select `0.4.18` Solidity compiler version. Set `Optimize` to `true`.
 
 Compile and deploy contracts in the next sequence:
 
-- `ProxyStorage_flat.sol` - Select contract `ProxyStorage` with constructor parameters: <br />
-`_poaConsensus` - address of poaConsensus contract.
+- `ProxyStorage_flat.sol` - Select contract `ProxyStorage`.
+- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+`_proxyStorage` - equal to zero,
+`_implementationAddress` - address of ProxyStorage contract.
+-  Make a call to `ProxyStorage init` with `_poaConsensus` parameter equal to the address of poaConsensus contract, using the address of `EternalStorageProxy` and ABI of `ProxyStorage`.
 -  Select `poaNetworkConsensus` contract and send transaction `setProxyStorage` with the address of ProxyStorage contract.
 - `KeysManager_flat.sol` - Select contract `KeysManager` with constructor parameters:  <br />
 `_proxyStorage` - address of ProxyStorage contract,

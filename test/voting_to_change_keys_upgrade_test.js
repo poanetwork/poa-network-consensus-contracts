@@ -26,7 +26,12 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
   masterOfCeremony = accounts[0];
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
-    proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address);
+    
+    proxyStorageMock = await ProxyStorageMock.new();
+    const proxyStorageEternalStorage = await EternalStorageProxy.new(0, proxyStorageMock.address);
+    proxyStorageMock = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
+    await proxyStorageMock.init(poaNetworkConsensusMock.address).should.be.fulfilled;
+    
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
     
@@ -64,7 +69,7 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       const VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       const VOTING_END_DATE = moment.utc().add(10, 'days').unix();
       const id = await voting.nextBallotId();
-	  await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo", {from: miningKeyForVotingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo", {from: miningKeyForVotingKey}).should.be.rejectedWith(ERROR_MSG);
       const {logs} = await voting.createVotingForKeys(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo", {from: votingKey});
       const startTime = await voting.getStartTime(id.toNumber());
       const endTime = await voting.getEndTime(id.toNumber());

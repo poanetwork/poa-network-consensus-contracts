@@ -17,4 +17,8 @@ contract EternalStorageProxyMock is EternalStorageProxy {
     addressStorage[keccak256("proxyStorage")] = _proxyStorage;
   }
 
+  function getProxyStorage() public view returns(address) {
+    return addressStorage[keccak256("proxyStorage")];
+  }
+
 }

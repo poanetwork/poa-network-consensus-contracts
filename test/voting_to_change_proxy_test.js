@@ -30,7 +30,12 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
   
   beforeEach(async () => {
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
-    proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address);
+    
+    proxyStorageMock = await ProxyStorageMock.new();
+    const proxyStorageEternalStorage = await EternalStorageProxy.new(0, proxyStorageMock.address);
+    proxyStorageMock = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
+    await proxyStorageMock.init(poaNetworkConsensusMock.address).should.be.fulfilled;
+    
     keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
     
     ballotsStorage = await BallotsStorage.new();
@@ -334,13 +339,6 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
       newAddress.should.be.equal(await eternalProxy.implementation());
     })
-    it('should change VotingToChangeKeys storage', async () => {
-      let contractType = 10;
-      let votingForKeysEternalStorageNew = await EternalStorageProxy.new(proxyStorageMock.address, votingForKeys.address);
-      let newAddress = votingForKeysEternalStorageNew.address;
-      await deployAndTest({contractType, newAddress})
-      newAddress.should.be.equal(await proxyStorageMock.getVotingToChangeKeys());
-    })
     it('should change getVotingToChangeMinThreshold', async () => {
       let contractType = 3;
       let newAddress = accounts[5];
@@ -362,13 +360,6 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
       newAddress.should.be.equal(await eternalProxy.implementation());
     })
-    it('should change BallotsStorage storage', async () => {
-      let contractType = 9;
-      let ballotsEternalStorageNew = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
-      let newAddress = ballotsEternalStorageNew.address;
-      await deployAndTest({contractType, newAddress})
-      newAddress.should.be.equal(await proxyStorageMock.getBallotsStorage());
-    })
     it('should change ValidatorMetadata implementation', async () => {
       let contractType = 7;
       let validatorMetadataNew = await ValidatorMetadata.new();
@@ -378,12 +369,12 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
       newAddress.should.be.equal(await eternalProxy.implementation());
     })
-    it('should change ValidatorMetadata storage', async () => {
-      let contractType = 8;
-      let validatorMetadataEternalStorageNew = await EternalStorageProxy.new(proxyStorageMock.address, validatorMetadata.address);
-      let newAddress = validatorMetadataEternalStorageNew.address;
+    it('should change ProxyStorage implementation', async () => {
+      const contractType = 8;
+      const proxyStorageNew = await ProxyStorageMock.new();
+      const newAddress = proxyStorageNew.address;
       await deployAndTest({contractType, newAddress})
-      newAddress.should.be.equal(await proxyStorageMock.getValidatorMetadata());
+      newAddress.should.be.equal(await proxyStorageMock.implementation());
     })
 
     it('prevents double finalize', async () => {

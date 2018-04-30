@@ -16,7 +16,7 @@ let proxyStorage, proxyStorageEternalStorage;
 let validatorMetadata, validatorMetadataEternalStorage;
 let ballotsStorage, ballotsEternalStorage;
 let votingToChangeKeys, votingToChangeKeysEternalStorage;
-contract('ProxyStorage [all features]', function (accounts) {
+contract('ProxyStorage upgraded [all features]', function (accounts) {
   let {
     keysManager,
     votingToChangeMinThreshold,
@@ -34,6 +34,12 @@ contract('ProxyStorage [all features]', function (accounts) {
     proxyStorageEternalStorage = await EternalStorageProxy.new(0, proxyStorage.address);
     proxyStorage = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
     await proxyStorage.init(poaNetworkConsensus.address).should.be.fulfilled;
+
+    const proxyStorageNew = await ProxyStorageNew.new();
+    await proxyStorageEternalStorage.setProxyStorage(accounts[6]);
+    await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[6]});
+    await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
+    proxyStorage = await ProxyStorageNew.at(proxyStorageEternalStorage.address);
 
     validatorMetadata = await ValidatorMetadata.new();
     validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorage.address, validatorMetadata.address);
@@ -217,58 +223,4 @@ contract('ProxyStorage [all features]', function (accounts) {
       );
     })
   })
-  describe('#upgradeTo', async () => {
-    it('may be called only by ProxyStorage (itself)', async () => {
-      const proxyStorageNew = await ProxyStorageNew.new();
-      (await proxyStorageEternalStorage.getProxyStorage()).should.be.equal(
-        proxyStorageEternalStorage.address
-      );
-      await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
-      await proxyStorageEternalStorage.setProxyStorage(accounts[0]);
-      await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[0]}).should.be.fulfilled;
-      await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
-      (await proxyStorageEternalStorage.getProxyStorage()).should.be.equal(
-        proxyStorageEternalStorage.address
-      );
-    });
-    it('should change implementation address', async () => {
-      const proxyStorageNew = await ProxyStorageNew.new();
-      await proxyStorageEternalStorage.setProxyStorage(accounts[0]);
-      await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[0]}).should.be.fulfilled;
-      await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
-      (await proxyStorageEternalStorage.implementation()).should.be.equal(
-        proxyStorageNew.address
-      );
-    });
-    it('should increment implementation version', async () => {
-      let proxyStorageNew = await ProxyStorageNew.new();
-      const oldVersion = await proxyStorage.version();
-      const newVersion = oldVersion.add(1);
-      (await proxyStorageEternalStorage.version()).should.be.bignumber.equal(oldVersion);
-      await proxyStorageEternalStorage.setProxyStorage(accounts[0]);
-      await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[0]}).should.be.fulfilled;
-      await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
-      proxyStorageNew = await ProxyStorageNew.at(proxyStorageEternalStorage.address);
-      (await proxyStorageNew.version()).should.be.bignumber.equal(newVersion);
-      (await proxyStorageEternalStorage.version()).should.be.bignumber.equal(newVersion);
-    });
-    it('new implementation should work', async () => {
-      let proxyStorageNew = await ProxyStorageNew.new();
-      await proxyStorageEternalStorage.setProxyStorage(accounts[0]);
-      await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[0]}).should.be.fulfilled;
-      await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
-      proxyStorageNew = await ProxyStorageNew.at(proxyStorageEternalStorage.address);
-      (await proxyStorageNew.initialized()).should.be.equal(false);
-      await proxyStorageNew.initialize();
-      (await proxyStorageNew.initialized()).should.be.equal(true);
-    });
-    it('new implementation should use the same storage', async () => {
-      let proxyStorageNew = await ProxyStorageNew.new();
-      await proxyStorageEternalStorage.setProxyStorage(accounts[0]);
-      await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[0]}).should.be.fulfilled;
-      await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
-      proxyStorageNew = await ProxyStorageNew.at(proxyStorageEternalStorage.address);
-      (await proxyStorageNew.getPoaConsensus()).should.be.equal(poaNetworkConsensus.address);
-    });
-  });
 })

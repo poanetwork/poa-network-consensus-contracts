@@ -29,10 +29,17 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
   masterOfCeremony = accounts[0];
   beforeEach(async () => {
     poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []);
-    proxyStorage = await ProxyStorageMock.new(poaNetworkConsensus.address);
+    
+    proxyStorage = await ProxyStorageMock.new();
+    const proxyStorageEternalStorage = await EternalStorageProxy.new(0, proxyStorage.address);
+    proxyStorage = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
+    await proxyStorage.init(poaNetworkConsensus.address).should.be.fulfilled;
     
     ballotsStorage = await BallotsStorage.new();
     const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorage.address, ballotsStorage.address);
+    ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
+    await ballotsStorage.init(false, {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
+    await ballotsStorage.init(false).should.be.fulfilled;
 
     keysManager = await KeysManagerMock.new(proxyStorage.address, poaNetworkConsensus.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
     await poaNetworkConsensus.setProxyStorage(proxyStorage.address);
@@ -44,11 +51,6 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       ballotsEternalStorage.address,
       validatorMetadataEternalStorage
     );
-
-    ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
-
-    await ballotsStorage.init(false, {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
-    await ballotsStorage.init(false).should.be.fulfilled;
 
     let ballotsStorageNew = await BallotsStorageNew.new();
     await ballotsEternalStorage.setProxyStorage(accounts[6]);

@@ -25,9 +25,15 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
     }
 
     function EternalStorageProxy(address _proxyStorage, address _implementationAddress) public {
-        require(_proxyStorage != address(0));
+        //require(_proxyStorage != address(0));
         require(_implementationAddress != address(0));
-        addressStorage[keccak256("proxyStorage")] = _proxyStorage;
+
+        if (_proxyStorage != address(0)) {
+            addressStorage[keccak256("proxyStorage")] = _proxyStorage;
+        } else {
+            addressStorage[keccak256("proxyStorage")] = address(this);
+        }
+        
         _implementation = _implementationAddress;
         addressStorage[keccak256("owner")] = msg.sender;
     }
