@@ -15,7 +15,7 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
     enum BallotTypes {Invalid, Adding, Removal, Swap}
     enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
-    enum ActionChoice { Invalid, Accept, Reject }
+    enum ActionChoice {Invalid, Accept, Reject}
 
     uint8 constant public maxOldMiningKeysDeepCheck = 25;
     uint8 constant thresholdForKeysType = 1;
@@ -78,7 +78,7 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
         uint256 diffTime = _endTime.sub(_startTime);
-        if (!boolStorage[keccak256("demoMode")]) {
+        if (!demoMode()) {
             require(diffTime > 2 days);
         }
         require(diffTime <= 14 days);
@@ -499,7 +499,7 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
     }
 
     function _decreaseValidatorLimit(uint256 _id) private {
-        address miningKey = addressStorage[keccak256("votingState", _id, "creator")];
+        address miningKey = getCreator(_id);
         uintStorage[keccak256("validatorActiveBallots", miningKey)] = 
             uintStorage[keccak256("validatorActiveBallots", miningKey)].sub(1);
     }

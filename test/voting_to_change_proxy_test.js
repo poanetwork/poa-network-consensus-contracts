@@ -3,6 +3,7 @@ let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
 let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let VotingToChangeProxyAddress = artifacts.require('./mockContracts/VotingToChangeProxyAddressMock');
 let VotingForKeys = artifacts.require('./mockContracts/VotingToChangeKeysMock');
+let VotingForMinThreshold = artifacts.require('./mockContracts/VotingToChangeMinThresholdMock');
 let BallotsStorage = artifacts.require('./BallotsStorage');
 let ValidatorMetadata = artifacts.require('./ValidatorMetadata');
 let EternalStorageProxy = artifacts.require('./EternalStorageProxy');
@@ -43,6 +44,9 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
 
     votingForKeys = await VotingForKeys.new();
     votingForKeysEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingForKeys.address);
+
+    const votingForMinThreshold = await VotingForMinThreshold.new();
+    const votingForMinThresholdEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingForMinThreshold.address);
     
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     voting = await VotingToChangeProxyAddress.new(proxyStorageMock.address);
@@ -53,7 +57,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
     await proxyStorageMock.initializeAddresses(
       keysManager.address,
       votingForKeysEternalStorage.address,
-      masterOfCeremony,
+      votingForMinThresholdEternalStorage.address,
       voting.address,
       ballotsEternalStorage.address,
       validatorMetadataEternalStorage.address
@@ -339,11 +343,14 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
       newAddress.should.be.equal(await eternalProxy.implementation());
     })
-    it('should change getVotingToChangeMinThreshold', async () => {
+    it('should change VotingToChangeMinThreshold implementation', async () => {
       let contractType = 3;
-      let newAddress = accounts[5];
+      let votingToChangeMinThresholdNew = await VotingForMinThreshold.new();
+      let newAddress = votingToChangeMinThresholdNew.address;
       await deployAndTest({contractType, newAddress})
-      newAddress.should.be.equal(await proxyStorageMock.getVotingToChangeMinThreshold());
+      let eternalProxyAddress = await proxyStorageMock.getVotingToChangeMinThreshold();
+      let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
+      newAddress.should.be.equal(await eternalProxy.implementation());
     })
     it('should change getVotingToChangeProxy', async () => {
       let contractType = 4;

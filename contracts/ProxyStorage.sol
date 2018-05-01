@@ -21,7 +21,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     event ProxyInitialized(
         address keysManager,
         address votingToChangeKeysEternalStorage,
-        address votingToChangeMinThreshold,
+        address votingToChangeMinThresholdEternalStorage,
         address votingToChangeProxy,
         address ballotsStorageEternalStorage,
         address validatorMetadataEternalStorage
@@ -59,7 +59,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     }
 
     function getVotingToChangeMinThreshold() public view returns(address) {
-        return addressStorage[keccak256("votingToChangeMinThreshold")];
+        return addressStorage[keccak256("votingToChangeMinThresholdEternalStorage")];
     }
 
     function getVotingToChangeProxy() public view returns(address) {
@@ -81,7 +81,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     function initializeAddresses(
         address _keysManager,
         address _votingToChangeKeysEternalStorage,
-        address _votingToChangeMinThreshold,
+        address _votingToChangeMinThresholdEternalStorage,
         address _votingToChangeProxy,
         address _ballotsStorageEternalStorage,
         address _validatorMetadataEternalStorage
@@ -94,8 +94,8 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
             _keysManager;
         addressStorage[keccak256("votingToChangeKeysEternalStorage")] =
             _votingToChangeKeysEternalStorage;
-        addressStorage[keccak256("votingToChangeMinThreshold")] =
-            _votingToChangeMinThreshold;
+        addressStorage[keccak256("votingToChangeMinThresholdEternalStorage")] =
+            _votingToChangeMinThresholdEternalStorage;
         addressStorage[keccak256("votingToChangeProxy")] =
             _votingToChangeProxy;
         addressStorage[keccak256("ballotsStorageEternalStorage")] =
@@ -106,7 +106,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         ProxyInitialized(
             _keysManager,
             _votingToChangeKeysEternalStorage,
-            _votingToChangeMinThreshold,
+            _votingToChangeMinThresholdEternalStorage,
             _votingToChangeProxy,
             _ballotsStorageEternalStorage,
             _validatorMetadataEternalStorage
@@ -123,7 +123,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         } else if (_contractType == uint8(ContractTypes.VotingToChangeKeys)) {
             IEternalStorageProxy(addressStorage[keccak256("votingToChangeKeysEternalStorage")]).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.VotingToChangeMinThreshold)) {
-            addressStorage[keccak256("votingToChangeMinThreshold")] = _contractAddress;
+            IEternalStorageProxy(addressStorage[keccak256("votingToChangeMinThresholdEternalStorage")]).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.VotingToChangeProxy)) {
             addressStorage[keccak256("votingToChangeProxy")] = _contractAddress;
         } else if (_contractType == uint8(ContractTypes.BallotsStorage)) {

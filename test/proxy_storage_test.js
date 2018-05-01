@@ -4,6 +4,7 @@ let ProxyStorageNew = artifacts.require('./upgradeContracts/ProxyStorageNew');
 let ValidatorMetadata = artifacts.require('./ValidatorMetadata');
 let BallotsStorage = artifacts.require('./BallotsStorage');
 let VotingToChangeKeys = artifacts.require('./VotingToChangeKeys');
+let VotingToChangeMinThreshold = artifacts.require('./VotingToChangeMinThreshold');
 let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 require('chai')
@@ -16,14 +17,13 @@ let proxyStorage, proxyStorageEternalStorage;
 let validatorMetadata, validatorMetadataEternalStorage;
 let ballotsStorage, ballotsEternalStorage;
 let votingToChangeKeys, votingToChangeKeysEternalStorage;
+let votingToChangeMinThreshold, votingToChangeMinThresholdEternalStorage;
 contract('ProxyStorage [all features]', function (accounts) {
   let {
     keysManager,
-    votingToChangeMinThreshold,
     votingToChangeProxy
   } = {
     keysManager: accounts[1],
-    votingToChangeMinThreshold: accounts[3],
     votingToChangeProxy: accounts[4]
   }
   masterOfCeremony = accounts[0];
@@ -43,6 +43,9 @@ contract('ProxyStorage [all features]', function (accounts) {
 
     votingToChangeKeys = await VotingToChangeKeys.new();
     votingToChangeKeysEternalStorage = await EternalStorageProxy.new(proxyStorage.address, votingToChangeKeys.address);
+
+    votingToChangeMinThreshold = await VotingToChangeMinThreshold.new();
+    votingToChangeMinThresholdEternalStorage = await EternalStorageProxy.new(proxyStorage.address, votingToChangeMinThreshold.address);
   })
   describe('#constructor', async () => {
     it('sets MoC and Poa', async () => {
@@ -59,7 +62,7 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorage.initializeAddresses(
         keysManager,
         votingToChangeKeysEternalStorage.address,
-        votingToChangeMinThreshold,
+        votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxy,
         ballotsEternalStorage.address,
         validatorMetadataEternalStorage.address,
@@ -68,7 +71,7 @@ contract('ProxyStorage [all features]', function (accounts) {
       const {logs} = await proxyStorage.initializeAddresses(
         keysManager,
         votingToChangeKeysEternalStorage.address,
-        votingToChangeMinThreshold,
+        votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxy,
         ballotsEternalStorage.address,
         validatorMetadataEternalStorage.address,
@@ -79,7 +82,7 @@ contract('ProxyStorage [all features]', function (accounts) {
       votingToChangeKeysEternalStorage.address.should.be.equal(
         await proxyStorage.getVotingToChangeKeys()
       );
-      votingToChangeMinThreshold.should.be.equal(
+      votingToChangeMinThresholdEternalStorage.address.should.be.equal(
         await proxyStorage.getVotingToChangeMinThreshold()
       );
       votingToChangeProxy.should.be.equal(
@@ -94,7 +97,7 @@ contract('ProxyStorage [all features]', function (accounts) {
       logs[0].event.should.be.equal('ProxyInitialized');
       logs[0].args.keysManager.should.be.equal(keysManager);
       logs[0].args.votingToChangeKeysEternalStorage.should.be.equal(votingToChangeKeysEternalStorage.address);
-      logs[0].args.votingToChangeMinThreshold.should.be.equal(votingToChangeMinThreshold);
+      logs[0].args.votingToChangeMinThresholdEternalStorage.should.be.equal(votingToChangeMinThresholdEternalStorage.address);
       logs[0].args.votingToChangeProxy.should.be.equal(votingToChangeProxy);
       logs[0].args.ballotsStorageEternalStorage.should.be.equal(ballotsEternalStorage.address);
       logs[0].args.validatorMetadataEternalStorage.should.be.equal(validatorMetadataEternalStorage.address);
@@ -104,7 +107,7 @@ contract('ProxyStorage [all features]', function (accounts) {
       const {logs} = await proxyStorage.initializeAddresses(
         keysManager,
         votingToChangeKeysEternalStorage.address,
-        votingToChangeMinThreshold,
+        votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxy,
         ballotsEternalStorage.address,
         validatorMetadataEternalStorage.address
@@ -113,7 +116,7 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorage.initializeAddresses(
         keysManager,
         votingToChangeKeysEternalStorage.address,
-        votingToChangeMinThreshold,
+        votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxy,
         ballotsEternalStorage.address,
         validatorMetadataEternalStorage.address
@@ -126,7 +129,7 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorage.initializeAddresses(
         keysManager,
         votingToChangeKeysEternalStorage.address,
-        votingToChangeMinThreshold,
+        votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxy,
         ballotsEternalStorage.address,
         validatorMetadataEternalStorage.address,
@@ -158,9 +161,14 @@ contract('ProxyStorage [all features]', function (accounts) {
       )
     })
     it('sets votingToChangeMinThreshold', async () => {
-      await proxyStorage.setContractAddress(3, accounts[2], {from: votingToChangeProxy}).should.be.fulfilled;
-      accounts[2].should.be.equal(
-        await proxyStorage.getVotingToChangeMinThreshold()
+      let votingToChangeMinThresholdNew = await VotingToChangeMinThreshold.new();
+      await proxyStorage.setContractAddress(3, votingToChangeMinThresholdNew.address, {from: votingToChangeProxy}).should.be.fulfilled;
+      
+      let eternalProxyAddress = await proxyStorage.getVotingToChangeMinThreshold();
+      let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
+
+      votingToChangeMinThresholdNew.address.should.be.equal(
+        await eternalProxy.implementation()
       )
     })
     it('sets votingToChangeProxy', async () => {

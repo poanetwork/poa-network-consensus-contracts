@@ -10,6 +10,7 @@ var ValidatorMetadataEternalStorage = artifacts.require("./eternal-storage/Etern
 let VotingToChangeKeys = artifacts.require("./VotingToChangeKeys");
 let VotingToChangeKeysEternalStorage = artifacts.require("./eternal-storage/EternalStorageProxy.sol");
 let VotingToChangeMinThreshold = artifacts.require("./VotingToChangeMinThreshold");
+let VotingToChangeMinThresholdEternalStorage = artifacts.require("./eternal-storage/EternalStorageProxy.sol");
 let VotingToChangeProxyAddress = artifacts.require("./VotingToChangeProxyAddress");
 
 module.exports = async function(deployer, network, accounts) {
@@ -51,15 +52,19 @@ module.exports = async function(deployer, network, accounts) {
       await deployer.deploy(VotingToChangeKeys);
       await deployer.deploy(VotingToChangeKeysEternalStorage, proxyStorage.address, VotingToChangeKeys.address);
       const votingToChangeKeys = await VotingToChangeKeys.at(VotingToChangeKeysEternalStorage.address);
-      votingToChangeKeys.init(demoMode);
+      await votingToChangeKeys.init(demoMode);
       
-      await deployer.deploy(VotingToChangeMinThreshold, proxyStorage.address, demoMode);
+      await deployer.deploy(VotingToChangeMinThreshold);
+      await deployer.deploy(VotingToChangeMinThresholdEternalStorage, proxyStorage.address, VotingToChangeMinThreshold.address);
+      const votingToChangeMinThreshold = await VotingToChangeMinThreshold.at(VotingToChangeMinThresholdEternalStorage.address);
+      await votingToChangeMinThreshold.init(demoMode);
+
       await deployer.deploy(VotingToChangeProxyAddress, proxyStorage.address, demoMode);
 
       await proxyStorage.initializeAddresses(
         KeysManager.address,
         VotingToChangeKeysEternalStorage.address,
-        VotingToChangeMinThreshold.address,
+        VotingToChangeMinThresholdEternalStorage.address,
         VotingToChangeProxyAddress.address,
         BallotsStorageEternalStorage.address,
         ValidatorMetadataEternalStorage.address
@@ -69,7 +74,7 @@ module.exports = async function(deployer, network, accounts) {
       if (!!process.env.SAVE_TO_FILE === true) {
         let contracts = {
           "VOTING_TO_CHANGE_KEYS_ADDRESS": VotingToChangeKeysEternalStorage.address,
-          "VOTING_TO_CHANGE_MIN_THRESHOLD_ADDRESS": VotingToChangeMinThreshold.address,
+          "VOTING_TO_CHANGE_MIN_THRESHOLD_ADDRESS": VotingToChangeMinThresholdEternalStorage.address,
           "VOTING_TO_CHANGE_PROXY_ADDRESS": VotingToChangeProxyAddress.address,
           "BALLOTS_STORAGE_ADDRESS": BallotsStorageEternalStorage.address,
           "KEYS_MANAGER_ADDRESS": KeysManager.address,
@@ -84,7 +89,8 @@ module.exports = async function(deployer, network, accounts) {
       console.log('ADDRESSES:\n', 
      `VotingToChangeKeys.address (implementation) ${VotingToChangeKeys.address} \n
       VotingToChangeKeys.address (storage) ${VotingToChangeKeysEternalStorage.address} \n
-      VotingToChangeMinThreshold.address ${VotingToChangeMinThreshold.address} \n
+      VotingToChangeMinThreshold.address (implementation) ${VotingToChangeMinThreshold.address} \n
+      VotingToChangeMinThreshold.address (storage) ${VotingToChangeMinThresholdEternalStorage.address} \n
       VotingToChangeProxyAddress.address ${VotingToChangeProxyAddress.address} \n
       BallotsStorage.address (implementation) ${BallotsStorage.address} \n
       BallotsStorage.address (storage) ${BallotsStorageEternalStorage.address} \n
