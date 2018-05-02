@@ -18,10 +18,14 @@
 - Install solidity-flattener `pip3.5 install solidity-flattener`
 - Install npm dependencies `npm i`
 - Generate flat sources of contracts with the script `./make_flat.sh`
-- We need the byte code of `PoaNetworkConsensus_flat` contract to add it to [`spec.json`](https://github.com/poanetwork/poa-chain-spec/blob/core/spec.json) of the network. <br />
-Go to [Remix](http://remix.ethereum.org/#version=soljson-v0.4.18+commit.9cf6e910.js).<br />
-Copy `./flat/PoaNetworkConsensus_flat.sol` source to the input field and press `Start to compile`. <br />
-Choose `PoaNetworkConsensus` contract in the listbox and press "Details". Copy `BYTECODE` of the compiled source for `spec.json`.
+- We need a bytecode of `PoaNetworkConsensus` contract to add it to [`spec.json`](https://github.com/poanetwork/poa-chain-spec/blob/core/spec.json) of the network. <br />
+Go to `scripts` directory and run `poa-bytecode.js`: <br />
+```bash
+cd scripts
+npm i
+MASTER_OF_CEREMONY=0x0039F22efB07A647557C7C5d17854CFD6D489eF3 node poa-bytecode.js
+```
+It will show the bytecode of `PoaNetworkConsensus` contract. Copy the bytecode and paste it into `spec.json`.
 
 ### Add Contracts to Parity UI.
 
