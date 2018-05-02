@@ -10,6 +10,7 @@ const solc = require('solc');
 const NETWORK = process.env.NETWORK; // sokol or core
 const BALLOTS_STORAGE_NEW_ADDRESS = process.env.BALLOTS_STORAGE_NEW_ADDRESS;
 const VOTING_TO_CHANGE_KEYS_NEW_ADDRESS = process.env.VOTING_TO_CHANGE_KEYS_NEW_ADDRESS;
+const VOTING_TO_CHANGE_MIN_THRESHOLD_NEW_ADDRESS = process.env.VOTING_TO_CHANGE_MIN_THRESHOLD_NEW_ADDRESS;
 const ONLY_CHECK = !!process.env.ONLY_CHECK === true
 
 const web3 = new Web3(new Web3.providers.HttpProvider("https://" + NETWORK + ".poa.network"));
@@ -26,12 +27,14 @@ let PROXY_STORAGE_ADDRESS;
 let KEYS_MANAGER_ADDRESS;
 let BALLOTS_STORAGE_OLD_ADDRESS;
 let VOTING_TO_CHANGE_KEYS_OLD_ADDRESS;
+let VOTING_TO_CHANGE_MIN_THRESHOLD_OLD_ADDRESS;
 let POA_ADDRESS;
 
 let KEYS_MANAGER_ABI;
 let POA_ABI;
 let BALLOTS_STORAGE_OLD_ABI;
 let VOTING_TO_CHANGE_KEYS_OLD_ABI;
+let VOTING_TO_CHANGE_MIN_THRESHOLD_OLD_ABI;
 
 main();
 
@@ -40,9 +43,9 @@ async function main() {
 	let commit;
 
 	if (NETWORK == 'core') {
-		commit = '8a09d447d69c7239bba4827e97ed61d7d0092362';
+		commit = 'fb311a6c475e37bd9ccc0781b369cf14d738f98e';
 	} else if (NETWORK == 'sokol') {
-		commit = '103dd4ee0f2a03e463108f0bba7a0db4fcdb83d3';
+		commit = '4e020b68a3d477e1c41859c3f0402c0626254529';
 	}
 
 	try {
@@ -51,12 +54,14 @@ async function main() {
 		KEYS_MANAGER_ADDRESS = contracts.data.KEYS_MANAGER_ADDRESS;
 		BALLOTS_STORAGE_OLD_ADDRESS = contracts.data.BALLOTS_STORAGE_ADDRESS;
 		VOTING_TO_CHANGE_KEYS_OLD_ADDRESS = contracts.data.VOTING_TO_CHANGE_KEYS_ADDRESS;
+		VOTING_TO_CHANGE_MIN_THRESHOLD_OLD_ADDRESS = contracts.data.VOTING_TO_CHANGE_MIN_THRESHOLD_ADDRESS;
 		POA_ADDRESS = contracts.data.POA_ADDRESS;
 		
 		KEYS_MANAGER_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/KeysManager.abi.json')).data;
 		POA_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/PoaNetworkConsensus.abi.json')).data;
 		BALLOTS_STORAGE_OLD_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/BallotsStorage.abi.json')).data;
 		VOTING_TO_CHANGE_KEYS_OLD_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/VotingToChangeKeys.abi.json')).data;
+		VOTING_TO_CHANGE_MIN_THRESHOLD_OLD_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/VotingToChangeMinThreshold.abi.json')).data;
 	} catch (err) {
 		console.log('Cannot read contracts.json');
 		success = false;
@@ -80,6 +85,15 @@ async function migrateAndCheck(privateKey) {
 		chainId = web3.utils.toHex(await web3.eth.net.getId());
 	}
 
+	if (!(await ballotsStorageMigrateAndCheck(sender, key, chainId))) return;
+	if (!(await votingToChangeMigrateAndCheck(sender, key, chainId, 'VotingToChangeKeys'))) return;
+	if (!(await votingToChangeMigrateAndCheck(sender, key, chainId, 'VotingToChangeMinThreshold'))) return;
+}
+
+async function ballotsStorageMigrateAndCheck(sender, key, chainId) {
+	let success = false;
+	let contractNewAddress = BALLOTS_STORAGE_NEW_ADDRESS;
+
 	try {
 		if (ONLY_CHECK) {
 			console.log('BallotsStorage checking...');
@@ -88,21 +102,20 @@ async function migrateAndCheck(privateKey) {
 		}
 
 		const implCompiled = await compile('../../contracts/', 'BallotsStorage');
-		let storageAddress = BALLOTS_STORAGE_NEW_ADDRESS;
-		if (!storageAddress && !ONLY_CHECK) {
+		if (!contractNewAddress && !ONLY_CHECK) {
 			const implAddress = await deploy('BallotsStorage', implCompiled, sender, key, chainId);
 			console.log('  BallotsStorage implementation address is ' + implAddress);
 			const storageCompiled = await compile('../../contracts/eternal-storage/', 'EternalStorageProxy');
-			storageAddress = await deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, [PROXY_STORAGE_ADDRESS, implAddress]);
+			contractNewAddress = await deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, [PROXY_STORAGE_ADDRESS, implAddress]);
 		}
-		console.log('  BallotsStorage storage address is ' + storageAddress);
+		console.log('  BallotsStorage storage address is ' + contractNewAddress);
 
 		const ballotsStorageOldInstance = new web3.eth.Contract(BALLOTS_STORAGE_OLD_ABI, BALLOTS_STORAGE_OLD_ADDRESS);
-		const ballotsStorageNewInstance = new web3.eth.Contract(implCompiled.abi, storageAddress);
+		const ballotsStorageNewInstance = new web3.eth.Contract(implCompiled.abi, contractNewAddress);
 		
 		if (!ONLY_CHECK) {
 			const migrate = ballotsStorageNewInstance.methods.migrate(BALLOTS_STORAGE_OLD_ADDRESS);
-			await call(migrate, sender, storageAddress, key, chainId);
+			await call(migrate, sender, contractNewAddress, key, chainId);
 		}
 		
 		const oldKeysThreshold = await ballotsStorageOldInstance.methods.getBallotThreshold(1).call();
@@ -115,35 +128,53 @@ async function migrateAndCheck(privateKey) {
 
 		console.log('Success');
 		console.log('');
+		success = true;
 	} catch (err) {
 		if (ONLY_CHECK) {
 			console.log('Something is wrong: ' + err.message);
 		} else {
 			console.log('Cannot migrate BallotsStorage: ' + err.message);
 		}
-		return;
+	}
+
+	return success;
+}
+
+async function votingToChangeMigrateAndCheck(sender, key, chainId, contractName) {
+	let success = false;
+	let contractNewAddress = '';
+	let contractOldAddress = '';
+	let contractOldAbi = '';
+
+	if (contractName == 'VotingToChangeKeys') {
+		contractNewAddress = VOTING_TO_CHANGE_KEYS_NEW_ADDRESS;
+		contractOldAddress = VOTING_TO_CHANGE_KEYS_OLD_ADDRESS;
+		contractOldAbi = VOTING_TO_CHANGE_KEYS_OLD_ABI;
+	} else if (contractName == 'VotingToChangeMinThreshold') {
+		contractNewAddress = VOTING_TO_CHANGE_MIN_THRESHOLD_NEW_ADDRESS;
+		contractOldAddress = VOTING_TO_CHANGE_MIN_THRESHOLD_OLD_ADDRESS;
+		contractOldAbi = VOTING_TO_CHANGE_MIN_THRESHOLD_OLD_ABI;
 	}
 
 	try {
 		if (ONLY_CHECK) {
-			console.log('VotingToChangeKeys checking...');
+			console.log(`${contractName} checking...`);
 		} else {
-			console.log('VotingToChangeKeys migration...');
+			console.log(`${contractName} migration...`);
 		}
 
-		const implCompiled = await compile('../../contracts/', 'VotingToChangeKeys');
-		let storageAddress = VOTING_TO_CHANGE_KEYS_NEW_ADDRESS;
-		if (!storageAddress && !ONLY_CHECK) {
-			const implAddress = await deploy('VotingToChangeKeys', implCompiled, sender, key, chainId);
-			console.log('  VotingToChangeKeys implementation address is ' + implAddress);
+		const implCompiled = await compile('../../contracts/', contractName);
+		if (!contractNewAddress && !ONLY_CHECK) {
+			const implAddress = await deploy(contractName, implCompiled, sender, key, chainId);
+			console.log(`  ${contractName} implementation address is ${implAddress}`);
 			const storageCompiled = await compile('../../contracts/eternal-storage/', 'EternalStorageProxy');
-			storageAddress = await deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, [PROXY_STORAGE_ADDRESS, implAddress]);
+			contractNewAddress = await deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, [PROXY_STORAGE_ADDRESS, implAddress]);
 		}
-		console.log('  VotingToChangeKeys storage address is ' + storageAddress);
+		console.log(`  ${contractName} storage address is ${contractNewAddress}`);
 
 		const keysManagerInstance = new web3.eth.Contract(KEYS_MANAGER_ABI, KEYS_MANAGER_ADDRESS);
-		const votingOldInstance = new web3.eth.Contract(VOTING_TO_CHANGE_KEYS_OLD_ABI, VOTING_TO_CHANGE_KEYS_OLD_ADDRESS);
-		const votingNewInstance = new web3.eth.Contract(implCompiled.abi, storageAddress);
+		const votingOldInstance = new web3.eth.Contract(contractOldAbi, contractOldAddress);
+		const votingNewInstance = new web3.eth.Contract(implCompiled.abi, contractNewAddress);
 
 		if (!ONLY_CHECK) {
 			console.log('  Read Vote event...');
@@ -186,11 +217,11 @@ async function migrateAndCheck(privateKey) {
 			}
 
 			console.log('  Call migrateBasicAll...');
-			const migrateBasicAll = votingNewInstance.methods.migrateBasicAll(VOTING_TO_CHANGE_KEYS_OLD_ADDRESS);
-			await call(migrateBasicAll, sender, storageAddress, key, chainId);
+			const migrateBasicAll = votingNewInstance.methods.migrateBasicAll(contractOldAddress);
+			await call(migrateBasicAll, sender, contractNewAddress, key, chainId);
 			
 			const nextBallotId = await votingOldInstance.methods.nextBallotId().call();
-			console.log('  Handle each of ' + nextBallotId + ' ballot(s)...');
+			console.log(`  Handle each of ${nextBallotId} ballot(s)...`);
 			for (let ballotId = 0; ballotId < nextBallotId; ballotId++) {
 				let voters = [];
 
@@ -205,11 +236,11 @@ async function migrateAndCheck(privateKey) {
 				const ballotTotalVoters = await votingOldInstance.methods.getTotalVoters(ballotId).call();
 				voters.length.should.be.equal(Number(ballotTotalVoters));
 
-				console.log('  Migrate ballot #' + ballotId + '...');
+				console.log(`  Migrate ballot #${ballotId}...`);
 				const votingState = await votingOldInstance.methods.votingState(ballotId).call();
 				const migrateBasicOne = votingNewInstance.methods.migrateBasicOne(
 					ballotId,
-					VOTING_TO_CHANGE_KEYS_OLD_ADDRESS,
+					contractOldAddress,
 					votingState.quorumState,
 					votingState.index,
 					votingState.creator,
@@ -217,11 +248,11 @@ async function migrateAndCheck(privateKey) {
 					voters
 				);
 
-				await call(migrateBasicOne, sender, storageAddress, key, chainId);
+				await call(migrateBasicOne, sender, contractNewAddress, key, chainId);
 			}
 
 			// console.log('  Disable migrations feature of the new contract...');
-			// await call(votingNewInstance.methods.migrateDisable(), sender, storageAddress, key, chainId);
+			// await call(votingNewInstance.methods.migrateDisable(), sender, contractNewAddress, key, chainId);
 		}
 
 		console.log('  Checking new contract...');
@@ -241,38 +272,47 @@ async function migrateAndCheck(privateKey) {
 		}
 		const nextBallotId = (await votingOldInstance.methods.nextBallotId().call());
 		for (i = 0; i < nextBallotId; i++) {
-			console.log('  Check ballot #' + i + '...');
+			console.log(`  Check ballot #${i}...`);
+			
 			const votingState = (await votingOldInstance.methods.votingState(i).call());
+			
 			votingState.startTime.should.be.equal(await votingNewInstance.methods.getStartTime(i).call());
 			votingState.endTime.should.be.equal(await votingNewInstance.methods.getEndTime(i).call());
-			votingState.affectedKey.should.be.equal(await votingNewInstance.methods.getAffectedKey(i).call());
-			votingState.affectedKeyType.should.be.equal(await votingNewInstance.methods.getAffectedKeyType(i).call());
-			votingState.miningKey.should.be.equal(await votingNewInstance.methods.getMiningKey(i).call());
 			votingState.totalVoters.should.be.equal(await votingNewInstance.methods.getTotalVoters(i).call());
 			votingState.progress.should.be.equal(await votingNewInstance.methods.getProgress(i).call());
 			votingState.isFinalized.should.be.equal(await votingNewInstance.methods.getIsFinalized(i).call());
 			votingState.quorumState.should.be.equal(await votingNewInstance.methods.getQuorumState(i).call());
-			votingState.ballotType.should.be.equal(await votingNewInstance.methods.getBallotType(i).call());
 			votingState.index.should.be.equal(await votingNewInstance.methods.getIndex(i).call());
 			votingState.minThresholdOfVoters.should.be.equal(await votingNewInstance.methods.getMinThresholdOfVoters(i).call());
 			votingState.creator.should.be.equal(await votingNewInstance.methods.getCreator(i).call());
 			votingState.memo.should.be.equal(await votingNewInstance.methods.getMemo(i).call());
+
+			if (contractName == 'VotingToChangeKeys') {
+				votingState.affectedKey.should.be.equal(await votingNewInstance.methods.getAffectedKey(i).call());
+				votingState.affectedKeyType.should.be.equal(await votingNewInstance.methods.getAffectedKeyType(i).call());
+				votingState.miningKey.should.be.equal(await votingNewInstance.methods.getMiningKey(i).call());
+				votingState.ballotType.should.be.equal(await votingNewInstance.methods.getBallotType(i).call());
+			} else if (contractName == 'VotingToChangeMinThreshold') {
+				votingState.proposedValue.should.be.equal(await votingNewInstance.methods.getProposedValue(i).call());
+			}
 		}
 
 		console.log('Success');
 		console.log('');
+		success = true;
 	} catch (err) {
 		if (ONLY_CHECK) {
-			console.log('Something is wrong: ' + err.message);
+			console.log(`Something is wrong: ${err.message}`);
 		} else {
-			console.log('Cannot migrate VotingToChangeKeys: ' + err.message);
+			console.log(`Cannot migrate ${contractName}: ${err.message}`);
 		}
-		return;
 	}
+
+	return success;
 }
 
 async function compile(dir, contractName) {
-	console.log('  ' + contractName + ' compile...');
+	console.log(`  ${contractName} compile...`);
 	const compiled = solc.compile({
 		sources: {
 			'': fs.readFileSync(dir + contractName + '.sol').toString()
@@ -286,7 +326,7 @@ async function compile(dir, contractName) {
 }
 
 async function deploy(contractName, contractSpec, sender, key, chainId, args) {
-	console.log('  ' + contractName + ' deploy...');
+	console.log(`  ${contractName} deploy...`);
 	const contract = new web3.eth.Contract(contractSpec.abi);
 	const deploy = await contract.deploy({data: '0x' + contractSpec.bytecode, arguments: args});
 	return (await call(deploy, sender, '', key, chainId)).contractAddress;
@@ -348,5 +388,5 @@ async function readPrivateKey() {
 }
 
 // NETWORK=sokol node migrateVotings
-// NETWORK=sokol BALLOTS_STORAGE_NEW_ADDRESS=0x498e4064fa1634662E0E87438c2BbDC7b2eE5458 VOTING_TO_CHANGE_KEYS_NEW_ADDRESS=0xE1fbA5Dd67F9c4D948B5c6f81B04DD25e0f3F896 node migrateVotings
-// NETWORK=sokol BALLOTS_STORAGE_NEW_ADDRESS=0x498e4064fa1634662E0E87438c2BbDC7b2eE5458 VOTING_TO_CHANGE_KEYS_NEW_ADDRESS=0xE1fbA5Dd67F9c4D948B5c6f81B04DD25e0f3F896 ONLY_CHECK=true node migrateVotings
+// NETWORK=sokol BALLOTS_STORAGE_NEW_ADDRESS=0x87328334640AC9Fe199742101d66589487690Af5 VOTING_TO_CHANGE_KEYS_NEW_ADDRESS=0xaf378F31aB0A443be738ADbf04DeAc964fe935cA VOTING_TO_CHANGE_MIN_THRESHOLD_NEW_ADDRESS=0xF333AC2046946969CF671747f72c7219e64A6739 node migrateVotings
+// NETWORK=sokol BALLOTS_STORAGE_NEW_ADDRESS=0x87328334640AC9Fe199742101d66589487690Af5 VOTING_TO_CHANGE_KEYS_NEW_ADDRESS=0xaf378F31aB0A443be738ADbf04DeAc964fe935cA VOTING_TO_CHANGE_MIN_THRESHOLD_NEW_ADDRESS=0xF333AC2046946969CF671747f72c7219e64A6739 ONLY_CHECK=true node migrateVotings
