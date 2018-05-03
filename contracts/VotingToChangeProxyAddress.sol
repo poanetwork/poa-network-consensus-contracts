@@ -1,44 +1,28 @@
 pragma solidity ^0.4.18;
+
 import "./SafeMath.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IKeysManager.sol";
+import "./eternal-storage/EternalStorage.sol";
 
 
-contract VotingToChangeProxyAddress { 
+contract VotingToChangeProxyAddress is EternalStorage {
     using SafeMath for uint256;
+    
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
-    enum ActionChoice { Invalid, Accept, Reject }    
+    enum ActionChoice {Invalid, Accept, Reject}
 
-    IProxyStorage public proxyStorage;
-    uint8 public maxOldMiningKeysDeepCheck = 25;
-    uint256 public nextBallotId;
-    uint256[] public activeBallots;
-    uint256 public activeBallotsLength;
-    bool public demoMode = false;
+    uint8 constant public maxOldMiningKeysDeepCheck = 25;
 
-    struct VotingData {
-        uint256 startTime;
-        uint256 endTime;
-        uint256 totalVoters;
-        int progress;
-        bool isFinalized;
-        uint8 quorumState;
-        uint256 index;
-        uint256 minThresholdOfVoters;
-        address proposedValue;
-        uint8 contractType;
-        mapping(address => bool) voters;
-        address creator;
-        string memo;
-    }
-
-    mapping(uint256 => VotingData) public votingState;
-    mapping(address => uint256) public validatorActiveBallots;
-
-    event Vote(uint256 indexed id, uint256 decision, address indexed voter, uint256 time );
+    event Vote(uint256 indexed id, uint256 decision, address indexed voter, uint256 time, address voterMiningKey);
     event BallotFinalized(uint256 indexed id, address indexed voter);
     event BallotCreated(uint256 indexed id, uint256 indexed ballotType, address indexed creator);
+
+    modifier onlyOwner() {
+        require(msg.sender == addressStorage[keccak256("owner")]);
+        _;
+    }
 
     modifier onlyValidVotingKey(address _votingKey) {
         IKeysManager keysManager = IKeysManager(getKeysManager());
@@ -46,9 +30,35 @@ contract VotingToChangeProxyAddress {
         _;
     }
 
-    function VotingToChangeProxyAddress(address _proxyStorage, bool _demoMode) public {
-        proxyStorage = IProxyStorage(_proxyStorage);
-        demoMode = _demoMode;
+    function proxyStorage() public view returns(address) {
+        return addressStorage[keccak256("proxyStorage")];
+    }
+
+    function nextBallotId() public view returns(uint256) {
+        return uintStorage[keccak256("nextBallotId")];
+    }
+
+    function activeBallotsLength() public view returns(uint256) {
+        return uintStorage[keccak256("activeBallotsLength")];
+    }
+
+    function activeBallots(uint256 _index) public view returns(uint256) {
+        return uintArrayStorage[keccak256("activeBallots")][_index];
+    }
+
+    function validatorActiveBallots(address _miningKey) public view returns(uint256) {
+        return uintStorage[keccak256("validatorActiveBallots", _miningKey)];
+    }
+
+    function demoMode() public view returns(bool) {
+        return boolStorage[keccak256("demoMode")];
+    }
+
+    function init(bool _demoMode) public onlyOwner {
+        bytes32 initDisabledHash = keccak256("initDisabled");
+        require(!boolStorage[initDisabledHash]);
+        boolStorage[keccak256("demoMode")] = _demoMode;
+        boolStorage[initDisabledHash] = true;
     }
 
     function createBallotToChangeProxyAddress(
@@ -61,69 +71,73 @@ contract VotingToChangeProxyAddress {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
         uint256 diffTime = _endTime.sub(_startTime);
-        if (!demoMode) {
+        if (!demoMode()) {
             require(diffTime > 2 days);
         }
         require(diffTime <= 14 days);
         require(_proposedValue != address(0));
         address creatorMiningKey = getMiningByVotingKey(msg.sender);
         require(withinLimit(creatorMiningKey));
-        VotingData memory data = VotingData({
-            startTime: _startTime,
-            endTime: _endTime,
-            totalVoters: 0,
-            progress: 0,
-            isFinalized: false,
-            quorumState: uint8(QuorumStates.InProgress),
-            index: activeBallots.length,
-            proposedValue: _proposedValue,
-            contractType: _contractType,
-            minThresholdOfVoters: getGlobalMinThresholdOfVoters(),
-            creator: creatorMiningKey,
-            memo: memo
-        });
-        votingState[nextBallotId] = data;
-        activeBallots.push(nextBallotId);
-        activeBallotsLength = activeBallots.length;
+
+        bytes32 nextBallotIdHash = keccak256("nextBallotId");
+        uint256 _nextBallotId = uintStorage[nextBallotIdHash];
+
+        bytes32 activeBallotsHash = keccak256("activeBallots");
+        
+        uintStorage[keccak256("votingState", _nextBallotId, "startTime")] = _startTime;
+        uintStorage[keccak256("votingState", _nextBallotId, "endTime")] = _endTime;
+        uintStorage[keccak256("votingState", _nextBallotId, "totalVoters")] = 0;
+        intStorage[keccak256("votingState", _nextBallotId, "progress")] = 0;
+        boolStorage[keccak256("votingState", _nextBallotId, "isFinalized")] = false;
+        uintStorage[keccak256("votingState", _nextBallotId, "quorumState")] = uint8(QuorumStates.InProgress);
+        uintStorage[keccak256("votingState", _nextBallotId, "index")] = uintArrayStorage[activeBallotsHash].length;
+        addressStorage[keccak256("votingState", _nextBallotId, "proposedValue")] = _proposedValue;
+        uintStorage[keccak256("votingState", _nextBallotId, "contractType")] = _contractType;
+        uintStorage[keccak256("votingState", _nextBallotId, "minThresholdOfVoters")] = getGlobalMinThresholdOfVoters();
+        addressStorage[keccak256("votingState", _nextBallotId, "creator")] = creatorMiningKey;
+        stringStorage[keccak256("votingState", _nextBallotId, "memo")] = memo;
+
+        uintArrayStorage[activeBallotsHash].push(_nextBallotId);
+        uintStorage[keccak256("activeBallotsLength")] =
+            uintArrayStorage[activeBallotsHash].length;
         _increaseValidatorLimit();
-        BallotCreated(nextBallotId, 5, msg.sender);
-        nextBallotId++;
+        BallotCreated(_nextBallotId, 5, msg.sender);
+        uintStorage[nextBallotIdHash] = uintStorage[nextBallotIdHash].add(1);
     }
 
     function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
         require(!getIsFinalized(_id));
-        VotingData storage ballot = votingState[_id];
         address miningKey = getMiningByVotingKey(msg.sender);
         require(isValidVote(_id, msg.sender));
         if (_choice == uint(ActionChoice.Accept)) {
-            ballot.progress++;
+            intStorage[keccak256("votingState", _id, "progress")]++;
         } else if (_choice == uint(ActionChoice.Reject)) {
-            ballot.progress--;
+            intStorage[keccak256("votingState", _id, "progress")]--;
         } else {
             revert();
         }
-        ballot.totalVoters++;
-        ballot.voters[miningKey] = true;
-        Vote(_id, _choice, msg.sender, getTime());
+        uintStorage[keccak256("votingState", _id, "totalVoters")]++;
+        boolStorage[keccak256("votingState", _id, "voters", miningKey)] = true;
+        Vote(_id, _choice, msg.sender, getTime(), miningKey);
     }
 
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
+        require(_id < nextBallotId());
         require(getStartTime(_id) <= getTime());
         require(!isActive(_id));
         require(!getIsFinalized(_id));
-        VotingData storage ballot = votingState[_id];
         finalizeBallot(_id);
         _decreaseValidatorLimit(_id);
-        ballot.isFinalized = true;
+        boolStorage[keccak256("votingState", _id, "isFinalized")] = true;
         BallotFinalized(_id, msg.sender);
     }
 
     function getProposedValue(uint256 _id) public view returns(address) {
-        return votingState[_id].proposedValue;
+        return addressStorage[keccak256("votingState", _id, "proposedValue")];
     }
     
     function getContractType(uint256 _id) public view returns(uint256) {
-        return votingState[_id].contractType;
+        return uintStorage[keccak256("votingState", _id, "contractType")];
     }
 
     function getGlobalMinThresholdOfVoters() public view returns(uint256) {
@@ -132,15 +146,15 @@ contract VotingToChangeProxyAddress {
     }
 
     function getProgress(uint256 _id) public view returns(int) {
-        return votingState[_id].progress;
+        return intStorage[keccak256("votingState", _id, "progress")];
     }
 
     function getTotalVoters(uint256 _id) public view returns(uint256) {
-        return votingState[_id].totalVoters;
+        return uintStorage[keccak256("votingState", _id, "totalVoters")];
     }
 
     function getMinThresholdOfVoters(uint256 _id) public view returns(uint256) {
-        return votingState[_id].minThresholdOfVoters;
+        return uintStorage[keccak256("votingState", _id, "minThresholdOfVoters")];
     }
 
     function getMiningByVotingKey(address _votingKey) public view returns(address) {
@@ -149,27 +163,39 @@ contract VotingToChangeProxyAddress {
     }
     
     function getBallotsStorage() public view returns(address) {
-        return proxyStorage.getBallotsStorage();
+        return IProxyStorage(proxyStorage()).getBallotsStorage();
     }
 
     function getKeysManager() public view returns(address) {
-        return proxyStorage.getKeysManager();
+        return IProxyStorage(proxyStorage()).getKeysManager();
     }
 
     function getStartTime(uint256 _id) public view returns(uint256) {
-        return votingState[_id].startTime;
+        return uintStorage[keccak256("votingState", _id, "startTime")];
     }
 
     function getEndTime(uint256 _id) public view returns(uint256) {
-        return votingState[_id].endTime;
+        return uintStorage[keccak256("votingState", _id, "endTime")];
     }
 
     function getIsFinalized(uint256 _id) public view returns(bool) {
-        return votingState[_id].isFinalized;
+        return boolStorage[keccak256("votingState", _id, "isFinalized")];
+    }
+
+    function getQuorumState(uint256 _id) public view returns(uint8) {
+        return uint8(uintStorage[keccak256("votingState", _id, "quorumState")]);
+    }
+
+    function getIndex(uint256 _id) public view returns(uint256) {
+        return uintStorage[keccak256("votingState", _id, "index")];
+    }
+
+    function getCreator(uint256 _id) public view returns(address) {
+        return addressStorage[keccak256("votingState", _id, "creator")];
     }
     
     function getMemo(uint256 _id) public view returns(string) {
-        return votingState[_id].memo;
+        return stringStorage[keccak256("votingState", _id, "memo")];
     }
 
     function getTime() public view returns(uint256) {
@@ -181,10 +207,13 @@ contract VotingToChangeProxyAddress {
         return withinTime;
     }
 
+    function hasMiningKeyAlreadyVoted(uint256 _id, address _miningKey) public view returns(bool) {
+        return boolStorage[keccak256("votingState", _id, "voters", _miningKey)];
+    }
+
     function hasAlreadyVoted(uint256 _id, address _votingKey) public view returns(bool) {
-        VotingData storage ballot = votingState[_id];
         address miningKey = getMiningByVotingKey(_votingKey);
-        return ballot.voters[miningKey];
+        return hasMiningKeyAlreadyVoted(_id, miningKey);
     }
     
     function isValidVote(uint256 _id, address _votingKey) public view returns(bool) {
@@ -195,14 +224,13 @@ contract VotingToChangeProxyAddress {
     }
 
     function areOldMiningKeysVoted(uint256 _id, address _miningKey) public view returns(bool) {
-        VotingData storage ballot = votingState[_id];
         IKeysManager keysManager = IKeysManager(getKeysManager());
         for (uint8 i = 0; i < maxOldMiningKeysDeepCheck; i++) {
             address oldMiningKey = keysManager.getMiningKeyHistory(_miningKey);
             if (oldMiningKey == address(0)) {
                 return false;
             }
-            if (ballot.voters[oldMiningKey]) {
+            if (hasMiningKeyAlreadyVoted(_id, oldMiningKey)) {
                 return true;
             } else {
                 _miningKey = oldMiningKey;
@@ -217,13 +245,13 @@ contract VotingToChangeProxyAddress {
     }
 
     function withinLimit(address _miningKey) public view returns(bool) {
-        return validatorActiveBallots[_miningKey] <= getBallotLimitPerValidator();
+        return validatorActiveBallots(_miningKey) <= getBallotLimitPerValidator();
     }
 
     function finalizeBallot(uint256 _id) private {
         if (getProgress(_id) > 0 && getTotalVoters(_id) >= getMinThresholdOfVoters(_id)) {
             updateBallot(_id, uint8(QuorumStates.Accepted));
-            proxyStorage.setContractAddress(getContractType(_id), getProposedValue(_id));
+            IProxyStorage(proxyStorage()).setContractAddress(getContractType(_id), getProposedValue(_id));
         } else {
             updateBallot(_id, uint8(QuorumStates.Rejected));
         }
@@ -231,34 +259,35 @@ contract VotingToChangeProxyAddress {
     }
 
     function updateBallot(uint256 _id, uint8 _quorumState) private {
-        VotingData storage ballot = votingState[_id];
-        ballot.quorumState = _quorumState;
+        uintStorage[keccak256("votingState", _id, "quorumState")] = _quorumState;
     }
 
     function deactiveBallot(uint256 _id) private {
-        VotingData storage ballot = votingState[_id];
-        uint256 removedIndex = ballot.index;
-        uint256 lastIndex = activeBallots.length - 1;
-        uint256 lastBallotId = activeBallots[lastIndex];
+        bytes32 activeBallotsHash = keccak256("activeBallots");
+        uint256 removedIndex = getIndex(_id);
+        uint256 lastIndex = uintArrayStorage[activeBallotsHash].length - 1;
+        uint256 lastBallotId = uintArrayStorage[activeBallotsHash][lastIndex];
         // Override the removed ballot with the last one.
-        activeBallots[removedIndex] = lastBallotId;
+        uintArrayStorage[activeBallotsHash][removedIndex] = lastBallotId;
         // Update the index of the last validator.
-        votingState[lastBallotId].index = removedIndex;
-        delete activeBallots[lastIndex];
-        if (activeBallots.length > 0) {
-            activeBallots.length--;
+        uintStorage[keccak256("votingState", lastBallotId, "index")] = removedIndex;
+        delete uintArrayStorage[activeBallotsHash][lastIndex];
+        if (uintArrayStorage[activeBallotsHash].length > 0) {
+            uintArrayStorage[activeBallotsHash].length--;
         }
-        activeBallotsLength = activeBallots.length;
+        uintStorage[keccak256("activeBallotsLength")] =
+            uintArrayStorage[activeBallotsHash].length;
     }
 
     function _increaseValidatorLimit() private {
         address miningKey = getMiningByVotingKey(msg.sender);
-        validatorActiveBallots[miningKey] = validatorActiveBallots[miningKey].add(1);
+        uintStorage[keccak256("validatorActiveBallots", miningKey)] = 
+            uintStorage[keccak256("validatorActiveBallots", miningKey)].add(1);
     }
 
     function _decreaseValidatorLimit(uint256 _id) private {
-        VotingData storage ballot = votingState[_id];
-        address miningKey = ballot.creator;
-        validatorActiveBallots[miningKey] = validatorActiveBallots[miningKey].sub(1);
+        address miningKey = getCreator(_id);
+        uintStorage[keccak256("validatorActiveBallots", miningKey)] = 
+            uintStorage[keccak256("validatorActiveBallots", miningKey)].sub(1);
     }
 }

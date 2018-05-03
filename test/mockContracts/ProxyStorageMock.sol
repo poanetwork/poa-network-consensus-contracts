@@ -10,6 +10,10 @@ contract ProxyStorageMock is ProxyStorage {
         addressStorage[keccak256("votingToChangeMinThresholdEternalStorage")] = _newAddress;
     }
 
+    function setVotingToChangeProxyMock(address _newAddress) public {
+        addressStorage[keccak256("votingToChangeProxyEternalStorage")] = _newAddress;
+    }
+
     function setKeysManagerMock(address _newAddress) public {
         addressStorage[keccak256("keysManager")] = _newAddress;
     }

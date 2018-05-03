@@ -435,7 +435,7 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
 
     function deactiveBallot(uint256 _id) private {
         bytes32 activeBallotsHash = keccak256("activeBallots");
-        uint256 removedIndex = uintStorage[keccak256("votingState", _id, "index")];
+        uint256 removedIndex = getIndex(_id);
         uint256 lastIndex = uintArrayStorage[activeBallotsHash].length - 1;
         uint256 lastBallotId = uintArrayStorage[activeBallotsHash][lastIndex];
         // Override the removed ballot with the last one.

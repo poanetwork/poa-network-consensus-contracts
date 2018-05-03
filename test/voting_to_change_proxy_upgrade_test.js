@@ -24,7 +24,7 @@ require('chai')
 let keysManager, poaNetworkConsensusMock, ballotsStorage, voting;
 let votingKey, votingKey2, votingKey3, miningKeyForVotingKey;
 let votingForKeysEternalStorage;
-contract('VotingToChangeProxyAddress [all features]', function (accounts) {
+contract('VotingToChangeProxyAddress upgraded [all features]', function (accounts) {
   votingKey = accounts[2];
   masterOfCeremony = accounts[0];
   miningKeyForVotingKey = accounts[1];
@@ -61,6 +61,12 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
     voting = await VotingToChangeProxyAddress.at(votingEternalStorage.address);
     await voting.init(false, {from: accounts[8]}).should.be.rejectedWith(ERROR_MSG);
     await voting.init(false).should.be.fulfilled;
+
+    votingNew = await VotingToChangeProxyAddressNew.new();
+    await votingEternalStorage.setProxyStorage(accounts[7]);
+    await votingEternalStorage.upgradeTo(votingNew.address, {from: accounts[7]}).should.be.fulfilled;
+    await votingEternalStorage.setProxyStorage(proxyStorageMock.address);
+    voting = await VotingToChangeProxyAddressNew.at(votingEternalStorage.address);
 
     const validatorMetadata = await ValidatorMetadata.new();
     const validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, validatorMetadata.address);
@@ -442,85 +448,6 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       (await voting.getCreator(votingIdForSecond)).should.be.equal(miningKeyForVotingKey);
       (await voting.getMemo(votingIdForSecond)).should.be.equal("memo");
     })
-  });
-
-  describe('#upgradeTo', async () => {
-    const proxyStorageStubAddress = accounts[8];
-    let votingEternalStorage;
-    beforeEach(async () => {
-      voting = await VotingToChangeProxyAddress.new();
-      votingEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, voting.address);
-      voting = await VotingToChangeProxyAddress.at(votingEternalStorage.address);
-      await voting.init(false).should.be.fulfilled;
-    });
-    it('may be called only by ProxyStorage', async () => {
-      let votingNew = await VotingToChangeProxyAddressNew.new();
-      await votingEternalStorage.upgradeTo(votingNew.address, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
-      await votingEternalStorage.upgradeTo(votingNew.address, {from: proxyStorageStubAddress}).should.be.fulfilled;
-    });
-    it('should change implementation address', async () => {
-      let votingNew = await VotingToChangeProxyAddressNew.new();
-      let oldImplementation = await voting.implementation();
-      let newImplementation = votingNew.address;
-      (await votingEternalStorage.implementation()).should.be.equal(oldImplementation);
-      await votingEternalStorage.upgradeTo(newImplementation, {from: proxyStorageStubAddress});
-      votingNew = await VotingToChangeProxyAddressNew.at(votingEternalStorage.address);
-      (await votingNew.implementation()).should.be.equal(newImplementation);
-      (await votingEternalStorage.implementation()).should.be.equal(newImplementation);
-    });
-    it('should increment implementation version', async () => {
-      let votingNew = await VotingToChangeProxyAddressNew.new();
-      let oldVersion = await voting.version();
-      let newVersion = oldVersion.add(1);
-      (await votingEternalStorage.version()).should.be.bignumber.equal(oldVersion);
-      await votingEternalStorage.upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
-      votingNew = await VotingToChangeProxyAddressNew.at(votingEternalStorage.address);
-      (await votingNew.version()).should.be.bignumber.equal(newVersion);
-      (await votingEternalStorage.version()).should.be.bignumber.equal(newVersion);
-    });
-    it('new implementation should work', async () => {
-      let votingNew = await VotingToChangeProxyAddressNew.new();
-      await votingEternalStorage.upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
-      votingNew = await VotingToChangeProxyAddressNew.at(votingEternalStorage.address);
-      (await votingNew.initialized()).should.be.equal(false);
-      await votingNew.initialize();
-      (await votingNew.initialized()).should.be.equal(true);
-    });
-    it('new implementation should use the same proxyStorage address', async () => {
-      let votingNew = await VotingToChangeProxyAddressNew.new();
-      await votingEternalStorage.upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
-      votingNew = await VotingToChangeProxyAddressNew.at(votingEternalStorage.address);
-      (await votingNew.proxyStorage()).should.be.equal(proxyStorageStubAddress);
-    });
-    it('new implementation should use the same storage', async () => {
-      const VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
-      const VOTING_END_DATE = moment.utc().add(10, 'days').unix();
-      const id = await voting.nextBallotId();
-      proxyStorageMock.setVotingContractMock(accounts[0]);
-      await keysManager.addMiningKey(miningKeyForVotingKey).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey, miningKeyForVotingKey).should.be.fulfilled;
-      proxyStorageMock.setVotingContractMock(votingForKeysEternalStorage.address);
-      await votingEternalStorage.setProxyStorage(proxyStorageMock.address);
-      await voting.createBallotToChangeProxyAddress(
-        VOTING_START_DATE, VOTING_END_DATE, accounts[5], 1, "memo", { from: votingKey }
-      ).should.be.fulfilled;
-      await votingEternalStorage.setProxyStorage(proxyStorageStubAddress);
-      let votingNew = await VotingToChangeProxyAddressNew.new();
-      await votingEternalStorage.upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
-      votingNew = await VotingToChangeProxyAddressNew.at(votingEternalStorage.address);
-      (await votingNew.getStartTime(id)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await votingNew.getEndTime(id)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await votingNew.getTotalVoters(id)).should.be.bignumber.equal(0);
-      (await votingNew.getProgress(id)).should.be.bignumber.equal(0);
-      (await votingNew.getIsFinalized(id)).should.be.equal(false);
-      (await votingNew.getQuorumState(id)).should.be.bignumber.equal(1);
-      (await votingNew.getIndex(id)).should.be.bignumber.equal(0);
-      (await votingNew.getMinThresholdOfVoters(id)).should.be.bignumber.equal(1);
-      (await votingNew.getProposedValue(id)).should.be.equal(accounts[5]);
-      (await votingNew.getContractType(id)).should.be.bignumber.equal(1);
-      (await votingNew.getCreator(id)).should.be.equal(miningKeyForVotingKey);
-      (await votingNew.getMemo(id)).should.be.equal("memo");
-    });
   });
 })
 

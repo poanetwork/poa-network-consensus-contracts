@@ -62,9 +62,11 @@ Compile and deploy contracts in the next sequence:
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of VotingToChangeMinThreshold contract.
 -  Make a call to `VotingToChangeMinThreshold init` with `_demoMode` parameter equal to `false`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeMinThreshold`.
-- `VotingToChangeProxyAddress_flat.sol` - Select contract `VotingToChangeProxyAddress` with constructor parameters: <br />
+- `VotingToChangeProxyAddress_flat.sol` - Select contract `VotingToChangeProxyAddress`.
+- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
-`_demoMode` - equal to false.
+`_implementationAddress` - address of VotingToChangeProxyAddress contract.
+-  Make a call to `VotingToChangeProxyAddress init` with `_demoMode` parameter equal to `false`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeProxyAddress`.
 - `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata`.
 - `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
