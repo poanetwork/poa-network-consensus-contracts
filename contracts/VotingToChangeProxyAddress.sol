@@ -15,6 +15,7 @@ contract VotingToChangeProxyAddress {
     uint256 public nextBallotId;
     uint256[] public activeBallots;
     uint256 public activeBallotsLength;
+    bool public demoMode = false;
 
     struct VotingData {
         uint256 startTime;
@@ -45,8 +46,9 @@ contract VotingToChangeProxyAddress {
         _;
     }
 
-    function VotingToChangeProxyAddress(address _proxyStorage) public {
+    function VotingToChangeProxyAddress(address _proxyStorage, bool _demoMode) public {
         proxyStorage = IProxyStorage(_proxyStorage);
+        demoMode = _demoMode;
     }
 
     function createBallotToChangeProxyAddress(
@@ -55,11 +57,13 @@ contract VotingToChangeProxyAddress {
         address _proposedValue,
         uint8 _contractType,
         string memo
-        ) public onlyValidVotingKey(msg.sender) {
+    ) public onlyValidVotingKey(msg.sender) {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
         uint256 diffTime = _endTime.sub(_startTime);
-        require(diffTime > 2 days);
+        if (!demoMode) {
+            require(diffTime > 2 days);
+        }
         require(diffTime <= 14 days);
         require(_proposedValue != address(0));
         address creatorMiningKey = getMiningByVotingKey(msg.sender);

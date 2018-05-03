@@ -18,6 +18,7 @@ contract VotingToChangeKeys {
     uint256[] public activeBallots;
     uint256 public activeBallotsLength;
     uint8 thresholdForKeysType = 1;
+    bool public demoMode = false;
 
     struct VotingData {
         uint256 startTime;
@@ -50,8 +51,9 @@ contract VotingToChangeKeys {
         _;
     }
 
-    function VotingToChangeKeys(address _proxyStorage) public {
+    function VotingToChangeKeys(address _proxyStorage, bool _demoMode) public {
         proxyStorage = IProxyStorage(_proxyStorage);
+        demoMode = _demoMode;
     }
 
     function createVotingForKeys(
@@ -66,7 +68,9 @@ contract VotingToChangeKeys {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
         uint256 diffTime = _endTime.sub(_startTime);
-        require(diffTime > 2 days);
+        if (!demoMode) {
+            require(diffTime > 2 days);
+        }
         require(diffTime <= 14 days);
         //only if ballotType is swap or remove
         require(areBallotParamsValid(_ballotType, _affectedKey, _affectedKeyType, _miningKey));

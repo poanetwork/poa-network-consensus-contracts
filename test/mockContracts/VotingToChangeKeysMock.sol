@@ -7,7 +7,7 @@ import '../../contracts/BallotsStorage.sol';
 contract VotingToChangeKeysMock is VotingToChangeKeys {
   uint256 public time;
   function VotingToChangeKeysMock(address _proxyStorage)
-    VotingToChangeKeys(_proxyStorage)
+    VotingToChangeKeys(_proxyStorage, false)
   {
   }
 

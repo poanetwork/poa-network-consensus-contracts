@@ -26,16 +26,17 @@ module.exports = async function(deployer, network, accounts) {
     poaNetworkConsensusAddress = PoaNetworkConsensus.address
   }
   if (network === 'sokol') {
+    let demoMode = !!process.env.DEMO === true;
     try {
       poaNetworkConsensus = poaNetworkConsensus || await PoaNetworkConsensus.at(poaNetworkConsensusAddress);
       await deployer.deploy(ProxyStorage, poaNetworkConsensusAddress);
       await deployer.deploy(KeysManager, ProxyStorage.address, poaNetworkConsensusAddress, masterOfCeremony, previousKeysManager);
-      await deployer.deploy(BallotsStorage, ProxyStorage.address);
+      await deployer.deploy(BallotsStorage, ProxyStorage.address, demoMode);
       await deployer.deploy(ValidatorMetadata);
       await deployer.deploy(ValidatorMetadataEternalStorage, ProxyStorage.address, ValidatorMetadata.address);
-      await deployer.deploy(VotingToChangeKeys, ProxyStorage.address);
-      await deployer.deploy(VotingToChangeMinThreshold, ProxyStorage.address);
-      await deployer.deploy(VotingToChangeProxyAddress, ProxyStorage.address);
+      await deployer.deploy(VotingToChangeKeys, ProxyStorage.address, demoMode);
+      await deployer.deploy(VotingToChangeMinThreshold, ProxyStorage.address, demoMode);
+      await deployer.deploy(VotingToChangeProxyAddress, ProxyStorage.address, demoMode);
 
       let proxyStorage = await ProxyStorage.deployed();
       await proxyStorage.initializeAddresses(
