@@ -4,10 +4,12 @@ import "./SafeMath.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IKeysManager.sol";
+import "./interfaces/IVotingToChangeProxyAddress.sol";
+import "./interfaces/IPoaNetworkConsensus.sol";
 import "./eternal-storage/EternalStorage.sol";
 
 
-contract VotingToChangeProxyAddress is EternalStorage {
+contract VotingToChangeProxyAddress is EternalStorage, IVotingToChangeProxyAddress {
     using SafeMath for uint256;
     
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
@@ -246,6 +248,82 @@ contract VotingToChangeProxyAddress is EternalStorage {
 
     function withinLimit(address _miningKey) public view returns(bool) {
         return validatorActiveBallots(_miningKey) <= getBallotLimitPerValidator();
+    }
+
+    function migrateBasicAll(address _prevVotingToChangeProxy) public onlyOwner {
+        require(_prevVotingToChangeProxy != address(0));
+        require(!boolStorage[keccak256("migrateDisabled")]);
+
+        IVotingToChangeProxyAddress prev =
+            IVotingToChangeProxyAddress(_prevVotingToChangeProxy);
+        IPoaNetworkConsensusForVotingToChange poa =
+            IPoaNetworkConsensusForVotingToChange(IProxyStorage(proxyStorage()).getPoaConsensus());
+
+        uint256 _nextBallotId = prev.nextBallotId();
+        uint256 _activeBallotsLength = prev.activeBallotsLength();
+        uintStorage[keccak256("nextBallotId")] = _nextBallotId;
+        uintStorage[keccak256("activeBallotsLength")] = _activeBallotsLength;
+
+        bytes32 activeBallotsHash = keccak256("activeBallots");
+        delete uintArrayStorage[activeBallotsHash];
+        for (uint256 i = 0; i < _activeBallotsLength; i++) {
+            uintArrayStorage[activeBallotsHash].push(prev.activeBallots(i));
+        }
+
+        uint256 currentValidatorsLength = poa.getCurrentValidatorsLength();
+        for (i = 0; i < currentValidatorsLength; i++) {
+            address miningKey = poa.currentValidators(i);
+            uintStorage[keccak256("validatorActiveBallots", miningKey)] = 
+                prev.validatorActiveBallots(miningKey);
+        }
+    }
+
+    function migrateBasicOne(
+        uint256 _id,
+        address _prevVotingToChangeProxy,
+        uint8 _quorumState,
+        uint256 _index,
+        address _creator,
+        string _memo,
+        address[] _voters
+    ) public onlyOwner {
+        require(_prevVotingToChangeProxy != address(0));
+        require(!boolStorage[keccak256("migrateDisabled")]);
+        
+        IVotingToChangeProxyAddress prev =
+            IVotingToChangeProxyAddress(_prevVotingToChangeProxy);
+        
+        uintStorage[keccak256("votingState", _id, "startTime")] =
+            prev.getStartTime(_id);
+        uintStorage[keccak256("votingState", _id, "endTime")] =
+            prev.getEndTime(_id);
+        uintStorage[keccak256("votingState", _id, "totalVoters")] = 
+            prev.getTotalVoters(_id);
+        intStorage[keccak256("votingState", _id, "progress")] = 
+            prev.getProgress(_id);
+        boolStorage[keccak256("votingState", _id, "isFinalized")] = 
+            prev.getIsFinalized(_id);
+        uintStorage[keccak256("votingState", _id, "quorumState")] =
+            _quorumState;
+        uintStorage[keccak256("votingState", _id, "index")] =
+            _index;
+        uintStorage[keccak256("votingState", _id, "minThresholdOfVoters")] = 
+            prev.getMinThresholdOfVoters(_id);
+        addressStorage[keccak256("votingState", _id, "proposedValue")] =
+            prev.getProposedValue(_id);
+        uintStorage[keccak256("votingState", _id, "contractType")] =
+            prev.getContractType(_id);
+        for (uint256 i = 0; i < _voters.length; i++) {
+            address miningKey = _voters[i];
+            boolStorage[keccak256("votingState", _id, "voters", miningKey)] = true;
+        }
+        addressStorage[keccak256("votingState", _id, "creator")] = _creator;
+        stringStorage[keccak256("votingState", _id, "memo")] = _memo;
+    }
+
+    function migrateDisable() public onlyOwner {
+        require(!boolStorage[keccak256("migrateDisabled")]);
+        boolStorage[keccak256("migrateDisabled")] = true;
     }
 
     function finalizeBallot(uint256 _id) private {
