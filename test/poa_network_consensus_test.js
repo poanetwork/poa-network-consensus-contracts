@@ -21,12 +21,12 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
         
         await poaNetworkConsensus.setProxyStorage(proxyStorageMock.address);
         await proxyStorageMock.initializeAddresses(
-            masterOfCeremony,
-            masterOfCeremony,
-            masterOfCeremony,
-            masterOfCeremony,
-            masterOfCeremony,
-            masterOfCeremony
+            accounts[0],
+            accounts[0],
+            accounts[0],
+            accounts[0],
+            accounts[0],
+            accounts[0]
         );
     });
 

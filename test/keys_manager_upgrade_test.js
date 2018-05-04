@@ -10,7 +10,7 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
-contract('KeysManager [all features]', function (accounts) {
+contract('KeysManager upgraded [all features]', function (accounts) {
   let keysManager, poaNetworkConsensusMock, proxyStorageMock;
   masterOfCeremony = accounts[0];
 
@@ -30,6 +30,12 @@ contract('KeysManager [all features]', function (accounts) {
       masterOfCeremony,
       "0x0000000000000000000000000000000000000000"
     ).should.be.fulfilled;
+
+    let keysManagerNew = await KeysManagerNew.new();
+    await keysManagerEternalStorage.setProxyStorage(accounts[6]);
+    await keysManagerEternalStorage.upgradeTo(keysManagerNew.address, {from: accounts[6]});
+    await keysManagerEternalStorage.setProxyStorage(proxyStorageMock.address);
+    keysManager = await KeysManagerNew.at(keysManagerEternalStorage.address);
     
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
 
@@ -606,79 +612,5 @@ contract('KeysManager [all features]', function (accounts) {
       );
       await newKeysManager.migrateMiningKey(masterOfCeremony).should.be.rejectedWith(ERROR_MSG);
     })
-  });
-
-  describe('#upgradeTo', async () => {
-    const proxyStorageStubAddress = accounts[8];
-    let keysManagerEternalStorage;
-    beforeEach(async () => {
-      keysManager = await KeysManagerMock.new();
-      keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, keysManager.address);
-      keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);
-      await keysManager.init(
-        poaNetworkConsensusMock.address,
-        masterOfCeremony,
-        "0x0000000000000000000000000000000000000000"
-      ).should.be.fulfilled;
-    });
-    it('may be called only by ProxyStorage', async () => {
-      let keysManagerNew = await KeysManagerNew.new();
-      await keysManagerEternalStorage.upgradeTo(keysManagerNew.address, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
-      await keysManagerEternalStorage.upgradeTo(keysManagerNew.address, {from: proxyStorageStubAddress}).should.be.fulfilled;
-    });
-    it('should change implementation address', async () => {
-      let keysManagerNew = await KeysManagerNew.new();
-      let oldImplementation = await keysManager.implementation();
-      let newImplementation = keysManagerNew.address;
-      (await keysManagerEternalStorage.implementation()).should.be.equal(oldImplementation);
-      await keysManagerEternalStorage.upgradeTo(newImplementation, {from: proxyStorageStubAddress});
-      keysManagerNew = await KeysManagerNew.at(keysManagerEternalStorage.address);
-      (await keysManagerNew.implementation()).should.be.equal(newImplementation);
-      (await keysManagerEternalStorage.implementation()).should.be.equal(newImplementation);
-    });
-    it('should increment implementation version', async () => {
-      let keysManagerNew = await KeysManagerNew.new();
-      let oldVersion = await keysManager.version();
-      let newVersion = oldVersion.add(1);
-      (await keysManagerEternalStorage.version()).should.be.bignumber.equal(oldVersion);
-      await keysManagerEternalStorage.upgradeTo(keysManagerNew.address, {from: proxyStorageStubAddress});
-      keysManagerNew = await KeysManagerNew.at(keysManagerEternalStorage.address);
-      (await keysManagerNew.version()).should.be.bignumber.equal(newVersion);
-      (await keysManagerEternalStorage.version()).should.be.bignumber.equal(newVersion);
-    });
-    it('new implementation should work', async () => {
-      let keysManagerNew = await KeysManagerNew.new();
-      await keysManagerEternalStorage.upgradeTo(keysManagerNew.address, {from: proxyStorageStubAddress});
-      keysManagerNew = await KeysManagerNew.at(keysManagerEternalStorage.address);
-      (await keysManagerNew.initialized()).should.be.equal(false);
-      await keysManagerNew.initialize();
-      (await keysManagerNew.initialized()).should.be.equal(true);
-    });
-    it('new implementation should use the same proxyStorage address', async () => {
-      let keysManagerNew = await KeysManagerNew.new();
-      await keysManagerEternalStorage.upgradeTo(keysManagerNew.address, {from: proxyStorageStubAddress});
-      keysManagerNew = await KeysManagerNew.at(keysManagerEternalStorage.address);
-      (await keysManagerNew.proxyStorage()).should.be.equal(proxyStorageStubAddress);
-    });
-    it('new implementation should use the same storage', async () => {
-      let keys = await keysManager.validatorKeys(accounts[2]);
-      keys.should.be.deep.equal([
-        '0x0000000000000000000000000000000000000000',
-        '0x0000000000000000000000000000000000000000',
-        false,
-        false,
-        false
-      ]);
-      await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
-      await proxyStorageMock.setKeysManagerMock(keysManager.address);
-      await keysManager.setProxyStorage(proxyStorageMock.address);
-      await keysManager.createKeys(accounts[2], accounts[3], accounts[4], {from: accounts[1]}).should.be.fulfilled;
-      let keysManagerNew = await KeysManagerNew.new();
-      await keysManager.setProxyStorage(proxyStorageStubAddress);
-      await keysManagerEternalStorage.upgradeTo(keysManagerNew.address, {from: proxyStorageStubAddress});
-      keysManagerNew = await KeysManagerNew.at(keysManagerEternalStorage.address);
-      keys = await keysManagerNew.validatorKeys(accounts[2]);
-      keys.should.be.deep.equal([accounts[3], accounts[4], true, true, true]);
-    });
   });
 });

@@ -1,4 +1,5 @@
 let PoaNetworkConsensus = artifacts.require('./mockContracts/PoaNetworkConsensusMock');
+let KeysManager = artifacts.require('./mockContracts/KeysManagerMock');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
 let ProxyStorageNew = artifacts.require('./upgradeContracts/ProxyStorageNew');
 let ValidatorMetadata = artifacts.require('./ValidatorMetadata');
@@ -14,6 +15,7 @@ require('chai')
     .should();
 
 let masterOfCeremony;
+let keysManager, keysManagerEternalStorage;
 let proxyStorage, proxyStorageEternalStorage;
 let validatorMetadata, validatorMetadataEternalStorage;
 let ballotsStorage, ballotsEternalStorage;
@@ -21,7 +23,6 @@ let votingToChangeKeys, votingToChangeKeysEternalStorage;
 let votingToChangeMinThreshold, votingToChangeMinThresholdEternalStorage;
 let votingToChangeProxy, votingToChangeProxyEternalStorage;
 contract('ProxyStorage upgraded [all features]', function (accounts) {
-  let keysManager = accounts[1];
   masterOfCeremony = accounts[0];
   beforeEach(async () => {
     poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []);
@@ -39,6 +40,10 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
     await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[6]});
     await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
     proxyStorage = await ProxyStorageNew.at(proxyStorageEternalStorage.address);
+
+	keysManager = await KeysManager.new();
+    keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorage.address, keysManager.address);
+    keysManager = await KeysManager.at(keysManagerEternalStorage.address);
 
     validatorMetadata = await ValidatorMetadata.new();
     validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorage.address, validatorMetadata.address);
@@ -68,7 +73,7 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
   describe('#initializeAddresses', async () => {
     it('sets all addresses', async () => {
       await proxyStorage.initializeAddresses(
-        keysManager,
+        keysManagerEternalStorage.address,
         votingToChangeKeysEternalStorage.address,
         votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxyEternalStorage.address,
@@ -77,14 +82,14 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
         {from: accounts[2]}
       ).should.be.rejectedWith(ERROR_MSG);
       const {logs} = await proxyStorage.initializeAddresses(
-        keysManager,
+        keysManagerEternalStorage.address,
         votingToChangeKeysEternalStorage.address,
         votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxyEternalStorage.address,
         ballotsEternalStorage.address,
         validatorMetadataEternalStorage.address,
       ).should.be.fulfilled;
-      keysManager.should.be.equal(
+      keysManagerEternalStorage.address.should.be.equal(
         await proxyStorage.getKeysManager()
       );
       votingToChangeKeysEternalStorage.address.should.be.equal(
@@ -103,7 +108,7 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
         await proxyStorage.getValidatorMetadata()
       );
       logs[0].event.should.be.equal('ProxyInitialized');
-      logs[0].args.keysManager.should.be.equal(keysManager);
+      logs[0].args.keysManagerEternalStorage.should.be.equal(keysManagerEternalStorage.address);
       logs[0].args.votingToChangeKeysEternalStorage.should.be.equal(votingToChangeKeysEternalStorage.address);
       logs[0].args.votingToChangeMinThresholdEternalStorage.should.be.equal(votingToChangeMinThresholdEternalStorage.address);
       logs[0].args.votingToChangeProxyEternalStorage.should.be.equal(votingToChangeProxyEternalStorage.address);
@@ -113,7 +118,7 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
     it('prevents Moc to call it more than once', async () => {
       false.should.be.equal(await proxyStorage.mocInitialized());
       const {logs} = await proxyStorage.initializeAddresses(
-        keysManager,
+        keysManagerEternalStorage.address,
         votingToChangeKeysEternalStorage.address,
         votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxyEternalStorage.address,
@@ -122,7 +127,7 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
       ).should.be.fulfilled;
       true.should.be.equal(await proxyStorage.mocInitialized());
       await proxyStorage.initializeAddresses(
-        keysManager,
+        keysManagerEternalStorage.address,
         votingToChangeKeysEternalStorage.address,
         votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxyEternalStorage.address,
@@ -135,7 +140,7 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
   describe('#setContractAddress', async () => {
     beforeEach(async () => {
       await proxyStorage.initializeAddresses(
-        keysManager,
+        keysManagerEternalStorage.address,
         votingToChangeKeysEternalStorage.address,
         votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxyEternalStorage.address,
@@ -156,16 +161,20 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
     })
     it('sets keysManager', async () => {
+      let keysManagerNew = await KeysManager.new();
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
-      await proxyStorage.setContractAddress(1, accounts[2], {from: accounts[4]}).should.be.fulfilled;
+      await proxyStorage.setContractAddress(1, keysManagerNew.address, {from: accounts[4]}).should.be.fulfilled;
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
-      accounts[2].should.be.equal(
-        await proxyStorage.getKeysManager()
-      )
+      
+      let eternalProxyAddress = await proxyStorage.getKeysManager();
+      let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
+
+      keysManagerNew.address.should.be.equal(
+        await eternalProxy.implementation()
+      );
     })
     it('sets votingToChangeKeys', async () => {
       let votingToChangeKeysNew = await VotingToChangeKeys.new();
-      
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
       await proxyStorage.setContractAddress(2, votingToChangeKeysNew.address, {from: accounts[4]}).should.be.fulfilled;
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);

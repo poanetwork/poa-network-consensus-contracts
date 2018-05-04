@@ -15,8 +15,6 @@ contract VotingToChangeProxyAddress is EternalStorage, IVotingToChangeProxyAddre
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
     enum ActionChoice {Invalid, Accept, Reject}
 
-    uint8 constant public maxOldMiningKeysDeepCheck = 25;
-
     event Vote(uint256 indexed id, uint256 decision, address indexed voter, uint256 time, address voterMiningKey);
     event BallotFinalized(uint256 indexed id, address indexed voter);
     event BallotCreated(uint256 indexed id, uint256 indexed ballotType, address indexed creator);
@@ -30,6 +28,10 @@ contract VotingToChangeProxyAddress is EternalStorage, IVotingToChangeProxyAddre
         IKeysManager keysManager = IKeysManager(getKeysManager());
         require(keysManager.isVotingActive(_votingKey));
         _;
+    }
+
+    function maxOldMiningKeysDeepCheck() public pure returns(uint8) {
+        return 25;
     }
 
     function proxyStorage() public view returns(address) {
@@ -227,7 +229,8 @@ contract VotingToChangeProxyAddress is EternalStorage, IVotingToChangeProxyAddre
 
     function areOldMiningKeysVoted(uint256 _id, address _miningKey) public view returns(bool) {
         IKeysManager keysManager = IKeysManager(getKeysManager());
-        for (uint8 i = 0; i < maxOldMiningKeysDeepCheck; i++) {
+        uint8 maxDeep = maxOldMiningKeysDeepCheck();
+        for (uint8 i = 0; i < maxDeep; i++) {
             address oldMiningKey = keysManager.getMiningKeyHistory(_miningKey);
             if (oldMiningKey == address(0)) {
                 return false;

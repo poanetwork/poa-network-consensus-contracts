@@ -41,7 +41,15 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     await ballotsStorage.init(false, {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
     await ballotsStorage.init(false).should.be.fulfilled;
 
-    keysManager = await KeysManagerMock.new(proxyStorage.address, poaNetworkConsensus.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
+    keysManager = await KeysManagerMock.new();
+    const keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorage.address, keysManager.address);
+    keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);
+    await keysManager.init(
+      poaNetworkConsensus.address,
+      masterOfCeremony,
+      "0x0000000000000000000000000000000000000000"
+    ).should.be.fulfilled;
+    
     await poaNetworkConsensus.setProxyStorage(proxyStorage.address);
     await proxyStorage.initializeAddresses(
       keysManager.address,
@@ -58,6 +66,7 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     await ballotsEternalStorage.setProxyStorage(proxyStorage.address);
     ballotsStorage = await BallotsStorageNew.at(ballotsEternalStorage.address);
   })
+  
   describe('#init', async () => {
     it('prevent from double init', async () => {
       await ballotsStorage.init(false).should.be.rejectedWith(ERROR_MSG);

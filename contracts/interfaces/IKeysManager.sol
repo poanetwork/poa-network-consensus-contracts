@@ -2,6 +2,7 @@ pragma solidity ^0.4.18;
 
 
 interface IKeysManager {
+    function initialKeysCount() public view returns(uint256);
     function initiateKeys(address) public;
     function createKeys(address, address, address) public;
     function isMiningActive(address) public view returns(bool);

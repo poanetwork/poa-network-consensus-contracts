@@ -5,6 +5,7 @@ import "./interfaces/IPoaNetworkConsensus.sol";
 import "./eternal-storage/IEternalStorageProxy.sol";
 import "./eternal-storage/EternalStorage.sol";
 
+
 contract ProxyStorage is EternalStorage, IProxyStorage {
     enum ContractTypes {
         Invalid,
@@ -19,7 +20,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     }
 
     event ProxyInitialized(
-        address keysManager,
+        address keysManagerEternalStorage,
         address votingToChangeKeysEternalStorage,
         address votingToChangeMinThresholdEternalStorage,
         address votingToChangeProxyEternalStorage,
@@ -51,7 +52,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     }
 
     function getKeysManager() public view returns(address) {
-        return addressStorage[keccak256("keysManager")];
+        return addressStorage[keccak256("keysManagerEternalStorage")];
     }
 
     function getVotingToChangeKeys() public view returns(address) {
@@ -79,7 +80,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     }
 
     function initializeAddresses(
-        address _keysManager,
+        address _keysManagerEternalStorage,
         address _votingToChangeKeysEternalStorage,
         address _votingToChangeMinThresholdEternalStorage,
         address _votingToChangeProxyEternalStorage,
@@ -90,8 +91,8 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     {
         require(isValidator(msg.sender));
         require(!boolStorage[keccak256("mocInitialized")]);
-        addressStorage[keccak256("keysManager")] =
-            _keysManager;
+        addressStorage[keccak256("keysManagerEternalStorage")] =
+            _keysManagerEternalStorage;
         addressStorage[keccak256("votingToChangeKeysEternalStorage")] =
             _votingToChangeKeysEternalStorage;
         addressStorage[keccak256("votingToChangeMinThresholdEternalStorage")] =
@@ -104,7 +105,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
             _validatorMetadataEternalStorage;
         boolStorage[keccak256("mocInitialized")] = true;
         ProxyInitialized(
-            _keysManager,
+            _keysManagerEternalStorage,
             _votingToChangeKeysEternalStorage,
             _votingToChangeMinThresholdEternalStorage,
             _votingToChangeProxyEternalStorage,
@@ -119,19 +120,31 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     {
         require(_contractAddress != address(0));
         if (_contractType == uint8(ContractTypes.KeysManager)) {
-            addressStorage[keccak256("keysManager")] = _contractAddress;
+            IEternalStorageProxy(
+                addressStorage[keccak256("keysManagerEternalStorage")]
+            ).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.VotingToChangeKeys)) {
-            IEternalStorageProxy(addressStorage[keccak256("votingToChangeKeysEternalStorage")]).upgradeTo(_contractAddress);
+            IEternalStorageProxy(
+                addressStorage[keccak256("votingToChangeKeysEternalStorage")]
+            ).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.VotingToChangeMinThreshold)) {
-            IEternalStorageProxy(addressStorage[keccak256("votingToChangeMinThresholdEternalStorage")]).upgradeTo(_contractAddress);
+            IEternalStorageProxy(
+                addressStorage[keccak256("votingToChangeMinThresholdEternalStorage")]
+            ).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.VotingToChangeProxy)) {
-            IEternalStorageProxy(addressStorage[keccak256("votingToChangeProxyEternalStorage")]).upgradeTo(_contractAddress);
+            IEternalStorageProxy(
+                addressStorage[keccak256("votingToChangeProxyEternalStorage")]
+            ).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.BallotsStorage)) {
-            IEternalStorageProxy(addressStorage[keccak256("ballotsStorageEternalStorage")]).upgradeTo(_contractAddress);
+            IEternalStorageProxy(
+                addressStorage[keccak256("ballotsStorageEternalStorage")]
+            ).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.PoaConsensus)) {
             addressStorage[keccak256("poaConsensus")] = _contractAddress;
         } else if (_contractType == uint8(ContractTypes.ValidatorMetadata)) {
-            IEternalStorageProxy(addressStorage[keccak256("validatorMetadataEternalStorage")]).upgradeTo(_contractAddress);
+            IEternalStorageProxy(
+                addressStorage[keccak256("validatorMetadataEternalStorage")]
+            ).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.ProxyStorage)) {
             IEternalStorageProxy(this).upgradeTo(_contractAddress);
         }

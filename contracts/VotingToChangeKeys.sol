@@ -17,9 +17,6 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
     enum ActionChoice {Invalid, Accept, Reject}
 
-    uint8 constant public maxOldMiningKeysDeepCheck = 25;
-    uint8 constant thresholdForKeysType = 1;
-
     event Vote(uint256 indexed id, uint256 decision, address indexed voter, uint256 time, address voterMiningKey);
     event BallotFinalized(uint256 indexed id, address indexed voter);
     event BallotCreated(uint256 indexed id, uint256 indexed ballotType, address indexed creator);
@@ -33,6 +30,10 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
         IKeysManager keysManager = IKeysManager(getKeysManager());
         require(keysManager.isVotingActive(_votingKey));
         _;
+    }
+
+    function maxOldMiningKeysDeepCheck() public pure returns(uint8) {
+        return 25;
     }
 
     function proxyStorage() public view returns(address) {
@@ -158,6 +159,7 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
     }
 
     function getGlobalMinThresholdOfVoters() public view returns(uint256) {
+        uint8 thresholdForKeysType = 1;
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
         return ballotsStorage.getBallotThreshold(thresholdForKeysType);
     }
@@ -250,7 +252,8 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
 
     function areOldMiningKeysVoted(uint256 _id, address _miningKey) public view returns(bool) {
         IKeysManager keysManager = IKeysManager(getKeysManager());
-        for (uint8 i = 0; i < maxOldMiningKeysDeepCheck; i++) {
+        uint8 maxDeep = maxOldMiningKeysDeepCheck();
+        for (uint8 i = 0; i < maxDeep; i++) {
             address oldMiningKey = keysManager.getMiningKeyHistory(_miningKey);
             if (oldMiningKey == address(0)) {
                 return false;
@@ -266,7 +269,8 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
 
     function checkIfMiningExisted(address _currentKey, address _affectedKey) public view returns(bool) {
         IKeysManager keysManager = IKeysManager(getKeysManager());
-        for (uint8 i = 0; i < maxOldMiningKeysDeepCheck; i++) {
+        uint8 maxDeep = maxOldMiningKeysDeepCheck();
+        for (uint8 i = 0; i < maxDeep; i++) {
             address oldMiningKey = keysManager.getMiningKeyHistory(_currentKey);
             if (oldMiningKey == address(0)) {
                 return false;
@@ -313,7 +317,7 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
             }
             if (_affectedKeyType == uint256(KeyTypes.VotingKey)) {
                 address votingKey = keysManager.getVotingByMining(_miningKey);
-                if(_ballotType == uint256(BallotTypes.Removal)) {
+                if (_ballotType == uint256(BallotTypes.Removal)) {
                     keyCheck = _affectedKey == votingKey;
                 } else {
                     keyCheck = _affectedKey != votingKey;
@@ -322,7 +326,7 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
             }
             if (_affectedKeyType == uint256(KeyTypes.PayoutKey)) {
                 address payoutKey = keysManager.getPayoutByMining(_miningKey);
-                if(_ballotType == uint256(BallotTypes.Removal)) {
+                if (_ballotType == uint256(BallotTypes.Removal)) {
                     keyCheck = _affectedKey == payoutKey;
                 } else {
                     keyCheck = _affectedKey != payoutKey;

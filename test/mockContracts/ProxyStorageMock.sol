@@ -1,5 +1,7 @@
 pragma solidity ^0.4.18;
+
 import '../../contracts/ProxyStorage.sol';
+
 
 contract ProxyStorageMock is ProxyStorage {
     function setVotingContractMock(address _newAddress) public {
@@ -15,6 +17,6 @@ contract ProxyStorageMock is ProxyStorage {
     }
 
     function setKeysManagerMock(address _newAddress) public {
-        addressStorage[keccak256("keysManager")] = _newAddress;
+        addressStorage[keccak256("keysManagerEternalStorage")] = _newAddress;
     }
 }

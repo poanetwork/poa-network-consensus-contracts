@@ -14,9 +14,6 @@ contract VotingToChangeMinThreshold is EternalStorage, IVotingToChangeMinThresho
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
     enum ActionChoice {Invalid, Accept, Reject}
 
-    uint8 constant public maxOldMiningKeysDeepCheck = 25;
-    uint8 constant thresholdForKeysType = 1;
-
     event Vote(uint256 indexed id, uint256 decision, address indexed voter, uint256 time, address voterMiningKey);
     event BallotFinalized(uint256 indexed id, address indexed voter);
     event BallotCreated(uint256 indexed id, uint256 indexed ballotType, address indexed creator);
@@ -41,6 +38,10 @@ contract VotingToChangeMinThreshold is EternalStorage, IVotingToChangeMinThresho
         }
         require(_proposedValue <= ballotsStorage.getProxyThreshold());
         _;
+    }
+
+    function maxOldMiningKeysDeepCheck() public pure returns(uint8) {
+        return 25;
     }
 
     function proxyStorage() public view returns(address) {
@@ -160,6 +161,7 @@ contract VotingToChangeMinThreshold is EternalStorage, IVotingToChangeMinThresho
     }
 
     function getGlobalMinThresholdOfVoters() public view returns(uint256) {
+        uint8 thresholdForKeysType = 1;
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
         return ballotsStorage.getBallotThreshold(thresholdForKeysType);
     }
@@ -236,7 +238,8 @@ contract VotingToChangeMinThreshold is EternalStorage, IVotingToChangeMinThresho
 
     function areOldMiningKeysVoted(uint256 _id, address _miningKey) public view returns(bool) {
         IKeysManager keysManager = IKeysManager(getKeysManager());
-        for (uint8 i = 0; i < maxOldMiningKeysDeepCheck; i++) {
+        uint8 maxDeep = maxOldMiningKeysDeepCheck();
+        for (uint8 i = 0; i < maxDeep; i++) {
             address oldMiningKey = keysManager.getMiningKeyHistory(_miningKey);
             if (oldMiningKey == address(0)) {
                 return false;
@@ -331,6 +334,7 @@ contract VotingToChangeMinThreshold is EternalStorage, IVotingToChangeMinThresho
     function finalizeBallot(uint256 _id) private {
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
         if (getProgress(_id) > 0 && getTotalVoters(_id) >= getMinThresholdOfVoters(_id)) {
+            uint8 thresholdForKeysType = 1;
             updateBallot(_id, uint8(QuorumStates.Accepted));
             ballotsStorage.setThreshold(getProposedValue(_id), thresholdForKeysType);
         } else {

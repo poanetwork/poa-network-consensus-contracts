@@ -6,6 +6,7 @@ import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IKeysManager.sol";
 import "./eternal-storage/EternalStorage.sol";
 
+
 contract ValidatorMetadata is EternalStorage {
     using SafeMath for uint256;
 

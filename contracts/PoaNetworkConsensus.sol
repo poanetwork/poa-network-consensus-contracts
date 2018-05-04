@@ -29,7 +29,8 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     bool public finalized = false;
     bool public isMasterOfCeremonyInitialized = false;
     address public masterOfCeremony;
-    address public systemAddress = 0xfffffffffffffffffffffffffffffffffffffffe;
+    //address public systemAddress = 0xfffffffffffffffffffffffffffffffffffffffe;
+    address public systemAddress = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
     address[] public currentValidators;
     address[] public pendingList;
     uint256 public currentValidatorsLength;
@@ -109,7 +110,10 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         }
     }
 
-    function removeValidator(address _validator, bool _shouldFireEvent) public onlyKeysManager isNotNewValidator(_validator) {
+    function removeValidator(
+        address _validator,
+        bool _shouldFireEvent
+    ) public onlyKeysManager isNotNewValidator(_validator) {
         uint256 removedIndex = validatorsState[_validator].index;
         // Can not remove the last validator.
         uint256 lastIndex = pendingList.length - 1;

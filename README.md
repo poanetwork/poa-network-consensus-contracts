@@ -42,8 +42,11 @@ Compile and deploy contracts in the next sequence:
 `_implementationAddress` - address of ProxyStorage contract.
 -  Make a call to `ProxyStorage init` with `_poaConsensus` parameter equal to the address of poaConsensus contract, using the address of `EternalStorageProxy` and ABI of `ProxyStorage`.
 -  Select `poaNetworkConsensus` contract and send transaction `setProxyStorage` with the address of ProxyStorage contract.
-- `KeysManager_flat.sol` - Select contract `KeysManager` with constructor parameters:  <br />
+- `KeysManager_flat.sol` - Select contract `KeysManager`.
+- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
+`_implementationAddress` - address of KeysManager contract.
+-  Make a call to `KeysManager init` using the address of `EternalStorageProxy` and ABI of `KeysManager`. The parameters for `init` must be: <br />
 `_poaConsensus` - address of poaConsensus contract,
 `_masterOfCeremony` - address of Master of Ceremony,
 `_previousKeysManager` - equal to 0x0000000000000000000000000000000000000000.

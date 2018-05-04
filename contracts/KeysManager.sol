@@ -1,35 +1,16 @@
 pragma solidity ^0.4.18;
 
+import "./SafeMath.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
 import "./interfaces/IKeysManager.sol";
 import "./interfaces/IProxyStorage.sol";
+import "./eternal-storage/EternalStorage.sol";
 
 
-contract KeysManager is IKeysManager {
-    enum InitialKeyState { Invalid, Activated, Deactivated }
+contract KeysManager is EternalStorage, IKeysManager {
+    using SafeMath for uint256;
 
-    struct Keys {
-        address votingKey;
-        address payoutKey;
-        bool isMiningActive;
-        bool isVotingActive;
-        bool isPayoutActive;
-    }
-    
-    address public masterOfCeremony;
-    address public previousKeysManager;
-    IProxyStorage public proxyStorage;
-    
-    IPoaNetworkConsensus public poaNetworkConsensus;
-    uint256 public maxNumberOfInitialKeys = 12;
-    uint256 public initialKeysCount = 0;
-    uint256 public maxLimitValidators = 2000;
-    uint8 public contractVersion = 2;
-    mapping(address => uint8) public initialKeys;
-    mapping(address => Keys) public validatorKeys;
-    mapping(address => address) public miningKeyByVoting;
-    mapping(address => address) public miningKeyHistory;
-    mapping(address => bool) public successfulValidatorClone;
+    enum InitialKeyState {Invalid, Activated, Deactivated}
 
     event PayoutKeyChanged(address key, address indexed miningKey, string action);
     event VotingKeyChanged(address key, address indexed miningKey, string action);
@@ -38,98 +19,168 @@ contract KeysManager is IKeysManager {
     event InitialKeyCreated(address indexed initialKey, uint256 time, uint256 initialKeysCount);
     event Migrated(string name, address key);
 
+    modifier onlyOwner() {
+        require(msg.sender == addressStorage[keccak256("owner")]);
+        _;
+    }
+
     modifier onlyVotingToChangeKeys() {
         require(msg.sender == getVotingToChangeKeys());
         _;
     }
 
     modifier onlyValidInitialKey() {
-        require(initialKeys[msg.sender] == uint8(InitialKeyState.Activated));
+        require(initialKeys(msg.sender) == uint8(InitialKeyState.Activated));
         _;
     }
 
     modifier withinTotalLimit() {
-        require(poaNetworkConsensus.getCurrentValidatorsLength() <= maxLimitValidators);
+        IPoaNetworkConsensus poa = IPoaNetworkConsensus(poaNetworkConsensus());
+        require(poa.getCurrentValidatorsLength() <= maxLimitValidators());
         _;
     }
 
-    function KeysManager(address _proxyStorage, address _poaConsensus, address _masterOfCeremony, address _previousKeysManager) public {
-        require(_proxyStorage != address(0) && _poaConsensus != address(0));
-        require(_proxyStorage != _poaConsensus);
+    function maxLimitValidators() public pure returns(uint256) {
+        return 2000;
+    }
+
+    function masterOfCeremony() public view returns(address) {
+        return addressStorage[keccak256("masterOfCeremony")];
+    }
+
+    function previousKeysManager() public view returns(address) {
+        return addressStorage[keccak256("previousKeysManager")];
+    }
+
+    function proxyStorage() public view returns(address) {
+        return addressStorage[keccak256("proxyStorage")];
+    }
+
+    function poaNetworkConsensus() public view returns(address) {
+        return addressStorage[keccak256("poaNetworkConsensus")];
+    }
+
+    function maxNumberOfInitialKeys() public view returns(uint256) {
+        return uintStorage[keccak256("maxNumberOfInitialKeys")];
+    }
+
+    function initialKeysCount() public view returns(uint256) {
+        return uintStorage[keccak256("initialKeysCount")];
+    }
+
+    function initialKeys(address _initialKey) public view returns(uint8) {
+        return uint8(uintStorage[keccak256("initialKeys", _initialKey)]);
+    }
+
+    function miningKeyByVoting(address _votingKey) public view returns(address) {
+        return addressStorage[keccak256("miningKeyByVoting", _votingKey)];
+    }
+
+    function miningKeyHistory(address _miningKey) public view returns(address) {
+        return addressStorage[keccak256("miningKeyHistory", _miningKey)];
+    }
+
+    function successfulValidatorClone(address _miningKey) public view returns(bool) {
+        return boolStorage[keccak256("successfulValidatorClone", _miningKey)];
+    }
+
+    function validatorKeys(address _miningKey) public view returns(
+        address votingKey,
+        address payoutKey,
+        bool isMiningActive,
+        bool isVotingActive,
+        bool isPayoutActive
+    ) {
+        votingKey = this.getVotingByMining(_miningKey);
+        payoutKey = this.getPayoutByMining(_miningKey);
+        isMiningActive = this.isMiningActive(_miningKey);
+        isVotingActive = this.isVotingActiveByMiningKey(_miningKey);
+        isPayoutActive = this.isPayoutActive(_miningKey);
+    }
+
+    function init(
+        address _poaConsensus,
+        address _masterOfCeremony,
+        address _previousKeysManager
+    ) public onlyOwner {
+        bytes32 initDisabledHash = keccak256("initDisabled");
+        require(!boolStorage[initDisabledHash]);
+        require(_poaConsensus != address(0));
+        require(_poaConsensus != proxyStorage());
         require(_masterOfCeremony != address(0) && _masterOfCeremony != _poaConsensus);
-        masterOfCeremony = _masterOfCeremony;
-        proxyStorage = IProxyStorage(_proxyStorage);
-        poaNetworkConsensus = IPoaNetworkConsensus(_poaConsensus);
-        validatorKeys[masterOfCeremony] = Keys({
-            votingKey: address(0),
-            payoutKey: address(0),
-            isMiningActive: true,
-            isVotingActive: false,
-            isPayoutActive: false
-        });
-        successfulValidatorClone[_masterOfCeremony] = true;
+        _setMasterOfCeremony(_masterOfCeremony);
+        _setPoaNetworkConsensus(_poaConsensus);
+        _setMaxNumberOfInitialKeys(12);
+        _setVotingKey(address(0), _masterOfCeremony);
+        _setPayoutKey(address(0), _masterOfCeremony);
+        _setIsMiningActive(true, _masterOfCeremony);
+        _setIsVotingActive(false, _masterOfCeremony);
+        _setIsPayoutActive(false, _masterOfCeremony);
+        _setSuccessfulValidatorClone(true, _masterOfCeremony);
         Migrated("miningKey", _masterOfCeremony);
         if (_previousKeysManager != address(0)) {
-            previousKeysManager = _previousKeysManager;
-            KeysManager previous = KeysManager(previousKeysManager);
-            initialKeysCount = previous.initialKeysCount();
+            _setPreviousKeysManager(_previousKeysManager);
+            IKeysManager previous = IKeysManager(_previousKeysManager);
+            _setInitialKeysCount(previous.initialKeysCount());
         }
+        boolStorage[initDisabledHash] = true;
     }
 
     function migrateMiningKey(address _miningKey) public {
-        KeysManager previous = KeysManager(previousKeysManager);
+        IKeysManager previous = IKeysManager(previousKeysManager());
         require(_miningKey != address(0));
         require(previous.isMiningActive(_miningKey));
         require(!isMiningActive(_miningKey));
-        require(!successfulValidatorClone[_miningKey]);
+        require(!successfulValidatorClone(_miningKey));
         address votingKey = previous.getVotingByMining(_miningKey);
-        validatorKeys[_miningKey] = Keys({
-            votingKey: votingKey,
-            payoutKey: previous.getPayoutByMining(_miningKey),
-            isMiningActive: previous.isMiningActive(_miningKey),
-            isVotingActive: previous.isVotingActive(votingKey),
-            isPayoutActive: previous.isPayoutActive(_miningKey)
-        });
-        miningKeyByVoting[previous.getVotingByMining(_miningKey)] = _miningKey;
-        successfulValidatorClone[_miningKey] = true;
+        _setVotingKey(votingKey, _miningKey);
+        _setPayoutKey(previous.getPayoutByMining(_miningKey), _miningKey);
+        _setIsMiningActive(previous.isMiningActive(_miningKey), _miningKey);
+        _setIsVotingActive(previous.isVotingActive(votingKey), _miningKey);
+        _setIsPayoutActive(previous.isPayoutActive(_miningKey), _miningKey);
+        _setMiningKeyByVoting(previous.getVotingByMining(_miningKey), _miningKey);
+        _setSuccessfulValidatorClone(true, _miningKey);
         Migrated("miningKey", _miningKey);
     }
 
     function migrateInitialKey(address _initialKey) public {
-        KeysManager previous = KeysManager(previousKeysManager);
-        require(initialKeys[_initialKey] == 0);
+        require(initialKeys(_initialKey) == uint8(InitialKeyState.Invalid));
         require(_initialKey != address(0));
+        IKeysManager previous = IKeysManager(previousKeysManager());
         uint8 status = previous.getInitialKey(_initialKey);
-        require(status == 1 || status == 2);
-        initialKeys[_initialKey] = status;
+        require(
+            status == uint8(InitialKeyState.Activated) ||
+            status == uint8(InitialKeyState.Deactivated)
+        );
+        _setInitialKeysStatus(_initialKey, status);
         Migrated("initialKey", _initialKey);
     }
 
     function initiateKeys(address _initialKey) public {
-        require(msg.sender == masterOfCeremony);
+        require(msg.sender == masterOfCeremony());
         require(_initialKey != address(0));
-        require(initialKeys[_initialKey] == uint8(InitialKeyState.Invalid));
-        require(_initialKey != masterOfCeremony);
-        require(initialKeysCount < maxNumberOfInitialKeys);
-        initialKeys[_initialKey] = uint8(InitialKeyState.Activated);
-        initialKeysCount++;
-        InitialKeyCreated(_initialKey, getTime(), initialKeysCount);
+        require(initialKeys(_initialKey) == uint8(InitialKeyState.Invalid));
+        require(_initialKey != masterOfCeremony());
+        uint256 _initialKeysCount = initialKeysCount();
+        require(_initialKeysCount < maxNumberOfInitialKeys());
+        _setInitialKeysStatus(_initialKey, uint8(InitialKeyState.Activated));
+        _initialKeysCount = _initialKeysCount.add(1);
+        _setInitialKeysCount(_initialKeysCount);
+        InitialKeyCreated(_initialKey, getTime(), _initialKeysCount);
     }
 
     function createKeys(address _miningKey, address _votingKey, address _payoutKey) public onlyValidInitialKey {
         require(_miningKey != address(0) && _votingKey != address(0) && _payoutKey != address(0));
         require(_miningKey != _votingKey && _miningKey != _payoutKey && _votingKey != _payoutKey);
         require(_miningKey != msg.sender && _votingKey != msg.sender && _payoutKey != msg.sender);
-        validatorKeys[_miningKey] = Keys({
-            votingKey: _votingKey,
-            payoutKey: _payoutKey,
-            isMiningActive: true,
-            isVotingActive: true,
-            isPayoutActive: true
-        });
-        miningKeyByVoting[_votingKey] = _miningKey;
-        initialKeys[msg.sender] = uint8(InitialKeyState.Deactivated);
-        poaNetworkConsensus.addValidator(_miningKey, true);
+        _setVotingKey(_votingKey, _miningKey);
+        _setPayoutKey(_payoutKey, _miningKey);
+        _setIsMiningActive(true, _miningKey);
+        _setIsVotingActive(true, _miningKey);
+        _setIsPayoutActive(true, _miningKey);
+        _setMiningKeyByVoting(_votingKey, _miningKey);
+        _setInitialKeysStatus(msg.sender, uint8(InitialKeyState.Deactivated));
+        IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_miningKey, true);
         ValidatorInitialized(_miningKey, _votingKey, _payoutKey);
     }
 
@@ -138,40 +189,44 @@ contract KeysManager is IKeysManager {
     }
 
     function getVotingToChangeKeys() public view returns(address) {
-        return proxyStorage.getVotingToChangeKeys();
+        return IProxyStorage(proxyStorage()).getVotingToChangeKeys();
     }
 
     function isMiningActive(address _key) public view returns(bool) {
-        return validatorKeys[_key].isMiningActive;
+        return boolStorage[keccak256("validatorKeys", _key, "isMiningActive")];
     }
 
     function isVotingActive(address _votingKey) public view returns(bool) {
-        address miningKey = miningKeyByVoting[_votingKey];
-        return validatorKeys[miningKey].isVotingActive;
+        address miningKey = miningKeyByVoting(_votingKey);
+        return isVotingActiveByMiningKey(miningKey);
+    }
+
+    function isVotingActiveByMiningKey(address _miningKey) public view returns(bool) {
+        return boolStorage[keccak256("validatorKeys", _miningKey, "isVotingActive")];
     }
 
     function isPayoutActive(address _miningKey) public view returns(bool) {
-        return validatorKeys[_miningKey].isPayoutActive;
+        return boolStorage[keccak256("validatorKeys", _miningKey, "isPayoutActive")];
     }
 
     function getVotingByMining(address _miningKey) public view returns(address) {
-        return validatorKeys[_miningKey].votingKey;
+        return addressStorage[keccak256("validatorKeys", _miningKey, "votingKey")];
     }
 
     function getPayoutByMining(address _miningKey) public view returns(address) {
-        return validatorKeys[_miningKey].payoutKey;
+        return addressStorage[keccak256("validatorKeys", _miningKey, "payoutKey")];
     }
 
     function getMiningKeyHistory(address _miningKey) public view returns(address) {
-        return miningKeyHistory[_miningKey];
+        return miningKeyHistory(_miningKey);
     }
 
     function getMiningKeyByVoting(address _votingKey) public view returns(address) {
-        return miningKeyByVoting[_votingKey];
+        return miningKeyByVoting(_votingKey);
     }
 
     function getInitialKey(address _initialKey) public view returns(uint8) {
-        return initialKeys[_initialKey];
+        return initialKeys(_initialKey);
     }
 
     function addMiningKey(address _key) public onlyVotingToChangeKeys withinTotalLimit {
@@ -199,25 +254,21 @@ contract KeysManager is IKeysManager {
     }
 
     function swapMiningKey(address _key, address _oldMiningKey) public onlyVotingToChangeKeys {
-        miningKeyHistory[_key] = _oldMiningKey;
+        _setMiningKeyHistory(_key, _oldMiningKey);
         address votingKey = getVotingByMining(_oldMiningKey);
         require(isMiningActive(_oldMiningKey));
-        validatorKeys[_key] = Keys({
-            votingKey: votingKey,
-            payoutKey: getPayoutByMining(_oldMiningKey),
-            isVotingActive: isVotingActive(votingKey),
-            isPayoutActive: isPayoutActive(_oldMiningKey),
-            isMiningActive: true
-        });
-        poaNetworkConsensus.swapValidatorKey(_key, _oldMiningKey);
-        validatorKeys[_oldMiningKey] = Keys({
-            votingKey: address(0),
-            payoutKey: address(0),
-            isVotingActive: false,
-            isPayoutActive: false,
-            isMiningActive: false
-        });
-        miningKeyByVoting[votingKey] = _key;
+        _setVotingKey(votingKey, _key);
+        _setPayoutKey(getPayoutByMining(_oldMiningKey), _key);
+        _setIsMiningActive(true, _key);
+        _setIsVotingActive(isVotingActive(votingKey), _key);
+        _setIsPayoutActive(isPayoutActive(_oldMiningKey), _key);
+        IPoaNetworkConsensus(poaNetworkConsensus()).swapValidatorKey(_key, _oldMiningKey);
+        _setVotingKey(address(0), _oldMiningKey);
+        _setPayoutKey(address(0), _oldMiningKey);
+        _setIsMiningActive(false, _oldMiningKey);
+        _setIsVotingActive(false, _oldMiningKey);
+        _setIsPayoutActive(false, _oldMiningKey);
+        _setMiningKeyByVoting(votingKey, _key);
         MiningKeyChanged(_key, "swapped");
     }
 
@@ -240,73 +291,124 @@ contract KeysManager is IKeysManager {
     }
 
     function _addMiningKey(address _key) private {
-        validatorKeys[_key] = Keys({
-            votingKey: address(0),
-            payoutKey: address(0),
-            isVotingActive: false,
-            isPayoutActive: false,
-            isMiningActive: true
-        });
-        poaNetworkConsensus.addValidator(_key, true);
+        _setVotingKey(address(0), _key);
+        _setPayoutKey(address(0), _key);
+        _setIsMiningActive(true, _key);
+        _setIsVotingActive(false, _key);
+        _setIsPayoutActive(false, _key);
+        IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_key, true);
         MiningKeyChanged(_key, "added");
     }
 
     function _addVotingKey(address _key, address _miningKey) private {
-        Keys storage validator = validatorKeys[_miningKey];
-        require(validator.isMiningActive && _key != _miningKey);
-        if (validator.isVotingActive && validator.votingKey != address(0)) {
+        require(isMiningActive(_miningKey));
+        require(_key != _miningKey);
+        address oldVotingKey = getVotingByMining(_miningKey);
+        if (isVotingActiveByMiningKey(_miningKey) && oldVotingKey != address(0)) {
             _swapVotingKey(_key, _miningKey);
         } else {
-            validator.votingKey = _key;
-            validator.isVotingActive = true;
-            miningKeyByVoting[_key] = _miningKey;
+            _setVotingKey(_key, _miningKey);
+            _setIsVotingActive(true, _miningKey);
+            _setMiningKeyByVoting(_key, _miningKey);
             VotingKeyChanged(_key, _miningKey, "added");
         }
     }
 
     function _addPayoutKey(address _key, address _miningKey) private {
-        Keys storage validator = validatorKeys[_miningKey];
-        require(validator.isMiningActive && _key != _miningKey);
-        if (validator.isPayoutActive && validator.payoutKey != address(0)) {
+        require(isMiningActive(_miningKey));
+        require(_key != _miningKey);
+        address oldPayoutKey = getPayoutByMining(_miningKey);
+        if (isPayoutActive(_miningKey) && oldPayoutKey != address(0)) {
             _swapPayoutKey(_key, _miningKey);
         } else {
-            validator.payoutKey = _key;
-            validator.isPayoutActive = true;
+            _setPayoutKey(_key, _miningKey);
+            _setIsPayoutActive(true, _miningKey);
             PayoutKeyChanged(_key, _miningKey, "added");
         }
     }
 
     function _removeMiningKey(address _key) private {
-        require(validatorKeys[_key].isMiningActive);
-        Keys memory keys = validatorKeys[_key];
-        miningKeyByVoting[keys.votingKey] = address(0);
-        validatorKeys[_key] = Keys({
-            votingKey: address(0),
-            payoutKey: address(0),
-            isVotingActive: false,
-            isPayoutActive: false,
-            isMiningActive: false
-        });
-        poaNetworkConsensus.removeValidator(_key, true);
+        require(isMiningActive(_key));
+        _setMiningKeyByVoting(getVotingByMining(_key), address(0));
+        _setVotingKey(address(0), _key);
+        _setPayoutKey(address(0), _key);
+        _setIsMiningActive(false, _key);
+        _setIsVotingActive(false, _key);
+        _setIsPayoutActive(false, _key);
+        IPoaNetworkConsensus(poaNetworkConsensus()).removeValidator(_key, true);
         MiningKeyChanged(_key, "removed");
     }
 
     function _removeVotingKey(address _miningKey) private {
-        Keys storage validator = validatorKeys[_miningKey];
-        require(validator.isVotingActive);
-        address oldVoting = validator.votingKey;
-        validator.votingKey = address(0);
-        validator.isVotingActive = false;
-        miningKeyByVoting[oldVoting] = address(0);
+        require(isVotingActiveByMiningKey(_miningKey));
+        address oldVoting = getVotingByMining(_miningKey);
+        _setVotingKey(address(0), _miningKey);
+        _setIsVotingActive(false, _miningKey);
+        _setMiningKeyByVoting(oldVoting, address(0));
         VotingKeyChanged(oldVoting, _miningKey, "removed");
     }
 
     function _removePayoutKey(address _miningKey) private {
-        Keys storage validator = validatorKeys[_miningKey];
-        require(validator.isPayoutActive);
-        address oldPayout = validator.payoutKey;
-        validator.payoutKey = address(0);
-        validator.isPayoutActive = false;
+        require(isPayoutActive(_miningKey));
+        address oldPayout = getPayoutByMining(_miningKey);
+        _setPayoutKey(address(0), _miningKey);
+        _setIsPayoutActive(false, _miningKey);
         PayoutKeyChanged(oldPayout, _miningKey, "removed");
+    }
+
+    function _setMasterOfCeremony(address _moc) private {
+        addressStorage[keccak256("masterOfCeremony")] = _moc;
+    }
+
+    function _setPreviousKeysManager(address _keysManager) private {
+        addressStorage[keccak256("previousKeysManager")] = _keysManager;
+    }
+
+    function _setPoaNetworkConsensus(address _poa) private {
+        addressStorage[keccak256("poaNetworkConsensus")] = _poa;
+    }
+
+    function _setMaxNumberOfInitialKeys(uint256 _max) private {
+        uintStorage[keccak256("maxNumberOfInitialKeys")] = _max;
+    }
+
+    function _setInitialKeysCount(uint256 _count) private {
+        uintStorage[keccak256("initialKeysCount")] = _count;
+    }
+
+    function _setInitialKeysStatus(address _initialKey, uint8 _status) private {
+        uintStorage[keccak256("initialKeys", _initialKey)] = _status;
+    }
+
+    function _setVotingKey(address _key, address _miningKey) private {
+        addressStorage[keccak256("validatorKeys", _miningKey, "votingKey")] = _key;
+    }
+
+    function _setPayoutKey(address _key, address _miningKey) private {
+        addressStorage[keccak256("validatorKeys", _miningKey, "payoutKey")] = _key;
+    }
+
+    function _setIsMiningActive(bool _active, address _miningKey) private {
+        boolStorage[keccak256("validatorKeys", _miningKey, "isMiningActive")] = _active;
+    }
+
+    function _setIsVotingActive(bool _active, address _miningKey) private {
+        boolStorage[keccak256("validatorKeys", _miningKey, "isVotingActive")] = _active;
+    }
+
+    function _setIsPayoutActive(bool _active, address _miningKey) private {
+        boolStorage[keccak256("validatorKeys", _miningKey, "isPayoutActive")] = _active;
+    }
+
+    function _setMiningKeyByVoting(address _votingKey, address _miningKey) private {
+        addressStorage[keccak256("miningKeyByVoting", _votingKey)] = _miningKey;
+    }
+
+    function _setMiningKeyHistory(address _key, address _oldMiningKey) private {
+        addressStorage[keccak256("miningKeyHistory", _key)] = _oldMiningKey;
+    }
+
+    function _setSuccessfulValidatorClone(bool _success, address _miningKey) private {
+        boolStorage[keccak256("successfulValidatorClone", _miningKey)] = _success;
     }
 }

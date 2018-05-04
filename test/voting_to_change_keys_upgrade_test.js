@@ -33,7 +33,15 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
     await proxyStorageMock.init(poaNetworkConsensusMock.address).should.be.fulfilled;
     
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
-    keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
+    
+    keysManager = await KeysManagerMock.new();
+    const keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, keysManager.address);
+    keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);
+    await keysManager.init(
+      poaNetworkConsensusMock.address,
+      masterOfCeremony,
+      "0x0000000000000000000000000000000000000000"
+    ).should.be.fulfilled;
     
     let ballotsStorage = await BallotsStorage.new();
     const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
@@ -44,7 +52,7 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
     voting = await VotingToChangeKeysMock.at(votingEternalStorage.address);
     
     await proxyStorageMock.initializeAddresses(
-      keysManager.address,
+      keysManagerEternalStorage.address,
       votingEternalStorage.address,
       masterOfCeremony,
       masterOfCeremony,

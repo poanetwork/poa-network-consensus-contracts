@@ -36,7 +36,14 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
     proxyStorageMock = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
     await proxyStorageMock.init(poaNetworkConsensusMock.address).should.be.fulfilled;
     
-    keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
+    keysManager = await KeysManagerMock.new();
+    const keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, keysManager.address);
+    keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);
+    await keysManager.init(
+      poaNetworkConsensusMock.address,
+      masterOfCeremony,
+      "0x0000000000000000000000000000000000000000"
+    ).should.be.fulfilled;
     
     ballotsStorage = await BallotsStorage.new();
     const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
