@@ -60,11 +60,14 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
         return boolStorage[keccak256("demoMode")];
     }
 
+    function initDisabled() public view returns(bool) {
+        return boolStorage[keccak256("initDisabled")];
+    }
+
     function init(bool _demoMode) public onlyOwner {
-        bytes32 initDisabledHash = keccak256("initDisabled");
-        require(!boolStorage[initDisabledHash]);
+        require(!initDisabled());
         boolStorage[keccak256("demoMode")] = _demoMode;
-        boolStorage[initDisabledHash] = true;
+        boolStorage[keccak256("initDisabled")] = true;
     }
 
     function createVotingForKeys(
@@ -337,9 +340,13 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
         return true;
     }
 
+    function migrateDisabled() public view returns(bool) {
+        return boolStorage[keccak256("migrateDisabled")];
+    }
+
     function migrateBasicAll(address _prevVotingToChangeKeys) public onlyOwner {
         require(_prevVotingToChangeKeys != address(0));
-        require(!boolStorage[keccak256("migrateDisabled")]);
+        require(!migrateDisabled());
 
         IVotingToChangeKeys prev =
             IVotingToChangeKeys(_prevVotingToChangeKeys);
@@ -375,7 +382,7 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
         address[] _voters
     ) public onlyOwner {
         require(_prevVotingToChangeKeys != address(0));
-        require(!boolStorage[keccak256("migrateDisabled")]);
+        require(!migrateDisabled());
         
         IVotingToChangeKeys prev =
             IVotingToChangeKeys(_prevVotingToChangeKeys);
@@ -413,7 +420,7 @@ contract VotingToChangeKeys is EternalStorage, IVotingToChangeKeys {
     }
 
     function migrateDisable() public onlyOwner {
-        require(!boolStorage[keccak256("migrateDisabled")]);
+        require(!migrateDisabled());
         boolStorage[keccak256("migrateDisabled")] = true;
     }
 

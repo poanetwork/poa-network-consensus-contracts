@@ -68,11 +68,14 @@ contract VotingToChangeMinThreshold is EternalStorage, IVotingToChangeMinThresho
         return boolStorage[keccak256("demoMode")];
     }
 
+    function initDisabled() public view returns(bool) {
+        return boolStorage[keccak256("initDisabled")];
+    }
+
     function init(bool _demoMode) public onlyOwner {
-        bytes32 initDisabledHash = keccak256("initDisabled");
-        require(!boolStorage[initDisabledHash]);
+        require(!initDisabled());
         boolStorage[keccak256("demoMode")] = _demoMode;
-        boolStorage[initDisabledHash] = true;
+        boolStorage[keccak256("initDisabled")] = true;
     }
 
     function createBallotToChangeThreshold(
@@ -257,9 +260,13 @@ contract VotingToChangeMinThreshold is EternalStorage, IVotingToChangeMinThresho
         return validatorActiveBallots(_miningKey) <= getBallotLimitPerValidator();
     }
 
+    function migrateDisabled() public view returns(bool) {
+        return boolStorage[keccak256("migrateDisabled")];
+    }
+
     function migrateBasicAll(address _prevVotingToChangeMinThreshold) public onlyOwner {
         require(_prevVotingToChangeMinThreshold != address(0));
-        require(!boolStorage[keccak256("migrateDisabled")]);
+        require(!migrateDisabled());
 
         IVotingToChangeMinThreshold prev =
             IVotingToChangeMinThreshold(_prevVotingToChangeMinThreshold);
@@ -295,7 +302,7 @@ contract VotingToChangeMinThreshold is EternalStorage, IVotingToChangeMinThresho
         address[] _voters
     ) public onlyOwner {
         require(_prevVotingToChangeMinThreshold != address(0));
-        require(!boolStorage[keccak256("migrateDisabled")]);
+        require(!migrateDisabled());
         
         IVotingToChangeMinThreshold prev =
             IVotingToChangeMinThreshold(_prevVotingToChangeMinThreshold);
@@ -327,7 +334,7 @@ contract VotingToChangeMinThreshold is EternalStorage, IVotingToChangeMinThresho
     }
 
     function migrateDisable() public onlyOwner {
-        require(!boolStorage[keccak256("migrateDisabled")]);
+        require(!migrateDisabled());
         boolStorage[keccak256("migrateDisabled")] = true;
     }
 

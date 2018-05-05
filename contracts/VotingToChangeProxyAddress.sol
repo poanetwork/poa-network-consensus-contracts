@@ -58,11 +58,14 @@ contract VotingToChangeProxyAddress is EternalStorage, IVotingToChangeProxyAddre
         return boolStorage[keccak256("demoMode")];
     }
 
+    function initDisabled() public view returns(bool) {
+        return boolStorage[keccak256("initDisabled")];
+    }
+
     function init(bool _demoMode) public onlyOwner {
-        bytes32 initDisabledHash = keccak256("initDisabled");
-        require(!boolStorage[initDisabledHash]);
+        require(!initDisabled());
         boolStorage[keccak256("demoMode")] = _demoMode;
-        boolStorage[initDisabledHash] = true;
+        boolStorage[keccak256("initDisabled")] = true;
     }
 
     function createBallotToChangeProxyAddress(
@@ -253,9 +256,13 @@ contract VotingToChangeProxyAddress is EternalStorage, IVotingToChangeProxyAddre
         return validatorActiveBallots(_miningKey) <= getBallotLimitPerValidator();
     }
 
+    function migrateDisabled() public view returns(bool) {
+        return boolStorage[keccak256("migrateDisabled")];
+    }
+
     function migrateBasicAll(address _prevVotingToChangeProxy) public onlyOwner {
         require(_prevVotingToChangeProxy != address(0));
-        require(!boolStorage[keccak256("migrateDisabled")]);
+        require(!migrateDisabled());
 
         IVotingToChangeProxyAddress prev =
             IVotingToChangeProxyAddress(_prevVotingToChangeProxy);
@@ -291,7 +298,7 @@ contract VotingToChangeProxyAddress is EternalStorage, IVotingToChangeProxyAddre
         address[] _voters
     ) public onlyOwner {
         require(_prevVotingToChangeProxy != address(0));
-        require(!boolStorage[keccak256("migrateDisabled")]);
+        require(!migrateDisabled());
         
         IVotingToChangeProxyAddress prev =
             IVotingToChangeProxyAddress(_prevVotingToChangeProxy);
@@ -325,7 +332,7 @@ contract VotingToChangeProxyAddress is EternalStorage, IVotingToChangeProxyAddre
     }
 
     function migrateDisable() public onlyOwner {
-        require(!boolStorage[keccak256("migrateDisabled")]);
+        require(!migrateDisabled());
         boolStorage[keccak256("migrateDisabled")] = true;
     }
 

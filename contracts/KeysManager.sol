@@ -98,13 +98,16 @@ contract KeysManager is EternalStorage, IKeysManager {
         isPayoutActive = this.isPayoutActive(_miningKey);
     }
 
+    function initDisabled() public view returns(bool) {
+        return boolStorage[keccak256("initDisabled")];
+    }
+
     function init(
         address _poaConsensus,
         address _masterOfCeremony,
         address _previousKeysManager
     ) public onlyOwner {
-        bytes32 initDisabledHash = keccak256("initDisabled");
-        require(!boolStorage[initDisabledHash]);
+        require(!initDisabled());
         require(_poaConsensus != address(0));
         require(_poaConsensus != proxyStorage());
         require(_masterOfCeremony != address(0) && _masterOfCeremony != _poaConsensus);
@@ -123,10 +126,11 @@ contract KeysManager is EternalStorage, IKeysManager {
             IKeysManager previous = IKeysManager(_previousKeysManager);
             _setInitialKeysCount(previous.initialKeysCount());
         }
-        boolStorage[initDisabledHash] = true;
+        boolStorage[keccak256("initDisabled")] = true;
     }
 
     function migrateMiningKey(address _miningKey) public {
+        require(previousKeysManager() != address(0));
         IKeysManager previous = IKeysManager(previousKeysManager());
         require(_miningKey != address(0));
         require(previous.isMiningActive(_miningKey));
@@ -140,19 +144,29 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsPayoutActive(previous.isPayoutActive(_miningKey), _miningKey);
         _setMiningKeyByVoting(previous.getVotingByMining(_miningKey), _miningKey);
         _setSuccessfulValidatorClone(true, _miningKey);
+        address currentMiningKey = _miningKey;
+        for (uint8 i = 0; i < 25; i++) {
+            address oldMiningKey = previous.getMiningKeyHistory(currentMiningKey);
+            if (oldMiningKey == 0) {
+                break;
+            }
+            _setMiningKeyHistory(currentMiningKey, oldMiningKey);
+            currentMiningKey = oldMiningKey;
+        }
         Migrated("miningKey", _miningKey);
     }
 
     function migrateInitialKey(address _initialKey) public {
         require(initialKeys(_initialKey) == uint8(InitialKeyState.Invalid));
         require(_initialKey != address(0));
+        require(previousKeysManager() != address(0));
         IKeysManager previous = IKeysManager(previousKeysManager());
         uint8 status = previous.getInitialKey(_initialKey);
         require(
             status == uint8(InitialKeyState.Activated) ||
             status == uint8(InitialKeyState.Deactivated)
         );
-        _setInitialKeysStatus(_initialKey, status);
+        _setInitialKeyStatus(_initialKey, status);
         Migrated("initialKey", _initialKey);
     }
 
@@ -163,7 +177,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         require(_initialKey != masterOfCeremony());
         uint256 _initialKeysCount = initialKeysCount();
         require(_initialKeysCount < maxNumberOfInitialKeys());
-        _setInitialKeysStatus(_initialKey, uint8(InitialKeyState.Activated));
+        _setInitialKeyStatus(_initialKey, uint8(InitialKeyState.Activated));
         _initialKeysCount = _initialKeysCount.add(1);
         _setInitialKeysCount(_initialKeysCount);
         InitialKeyCreated(_initialKey, getTime(), _initialKeysCount);
@@ -179,7 +193,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsVotingActive(true, _miningKey);
         _setIsPayoutActive(true, _miningKey);
         _setMiningKeyByVoting(_votingKey, _miningKey);
-        _setInitialKeysStatus(msg.sender, uint8(InitialKeyState.Deactivated));
+        _setInitialKeyStatus(msg.sender, uint8(InitialKeyState.Deactivated));
         IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_miningKey, true);
         ValidatorInitialized(_miningKey, _votingKey, _payoutKey);
     }
@@ -376,7 +390,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         uintStorage[keccak256("initialKeysCount")] = _count;
     }
 
-    function _setInitialKeysStatus(address _initialKey, uint8 _status) private {
+    function _setInitialKeyStatus(address _initialKey, uint8 _status) private {
         uintStorage[keccak256("initialKeys", _initialKey)] = _status;
     }
 

@@ -40,11 +40,14 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         _;
     }
 
+    function initDisabled() public view returns(bool) {
+        return boolStorage[keccak256("initDisabled")];
+    }
+
     function init(address _poaConsensus) public onlyOwner {
-        bytes32 initDisabledHash = keccak256("initDisabled");
-        require(!boolStorage[initDisabledHash]);
+        require(!initDisabled());
         addressStorage[keccak256("poaConsensus")] = _poaConsensus;
-        boolStorage[initDisabledHash] = true;
+        boolStorage[keccak256("initDisabled")] = true;
     }
 
     function mocInitialized() public view returns(bool) {

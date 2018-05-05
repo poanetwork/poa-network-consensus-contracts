@@ -12,6 +12,7 @@ const BALLOTS_STORAGE_NEW_ADDRESS = process.env.BALLOTS_STORAGE_NEW_ADDRESS;
 const VOTING_TO_CHANGE_KEYS_NEW_ADDRESS = process.env.VOTING_TO_CHANGE_KEYS_NEW_ADDRESS;
 const VOTING_TO_CHANGE_MIN_THRESHOLD_NEW_ADDRESS = process.env.VOTING_TO_CHANGE_MIN_THRESHOLD_NEW_ADDRESS;
 const VOTING_TO_CHANGE_PROXY_NEW_ADDRESS = process.env.VOTING_TO_CHANGE_PROXY_NEW_ADDRESS;
+const PROXY_STORAGE_NEW_ADDRESS = process.env.PROXY_STORAGE_NEW_ADDRESS;
 const ONLY_CHECK = !!process.env.ONLY_CHECK === true
 
 const web3 = new Web3(new Web3.providers.HttpProvider("https://" + NETWORK + ".poa.network"));
@@ -24,7 +25,6 @@ require('chai')
 const GAS_PRICE = web3.utils.toWei('1', 'gwei');
 const GAS_LIMIT = 4700000;
 
-let PROXY_STORAGE_ADDRESS;
 let KEYS_MANAGER_ADDRESS;
 let BALLOTS_STORAGE_OLD_ADDRESS;
 let VOTING_TO_CHANGE_KEYS_OLD_ADDRESS;
@@ -33,11 +33,11 @@ let VOTING_TO_CHANGE_PROXY_OLD_ADDRESS;
 let POA_ADDRESS;
 
 let KEYS_MANAGER_ABI;
-let POA_ABI;
 let BALLOTS_STORAGE_OLD_ABI;
 let VOTING_TO_CHANGE_KEYS_OLD_ABI;
 let VOTING_TO_CHANGE_MIN_THRESHOLD_OLD_ABI;
 let VOTING_TO_CHANGE_PROXY_OLD_ABI;
+let POA_ABI;
 
 main();
 
@@ -55,7 +55,6 @@ async function main() {
 		console.log('Retrieve addresses and ABIs...');
 		
 		let contracts = await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/contracts.json');
-		PROXY_STORAGE_ADDRESS = contracts.data.PROXY_ADDRESS;
 		KEYS_MANAGER_ADDRESS = contracts.data.KEYS_MANAGER_ADDRESS;
 		BALLOTS_STORAGE_OLD_ADDRESS = contracts.data.BALLOTS_STORAGE_ADDRESS;
 		VOTING_TO_CHANGE_KEYS_OLD_ADDRESS = contracts.data.VOTING_TO_CHANGE_KEYS_ADDRESS;
@@ -64,11 +63,11 @@ async function main() {
 		POA_ADDRESS = contracts.data.POA_ADDRESS;
 		
 		KEYS_MANAGER_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/KeysManager.abi.json')).data;
-		POA_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/PoaNetworkConsensus.abi.json')).data;
 		BALLOTS_STORAGE_OLD_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/BallotsStorage.abi.json')).data;
 		VOTING_TO_CHANGE_KEYS_OLD_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/VotingToChangeKeys.abi.json')).data;
 		VOTING_TO_CHANGE_MIN_THRESHOLD_OLD_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/VotingToChangeMinThreshold.abi.json')).data;
 		VOTING_TO_CHANGE_PROXY_OLD_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/VotingToChangeProxyAddress.abi.json')).data;
+		POA_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/PoaNetworkConsensus.abi.json')).data;
 	} catch (err) {
 		console.log('Cannot read contracts.json');
 		success = false;
@@ -114,7 +113,7 @@ async function ballotsStorageMigrateAndCheck(sender, key, chainId) {
 			const implAddress = await deploy('BallotsStorage', implCompiled, sender, key, chainId);
 			console.log('  BallotsStorage implementation address is ' + implAddress);
 			const storageCompiled = await compile('../../contracts/eternal-storage/', 'EternalStorageProxy');
-			contractNewAddress = await deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, [PROXY_STORAGE_ADDRESS, implAddress]);
+			contractNewAddress = await deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, [PROXY_STORAGE_NEW_ADDRESS, implAddress]);
 		}
 		console.log('  BallotsStorage storage address is ' + contractNewAddress);
 
@@ -185,13 +184,19 @@ async function votingToChangeMigrateAndCheck(sender, key, chainId, contractName)
 			const implAddress = await deploy(contractName, implCompiled, sender, key, chainId);
 			console.log(`  ${contractName} implementation address is ${implAddress}`);
 			const storageCompiled = await compile('../../contracts/eternal-storage/', 'EternalStorageProxy');
-			contractNewAddress = await deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, [PROXY_STORAGE_ADDRESS, implAddress]);
+			contractNewAddress = await deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, [PROXY_STORAGE_NEW_ADDRESS, implAddress]);
 		}
 		console.log(`  ${contractName} storage address is ${contractNewAddress}`);
 
 		const keysManagerInstance = new web3.eth.Contract(KEYS_MANAGER_ABI, KEYS_MANAGER_ADDRESS);
 		const votingOldInstance = new web3.eth.Contract(contractOldAbi, contractOldAddress);
 		const votingNewInstance = new web3.eth.Contract(implCompiled.abi, contractNewAddress);
+
+		const initDisabled = await votingNewInstance.methods.initDisabled().call();
+		if (!initDisabled) {
+			const init = await votingNewInstance.methods.init(false);
+			await call(init, sender, contractNewAddress, key, chainId);
+		}
 
 		if (!ONLY_CHECK) {
 			console.log('  Read Vote event...');
@@ -411,6 +416,11 @@ async function readPrivateKey() {
 	mutableStdout.muted = true;
 }
 
-// NETWORK=sokol node migrateVotings
-// NETWORK=sokol BALLOTS_STORAGE_NEW_ADDRESS=0x87328334640AC9Fe199742101d66589487690Af5 VOTING_TO_CHANGE_KEYS_NEW_ADDRESS=0xaf378F31aB0A443be738ADbf04DeAc964fe935cA VOTING_TO_CHANGE_MIN_THRESHOLD_NEW_ADDRESS=0xF333AC2046946969CF671747f72c7219e64A6739 VOTING_TO_CHANGE_PROXY_NEW_ADDRESS=0xf1c533332D09127921b83e830C45BbA35d3eB38b node migrateVotings
-// NETWORK=sokol BALLOTS_STORAGE_NEW_ADDRESS=0x87328334640AC9Fe199742101d66589487690Af5 VOTING_TO_CHANGE_KEYS_NEW_ADDRESS=0xaf378F31aB0A443be738ADbf04DeAc964fe935cA VOTING_TO_CHANGE_MIN_THRESHOLD_NEW_ADDRESS=0xF333AC2046946969CF671747f72c7219e64A6739 VOTING_TO_CHANGE_PROXY_NEW_ADDRESS=0xf1c533332D09127921b83e830C45BbA35d3eB38b ONLY_CHECK=true node migrateVotings
+// Deploy, init, migrate and check:
+//   NETWORK=sokol PROXY_STORAGE_NEW_ADDRESS=0x3f918617a055d48e90f9fe06c168a75134565190 node migrateVotings
+
+// Init, migrate and check without deploy:
+//   NETWORK=sokol BALLOTS_STORAGE_NEW_ADDRESS=0x87328334640AC9Fe199742101d66589487690Af5 VOTING_TO_CHANGE_KEYS_NEW_ADDRESS=0xaf378F31aB0A443be738ADbf04DeAc964fe935cA VOTING_TO_CHANGE_MIN_THRESHOLD_NEW_ADDRESS=0xF333AC2046946969CF671747f72c7219e64A6739 VOTING_TO_CHANGE_PROXY_NEW_ADDRESS=0xf1c533332D09127921b83e830C45BbA35d3eB38b node migrateVotings
+
+// Only check:
+//   NETWORK=sokol BALLOTS_STORAGE_NEW_ADDRESS=0x87328334640AC9Fe199742101d66589487690Af5 VOTING_TO_CHANGE_KEYS_NEW_ADDRESS=0xaf378F31aB0A443be738ADbf04DeAc964fe935cA VOTING_TO_CHANGE_MIN_THRESHOLD_NEW_ADDRESS=0xF333AC2046946969CF671747f72c7219e64A6739 VOTING_TO_CHANGE_PROXY_NEW_ADDRESS=0xf1c533332D09127921b83e830C45BbA35d3eB38b ONLY_CHECK=true node migrateVotings
