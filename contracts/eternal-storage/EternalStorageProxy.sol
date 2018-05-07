@@ -19,23 +19,38 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
     */
     event Upgraded(uint256 version, address indexed implementation);
 
+    event OwnershipRenounced(address indexed previousOwner);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
     modifier onlyProxyStorage() {
-        require(msg.sender == addressStorage[keccak256("proxyStorage")]);
+        require(msg.sender == getProxyStorage());
         _;
     }
 
+    modifier onlyOwner() {
+        require(msg.sender == getOwner());
+        _;
+    }
+
+    function getProxyStorage() public view returns(address) {
+        return addressStorage[keccak256("proxyStorage")];
+    }
+
+    function getOwner() public view returns(address) {
+        return addressStorage[keccak256("owner")];
+    }
+
     function EternalStorageProxy(address _proxyStorage, address _implementationAddress) public {
-        //require(_proxyStorage != address(0));
         require(_implementationAddress != address(0));
 
         if (_proxyStorage != address(0)) {
-            addressStorage[keccak256("proxyStorage")] = _proxyStorage;
+            _setProxyStorage(_proxyStorage);
         } else {
-            addressStorage[keccak256("proxyStorage")] = address(this);
+            _setProxyStorage(address(this));
         }
         
         _implementation = _implementationAddress;
-        addressStorage[keccak256("owner")] = msg.sender;
+        _setOwner(msg.sender);
     }
 
     /**
@@ -73,6 +88,32 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
 
         _implementation = implementation;
         Upgraded(_version, _implementation);
+    }
+
+    /**
+     * @dev Allows the current owner to transfer control of the contract to a _newOwner.
+     * @param _newOwner The address to transfer ownership to.
+     */
+    function transferOwnership(address _newOwner) public onlyOwner {
+        require(_newOwner != address(0));
+        OwnershipTransferred(getOwner(), _newOwner);
+        _setOwner(_newOwner);
+    }
+
+    /**
+     * @dev Allows the current owner to relinquish ownership.
+     */
+    function renounceOwnership() public onlyOwner {
+        OwnershipRenounced(getOwner());
+        _setOwner(address(0));
+    }
+
+    function _setProxyStorage(address _proxyStorage) private {
+        addressStorage[keccak256("proxyStorage")] = _proxyStorage;
+    }
+
+    function _setOwner(address _owner) private {
+        addressStorage[keccak256("owner")] = _owner;
     }
 
 }

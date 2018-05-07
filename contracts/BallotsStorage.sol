@@ -32,11 +32,9 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
 
     function init(bool _demoMode) public onlyOwner {
         require(!initDisabled());
-        uintStorage[keccak256("ballotThresholds", uint8(ThresholdTypes.Keys))] =
-            _demoMode ? 1 : 3;
-        uintStorage[keccak256("ballotThresholds", uint8(ThresholdTypes.MetadataChange))] =
-            _demoMode ? 1 : 2;
-        boolStorage[keccak256("initDisabled")] = true;
+        _setThreshold(_demoMode ? 1 : 3, uint8(ThresholdTypes.Keys));
+        _setThreshold(_demoMode ? 1 : 2, uint8(ThresholdTypes.MetadataChange));
+        _initDisable();
     }
 
     function migrate(address _prevBallotsStorage) public onlyOwner {
@@ -45,11 +43,15 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
         uint8 thresholdKeysType = uint8(ThresholdTypes.Keys);
         uint8 thresholdMetadataType = uint8(ThresholdTypes.MetadataChange);
         IBallotsStorage prevBallotsStorage = IBallotsStorage(_prevBallotsStorage);
-        uintStorage[keccak256("ballotThresholds", thresholdKeysType)] =
-            prevBallotsStorage.getBallotThreshold(thresholdKeysType);
-        uintStorage[keccak256("ballotThresholds", thresholdMetadataType)] =
-            prevBallotsStorage.getBallotThreshold(thresholdMetadataType);
-        boolStorage[keccak256("initDisabled")] = true;
+        _setThreshold(
+            prevBallotsStorage.getBallotThreshold(thresholdKeysType),
+            thresholdKeysType
+        );
+        _setThreshold(
+            prevBallotsStorage.getBallotThreshold(thresholdMetadataType),
+            thresholdMetadataType
+        );
+        _initDisable();
     }
 
     function setThreshold(uint256 _newValue, uint8 _thresholdType)
@@ -59,9 +61,8 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
         require(_thresholdType > 0);
         require(_thresholdType <= uint8(ThresholdTypes.MetadataChange));
         require(_newValue > 0);
-        bytes32 hash = keccak256("ballotThresholds", _thresholdType);
-        require(_newValue != uintStorage[hash]);
-        uintStorage[hash] = _newValue;
+        require(_newValue != getBallotThreshold(_thresholdType));
+        _setThreshold(_newValue, _thresholdType);
         ThresholdChanged(_thresholdType, _newValue);
     }
 
@@ -94,5 +95,13 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
     
     function getMaxLimitBallot() public view returns(uint256) {
         return 200;
+    }
+
+    function _initDisable() private {
+        boolStorage[keccak256("initDisabled")] = true;
+    }
+
+    function _setThreshold(uint256 _newValue, uint8 _thresholdType) private {
+        uintStorage[keccak256("ballotThresholds", _thresholdType)] = _newValue;
     }
 }
