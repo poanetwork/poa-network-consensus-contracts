@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.18;
 
 import "./SafeMath.sol";
 import "./interfaces/IProxyStorage.sol";
@@ -49,6 +49,20 @@ contract VotingToManageEmissionFunds is EternalStorage {
         return uintStorage[keccak256("emissionReleaseTime")];
     }
 
+    function refreshEmissionReleaseTime() public returns(uint256) {
+        uint256 releaseTime = emissionReleaseTime();
+        uint256 currentTime = getTime();
+        if (currentTime > releaseTime) {
+            uint256 releaseThreshold = emissionReleaseThreshold();
+            uint256 diff = currentTime.sub(releaseTime).div(releaseThreshold);
+            if (diff > 0) {
+                releaseTime = releaseTime.add(releaseThreshold.mul(diff));
+                _setEmissionReleaseTime(releaseTime);
+            }
+        }
+        return releaseTime;
+    }
+
     function emissionReleaseThreshold() public view returns(uint256) {
         return uintStorage[keccak256("emissionReleaseThreshold")];
     }
@@ -73,7 +87,7 @@ contract VotingToManageEmissionFunds is EternalStorage {
         require(_emissionReleaseThreshold > 0);
         require(_distributionThreshold > 0);
         require(_emissionReleaseThreshold > _distributionThreshold);
-        _setCurrentBallotFinalized(true);
+        _setLastBallotFinalized(true);
         _setEmissionReleaseTime(_emissionReleaseTime);
         addressStorage[keccak256("emissionFunds")] = _emissionFunds;
         uintStorage[keccak256("emissionReleaseThreshold")] = _emissionReleaseThreshold;
@@ -88,12 +102,14 @@ contract VotingToManageEmissionFunds is EternalStorage {
         string memo
     ) public onlyValidVotingKey(msg.sender) {
         require(_startTime > 0 && _endTime > 0);
-        require(_endTime > _startTime && _startTime > getTime());
-        uint256 releaseTime = emissionReleaseTime();
+        uint256 currentTime = getTime();
+        require(_endTime > _startTime && _startTime > currentTime);
+        uint256 releaseTime = refreshEmissionReleaseTime();
         require(_startTime > releaseTime);
+        require(currentTime > releaseTime);
         require(_endTime.sub(releaseTime) <= distributionThreshold());
         require(_sendTo != address(0));
-        require(currentBallotFinalized());
+        require(lastBallotFinalized());
         uint256 ballotId = nextBallotId();
         _setStartTime(ballotId, _startTime);
         _setEndTime(ballotId, _endTime);
@@ -106,8 +122,8 @@ contract VotingToManageEmissionFunds is EternalStorage {
         _setMinThresholdOfVoters(ballotId, getGlobalMinThresholdOfVoters());
         _setCreator(ballotId, getMiningByVotingKey(msg.sender));
         _setMemo(ballotId, memo);
-        _setCurrentBallotFinalized(false);
-        emit BallotCreated(ballotId, 6, msg.sender);
+        _setLastBallotFinalized(false);
+        BallotCreated(ballotId, 6, msg.sender);
         _setNextBallotId(ballotId.add(1));
     }
 
@@ -125,7 +141,7 @@ contract VotingToManageEmissionFunds is EternalStorage {
         }
         address miningKey = getMiningByVotingKey(msg.sender);
         _votersAdd(_id, miningKey);
-        emit Vote(_id, _choice, msg.sender, getTime(), miningKey);
+        Vote(_id, _choice, msg.sender, getTime(), miningKey);
     }
 
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
@@ -133,14 +149,14 @@ contract VotingToManageEmissionFunds is EternalStorage {
         require(getStartTime(_id) <= getTime());
         require(!isActive(_id));
         require(!getIsFinalized(_id));
-        require(!currentBallotFinalized());
+        require(!lastBallotFinalized());
         _finalizeBallot(_id);
         _setIsFinalized(_id, true);
-        _setCurrentBallotFinalized(true);
+        _setLastBallotFinalized(true);
         _setEmissionReleaseTime(
             emissionReleaseTime().add(emissionReleaseThreshold())
         );
-        emit BallotFinalized(_id, msg.sender);
+        BallotFinalized(_id, msg.sender);
     }
 
     function getBallotsStorage() public view returns(address) {
@@ -193,8 +209,8 @@ contract VotingToManageEmissionFunds is EternalStorage {
         return boolStorage[keccak256(_storeName(), _id, "isFinalized")];
     }
 
-    function currentBallotFinalized() public view returns(bool) {
-        return boolStorage[keccak256("currentBallotFinalized")];
+    function lastBallotFinalized() public view returns(bool) {
+        return boolStorage[keccak256("lastBallotFinalized")];
     }
 
     function getQuorumState(uint256 _id) public view returns(uint8) {
@@ -330,8 +346,8 @@ contract VotingToManageEmissionFunds is EternalStorage {
         boolStorage[keccak256(_storeName(), _ballotId, "isFinalized")] = _value;
     }
 
-    function _setCurrentBallotFinalized(bool _finalized) private {
-        boolStorage[keccak256("currentBallotFinalized")] = _finalized;
+    function _setLastBallotFinalized(bool _finalized) private {
+        boolStorage[keccak256("lastBallotFinalized")] = _finalized;
     }
 
     function _setQuorumState(uint256 _ballotId, uint8 _value) private {

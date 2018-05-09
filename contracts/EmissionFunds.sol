@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.18;
 
 import "./interfaces/IEmissionFunds.sol";
 
@@ -6,15 +6,15 @@ import "./interfaces/IEmissionFunds.sol";
 contract EmissionFunds is IEmissionFunds {
     address public votingToManageEmissionFunds;
 
-    event SendFundsTo(address indexed receiver, address indexed caller, uint256 value);
-    event BurnFunds(address indexed burner, uint256 value);
+    event SendFundsTo(address indexed receiver, address indexed caller, uint256 value, bool success);
+    event BurnFunds(address indexed burner, uint256 value, bool success);
 
     modifier onlyVotingToManageEmissionFunds() {
         require(msg.sender == votingToManageEmissionFunds);
         _;
     }
 
-    constructor(address _votingToManageEmissionFunds) public {
+    function EmissionFunds(address _votingToManageEmissionFunds) public {
         require(_votingToManageEmissionFunds != address(0));
         votingToManageEmissionFunds = _votingToManageEmissionFunds;
     }
@@ -27,9 +27,10 @@ contract EmissionFunds is IEmissionFunds {
         returns(bool)
     {
         uint256 value = _balance();
-        emit SendFundsTo(_receiver, msg.sender, value);
         // using `send` instead of `transfer` to avoid revert on failure
-        return _receiver.send(value);
+        bool success = _receiver.send(value);
+        SendFundsTo(_receiver, msg.sender, value, success);
+        return success;
     }
 
     function burnFunds()
@@ -38,9 +39,10 @@ contract EmissionFunds is IEmissionFunds {
         returns(bool)
     {
         uint256 value = _balance();
-        emit BurnFunds(msg.sender, value);
         // using `send` instead of `transfer` to avoid revert on failure
-        return address(0).send(value);
+        bool success = address(0).send(value);
+        BurnFunds(msg.sender, value, success);
+        return success;
     }
 
     function _balance() private view returns(uint256) {
