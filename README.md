@@ -36,16 +36,41 @@ Select `0.4.18` Solidity compiler version. Set `Optimize` to `true`.
 
 Compile and deploy contracts in the next sequence:
 
-- `ProxyStorage_flat.sol` - Select contract `ProxyStorage` with constructor parameters: <br />
-`_poaConsensus` - address of poaConsensus contract,
-`_moc` - address of Master of Ceremony. 
+- `ProxyStorage_flat.sol` - Select contract `ProxyStorage`.
+- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+`_proxyStorage` - equal to zero,
+`_implementationAddress` - address of ProxyStorage contract.
+-  Make a call to `ProxyStorage init` with `_poaConsensus` parameter equal to the address of poaConsensus contract, using the address of `EternalStorageProxy` and ABI of `ProxyStorage`.
 -  Select `poaNetworkConsensus` contract and send transaction `setProxyStorage` with the address of ProxyStorage contract.
-- `KeysManager_flat.sol` - Select contract `KeysManager` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract, `_poaConsensus` - address of poaConsensus contract, `_moc` - address of Master of Ceremony.
-- `BallotsStorage_flat.sol` - Select contract `BallotsStorage` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
-- `VotingToChangeKeys_flat.sol` - Select contract `VotingToChangeKeys` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
-- `VotingToChangeMinThreshold_flat.sol` - Select contract `VotingToChangeMinThreshold` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
-- `VotingToChangeProxyAddress_flat.sol` - Select contract `VotingToChangeProxyAddress` with constructor parameters: `_proxyStorage` - address of ProxyStorage contract
-- `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata`
+- `KeysManager_flat.sol` - Select contract `KeysManager`.
+- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+`_proxyStorage` - address of ProxyStorage contract,
+`_implementationAddress` - address of KeysManager contract.
+-  Make a call to `KeysManager init` using the address of `EternalStorageProxy` and ABI of `KeysManager`. The parameters for `init` must be: <br />
+`_poaConsensus` - address of poaConsensus contract,
+`_masterOfCeremony` - address of Master of Ceremony,
+`_previousKeysManager` - equal to 0x0000000000000000000000000000000000000000.
+- `BallotsStorage_flat.sol` - Select contract `BallotsStorage`.
+- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+`_proxyStorage` - address of ProxyStorage contract,
+`_implementationAddress` - address of BallotsStorage contract.
+-  Make a call to `BallotsStorage init` with `_demoMode` parameter equal to `false`, using the address of `EternalStorageProxy` and ABI of `BallotsStorage`.
+- `VotingToChangeKeys_flat.sol` - Select contract `VotingToChangeKeys`.
+- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+`_proxyStorage` - address of ProxyStorage contract,
+`_implementationAddress` - address of VotingToChangeKeys contract.
+-  Make a call to `VotingToChangeKeys init` with `_demoMode` parameter equal to `false`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeKeys`.
+- `VotingToChangeMinThreshold_flat.sol` - Select contract `VotingToChangeMinThreshold`.
+- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+`_proxyStorage` - address of ProxyStorage contract,
+`_implementationAddress` - address of VotingToChangeMinThreshold contract.
+-  Make a call to `VotingToChangeMinThreshold init` with `_demoMode` parameter equal to `false`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeMinThreshold`.
+- `VotingToChangeProxyAddress_flat.sol` - Select contract `VotingToChangeProxyAddress`.
+- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+`_proxyStorage` - address of ProxyStorage contract,
+`_implementationAddress` - address of VotingToChangeProxyAddress contract.
+-  Make a call to `VotingToChangeProxyAddress init` with `_demoMode` parameter equal to `false`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeProxyAddress`.
+- `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata`.
 - `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of ValidatorMetadata contract.
@@ -56,256 +81,459 @@ Compile and deploy contracts in the next sequence:
 
 ```
   Contract: BallotsStorage [all features]
-    #constructor
-      ✓ sets MoC and Poa (53ms)
+    #init
+      ✓ prevent from double init
+      ✓ thresholds are correct
     #setThreshold
-      ✓ can only be called from votingToChangeThreshold address (136ms)
-      ✓ cannot be set for Invalid threshold (186ms)
-      ✓ new value cannot be equal to 0 (184ms)
-      ✓ sets new value for Keys threshold (68ms)
-      ✓ sets new value for MetadataChange threshold (71ms)
+      ✓ can only be called from votingToChangeThreshold address (70ms)
+      ✓ cannot be set for Invalid threshold (128ms)
+      ✓ new value cannot be equal to 0 (156ms)
+      ✓ sets new value for Keys threshold (57ms)
+      ✓ sets new value for MetadataChange threshold (59ms)
     #getTotalNumberOfValidators
-      ✓ returns total number of validators (278ms)
+      ✓ returns total number of validators (190ms)
     #getProxyThreshold
-      ✓ returns total number of validators (588ms)
+      ✓ returns total number of validators (406ms)
     #getVotingToChangeThreshold
-      ✓ returns voting to change min threshold address (91ms)
+      ✓ returns voting to change min threshold address (70ms)
     #getBallotLimit
-      ✓ returns limit per validator to create ballots (267ms)
+      ✓ returns limit per validator to create ballots (242ms)
+    #upgradeTo
+      ✓ may be called only by ProxyStorage (140ms)
+      ✓ should change implementation address (155ms)
+      ✓ should increment implementation version (155ms)
+      ✓ new implementation should work (207ms)
+      ✓ new implementation should use the same proxyStorage address (122ms)
+      ✓ new implementation should use the same storage (151ms)
+  Contract: BallotsStorage upgraded [all features]
+    #init
+      ✓ prevent from double init
+      ✓ thresholds are correct
+    #setThreshold
+      ✓ can only be called from votingToChangeThreshold address (53ms)
+      ✓ cannot be set for Invalid threshold (110ms)
+      ✓ new value cannot be equal to 0 (112ms)
+      ✓ sets new value for Keys threshold (66ms)
+      ✓ sets new value for MetadataChange threshold (48ms)
+    #getTotalNumberOfValidators
+      ✓ returns total number of validators (191ms)
+    #getProxyThreshold
+      ✓ returns total number of validators (374ms)
+    #getVotingToChangeThreshold
+      ✓ returns voting to change min threshold address (64ms)
+    #getBallotLimit
+      ✓ returns limit per validator to create ballots (259ms)
   Contract: KeysManager [all features]
     #constructor
-      ✓ sets masterOfCeremony, proxyStorage, poaConsensus (73ms)
-      ✓ adds masterOfCeremony to validators hash
+      ✓ sets masterOfCeremony, proxyStorage, poaConsensus (41ms)
+      ✓ adds masterOfCeremony to validators hash (48ms)
     #initiateKeys
-      ✓ can only be called by master of ceremony (74ms)
-      ✓ cannot allow 0x0 addresses (53ms)
-      ✓ should not allow to initialize already initialized key (83ms)
-      ✓ should not allow to initialize already initialized key after validator created mining key (198ms)
+      ✓ can only be called by master of ceremony (56ms)
+      ✓ cannot allow 0x0 addresses (42ms)
+      ✓ should not allow to initialize already initialized key (60ms)
+      ✓ should not allow to initialize already initialized key after validator created mining key (126ms)
       ✓ should not equal to master of ceremony
-      ✓ should not allow to initialize more than maxNumberOfInitialKeys (195ms)
-      ✓ should not allow to initialize more than maxNumberOfInitialKeys (624ms)
-      ✓ should increment initialKeyCount by 1 (103ms)
-      ✓ should set initialKeys hash to activated status (92ms)
+      ✓ should not allow to initialize more than maxNumberOfInitialKeys (119ms)
+      ✓ should not allow to initialize more than maxNumberOfInitialKeys (434ms)
+      ✓ should increment initialKeyCount by 1 (62ms)
+      ✓ should set initialKeys hash to activated status (104ms)
     #createKeys
-      ✓ should only be called from initialized key (169ms)
-      ✓ params should not be equal to each other (142ms)
-      ✓ any of params should not be equal to initialKey (131ms)
-      ✓ should assign mining, voting, payout keys to relative mappings (269ms)
-      ✓ should assigns voting <-> mining key relationship (155ms)
-      ✓ adds validator to poaConsensus contract (170ms)
-      ✓ should set validatorKeys hash (197ms)
-      ✓ should set validatorKeys hash (152ms)
+      ✓ should only be called from initialized key (120ms)
+      ✓ params should not be equal to each other (92ms)
+      ✓ any of params should not be equal to initialKey (140ms)
+      ✓ should assign mining, voting, payout keys to relative mappings (240ms)
+      ✓ should assigns voting <-> mining key relationship (115ms)
+      ✓ adds validator to poaConsensus contract (169ms)
+      ✓ should set validatorKeys hash (142ms)
+      ✓ should set validatorKeys hash (119ms)
     #addMiningKey
-      ✓ should only be called from votingToChangeKeys (150ms)
-      ✓ should not let add more than maxLimit (111ms)
-      ✓ should set validatorKeys hash (117ms)
+      ✓ should only be called from votingToChangeKeys (130ms)
+      ✓ should not let add more than maxLimit (52ms)
+      ✓ should set validatorKeys hash (114ms)
     #addVotingKey
-      ✓ should add VotingKey (217ms)
-      ✓ should only be called if mining is active (246ms)
-      ✓ swaps keys if voting already exists (302ms)
+      ✓ should add VotingKey (184ms)
+      ✓ should only be called if mining is active (158ms)
+      ✓ swaps keys if voting already exists (248ms)
     #addPayoutKey
-      ✓ should add PayoutKey (180ms)
-      ✓ should only be called if mining is active (259ms)
-      ✓ swaps keys if voting already exists (237ms)
+      ✓ should add PayoutKey (132ms)
+      ✓ should only be called if mining is active (150ms)
+      ✓ swaps keys if voting already exists (380ms)
     #removeMiningKey
-      ✓ should remove miningKey (387ms)
-      ✓ removes validator from poaConsensus (413ms)
-      ✓ should still enforce removal of votingKey to 0x0 even if voting key didnot exist (332ms)
+      ✓ should remove miningKey (262ms)
+      ✓ removes validator from poaConsensus (295ms)
+      ✓ should still enforce removal of votingKey to 0x0 even if voting key didnot exist (233ms)
     #removeVotingKey
-      ✓ should remove votingKey (332ms)
+      ✓ should remove votingKey (281ms)
     #removePayoutKey
-      ✓ should remove payoutKey (329ms)
+      ✓ should remove payoutKey (268ms)
     #swapMiningKey
-      ✓ should swap mining key (300ms)
-      ✓ should keep voting and payout keys (568ms)
+      ✓ should swap mining key (273ms)
+      ✓ should keep voting and payout keys (479ms)
     #swapVotingKey
-      ✓ should swap voting key (285ms)
+      ✓ should swap voting key (243ms)
     #swapPayoutKey
-      ✓ should swap payout key (282ms)
+      ✓ should swap payout key (254ms)
     #migrateInitialKey
-      ✓ can copy initial keys (303ms)
-      ✓ copies validator keys (873ms)
-      ✓ throws when trying to copy invalid mining key (138ms)
+      ✓ can copy initial keys (289ms)
+      ✓ copies validator keys (741ms)
+      ✓ throws when trying to copy invalid mining key (202ms)
+    #upgradeTo
+      ✓ may be called only by ProxyStorage (86ms)
+      ✓ should change implementation address (117ms)
+      ✓ should increment implementation version (112ms)
+      ✓ new implementation should work (129ms)
+      ✓ new implementation should use the same proxyStorage address (94ms)
+      ✓ new implementation should use the same storage (446ms)
+  Contract: KeysManager upgraded [all features]
+    #constructor
+      ✓ sets masterOfCeremony, proxyStorage, poaConsensus (48ms)
+      ✓ adds masterOfCeremony to validators hash (51ms)
+    #initiateKeys
+      ✓ can only be called by master of ceremony (47ms)
+      ✓ cannot allow 0x0 addresses
+      ✓ should not allow to initialize already initialized key (55ms)
+      ✓ should not allow to initialize already initialized key after validator created mining key (118ms)
+      ✓ should not equal to master of ceremony
+      ✓ should not allow to initialize more than maxNumberOfInitialKeys (133ms)
+      ✓ should not allow to initialize more than maxNumberOfInitialKeys (419ms)
+      ✓ should increment initialKeyCount by 1 (64ms)
+      ✓ should set initialKeys hash to activated status (106ms)
+    #createKeys
+      ✓ should only be called from initialized key (130ms)
+      ✓ params should not be equal to each other (101ms)
+      ✓ any of params should not be equal to initialKey (106ms)
+      ✓ should assign mining, voting, payout keys to relative mappings (155ms)
+      ✓ should assigns voting <-> mining key relationship (127ms)
+      ✓ adds validator to poaConsensus contract (115ms)
+      ✓ should set validatorKeys hash (177ms)
+      ✓ should set validatorKeys hash (126ms)
+    #addMiningKey
+      ✓ should only be called from votingToChangeKeys (110ms)
+      ✓ should not let add more than maxLimit (49ms)
+      ✓ should set validatorKeys hash (114ms)
+    #addVotingKey
+      ✓ should add VotingKey (182ms)
+      ✓ should only be called if mining is active (167ms)
+      ✓ swaps keys if voting already exists (230ms)
+    #addPayoutKey
+      ✓ should add PayoutKey (131ms)
+      ✓ should only be called if mining is active (162ms)
+      ✓ swaps keys if voting already exists (215ms)
+    #removeMiningKey
+      ✓ should remove miningKey (262ms)
+      ✓ removes validator from poaConsensus (300ms)
+      ✓ should still enforce removal of votingKey to 0x0 even if voting key didnot exist (265ms)
+    #removeVotingKey
+      ✓ should remove votingKey (270ms)
+    #removePayoutKey
+      ✓ should remove payoutKey (300ms)
+    #swapMiningKey
+      ✓ should swap mining key (275ms)
+      ✓ should keep voting and payout keys (514ms)
+    #swapVotingKey
+      ✓ should swap voting key (225ms)
+    #swapPayoutKey
+      ✓ should swap payout key (298ms)
+    #migrateInitialKey
+      ✓ can copy initial keys (284ms)
+      ✓ copies validator keys (775ms)
+      ✓ throws when trying to copy invalid mining key (288ms)
   Contract: ValidatorMetadata [all features]
     #createMetadata
-      ✓ happy path (231ms)
-      ✓ should not let create metadata if called by non-voting key (124ms)
-      ✓ should not let create metadata if called second time (187ms)
+      ✓ happy path (118ms)
+      ✓ should not let create metadata if called by non-voting key (58ms)
+      ✓ should not let create metadata if called second time (138ms)
     #getMiningByVotingKey
-      ✓ happy path (89ms)
+      ✓ happy path (53ms)
     #changeRequest
-      ✓ happy path (228ms)
-      ✓ should not let call if there is no metadata (40ms)
-      ✓ resets confirmations when changeRequest recreated (686ms)
+      ✓ happy path (184ms)
+      ✓ should not let call if there is no metadata
+      ✓ resets confirmations when changeRequest recreated (435ms)
     #cancelPendingChange
-      ✓ happy path (621ms)
-      ✓ should not let delete records for someone else miningKey (589ms)
+      ✓ happy path (389ms)
+      ✓ should not let delete records for someone else miningKey (435ms)
     #confirmPendingChange
-      ✓ should not let confirm your own changes (317ms)
-      ✓ should confirm changes (372ms)
-      ✓ prevent from double voting (495ms)
+      ✓ should not let confirm your own changes (253ms)
+      ✓ should confirm changes (254ms)
+      ✓ prevent from double voting (279ms)
     #finalize
-      ✓ happy path (1036ms)
+      ✓ happy path (492ms)
     #getMinThreshold
-      ✓ returns default value (40ms)
+      ✓ returns default value
     #setProxyAddress
-      ✓ can request a new proxy address (510ms)
+      ✓ can request a new proxy address (326ms)
     #upgradeTo
-      ✓ may be called only by ProxyStorage (125ms)
-      ✓ should change implementation address (161ms)
-      ✓ should increment implementation version (179ms)
-      ✓ new implementation should work (171ms)
-      ✓ new implementation should use the same proxyStorage address (120ms)
-      ✓ new implementation should use the same storage (341ms)
+      ✓ may be called only by ProxyStorage (80ms)
+      ✓ should change implementation address (123ms)
+      ✓ should increment implementation version (230ms)
+      ✓ new implementation should work (135ms)
+      ✓ new implementation should use the same proxyStorage address (91ms)
+      ✓ new implementation should use the same storage (259ms)
   Contract: ValidatorMetadata upgraded [all features]
     #createMetadata
-      ✓ happy path (224ms)
-      ✓ should not let create metadata if called by non-voting key (179ms)
-      ✓ should not let create metadata if called second time (210ms)
+      ✓ happy path (133ms)
+      ✓ should not let create metadata if called by non-voting key (56ms)
+      ✓ should not let create metadata if called second time (129ms)
     #getMiningByVotingKey
-      ✓ happy path (82ms)
+      ✓ happy path (52ms)
     #changeRequest
-      ✓ happy path (267ms)
-      ✓ should not let call if there is no metadata (49ms)
-      ✓ resets confirmations when changeRequest recreated (655ms)
+      ✓ happy path (164ms)
+      ✓ should not let call if there is no metadata
+      ✓ resets confirmations when changeRequest recreated (425ms)
     #cancelPendingChange
-      ✓ happy path (635ms)
-      ✓ should not let delete records for someone else miningKey (728ms)
+      ✓ happy path (383ms)
+      ✓ should not let delete records for someone else miningKey (378ms)
     #confirmPendingChange
-      ✓ should not let confirm your own changes (334ms)
-      ✓ should confirm changes (402ms)
-      ✓ prevent from double voting (463ms)
+      ✓ should not let confirm your own changes (226ms)
+      ✓ should confirm changes (255ms)
+      ✓ prevent from double voting (296ms)
     #finalize
-      ✓ happy path (918ms)
+      ✓ happy path (522ms)
     #getMinThreshold
-      ✓ returns default value (40ms)
+      ✓ returns default value
     #setProxyAddress
-      ✓ can request a new proxy address (471ms)
+      ✓ can request a new proxy address (343ms)
   Contract: PoaNetworkConsensus [all features]
     default values
-      ✓ finalized should be false (40ms)
+      ✓ finalized should be false
       ✓ checks systemAddress
-      ✓ allows you to set current list of validators (198ms)
+      ✓ allows you to set current list of validators (91ms)
     #finalizeChange
-      ✓ should only be called by systemAddress (131ms)
-      ✓ should set finalized to true (113ms)
-      ✓ should set currentValidators to pendingList (118ms)
-      ✓ set currentValidators to pendingList after addValidator call (492ms)
+      ✓ should only be called by systemAddress (80ms)
+      ✓ should set finalized to true (73ms)
+      ✓ should set currentValidators to pendingList (122ms)
+      ✓ set currentValidators to pendingList after addValidator call (310ms)
     #addValidator
-      ✓ should be called only from keys manager (105ms)
-      ✓ should not allow to add already existing validator (104ms)
-      ✓ should not allow 0x0 addresses (85ms)
-      ✓ should set validatorsState for new validator (134ms)
-      ✓ should set finalized to false (96ms)
-      ✓ should emit InitiateChange with blockhash and pendingList as params (122ms)
+      ✓ should be called only from keys manager (75ms)
+      ✓ should not allow to add already existing validator (183ms)
+      ✓ should not allow 0x0 addresses (61ms)
+      ✓ should set validatorsState for new validator (90ms)
+      ✓ should set finalized to false (72ms)
+      ✓ should emit InitiateChange with blockhash and pendingList as params (72ms)
     #removeValidator
-      ✓ should remove validator (148ms)
-      ✓ should be called only from keys manager (177ms)
-      ✓ should only be allowed to remove from existing set of validators (68ms)
-      ✓ should decrease length of pendingList (409ms)
-      ✓ should change validatorsState (185ms)
-      ✓ should set finalized to false (161ms)
+      ✓ should remove validator (98ms)
+      ✓ should be called only from keys manager (136ms)
+      ✓ should only be allowed to remove from existing set of validators (49ms)
+      ✓ should decrease length of pendingList (289ms)
+      ✓ should change validatorsState (110ms)
+      ✓ should set finalized to false (124ms)
     #setProxyStorage
-      ✓ can be called by any validator (103ms)
+      ✓ can be called by any validator (64ms)
       ✓ can only be called once
-      ✓ cannot be set to 0x0 address (53ms)
-      ✓ sets proxyStorage (75ms)
-      ✓ sets isMasterOfCeremonyInitialized (88ms)
-      ✓ emits MoCInitializedProxyStorage (104ms)
-      ✓ #getKeysManager (95ms)
-      ✓ #getVotingToChangeKeys (77ms)
+      ✓ cannot be set to 0x0 address
+      ✓ sets proxyStorage (99ms)
+      ✓ sets isMasterOfCeremonyInitialized (60ms)
+      ✓ emits MoCInitializedProxyStorage (43ms)
+      ✓ #getKeysManager (59ms)
+      ✓ #getVotingToChangeKeys (61ms)
     #isValidator
       ✓ returns address of miner
   Contract: ProxyStorage [all features]
     #constructor
-      ✓ sets MoC and Poa (49ms)
+      ✓ sets MoC and Poa
     #initializeAddresses
-      ✓ sets all addresses (193ms)
-      ✓ prevents Moc to call it more than once (137ms)
+      ✓ sets all addresses (170ms)
+      ✓ prevents Moc to call it more than once (86ms)
     #setContractAddress
-      ✓ can only be called from votingToChangeProxy address (58ms)
-      ✓ cannot be set to 0x0 address
-      ✓ sets keysManager (44ms)
-      ✓ sets votingToChangeKeys (53ms)
-      ✓ sets votingToChangeMinThreshold (67ms)
-      ✓ sets votingToChangeProxy (50ms)
-      ✓ sets ballotsStorage (45ms)
-      ✓ sets poaConsensus (50ms)
-      ✓ sets validatorMetadata (118ms)
-      ✓ sets validatorMetadataEternalStorage (101ms)
+      ✓ can only be called from votingToChangeProxy address (104ms)
+      ✓ cannot be set to 0x0 address (65ms)
+      ✓ sets keysManager (151ms)
+      ✓ sets votingToChangeKeys (163ms)
+      ✓ sets votingToChangeMinThreshold (156ms)
+      ✓ sets ballotsStorage (140ms)
+      ✓ sets poaConsensus (99ms)
+      ✓ sets validatorMetadata (158ms)
+      ✓ changes proxyStorage (itself) implementation (182ms)
+    #upgradeTo
+      ✓ may be called only by ProxyStorage (itself) (112ms)
+      ✓ should change implementation address (112ms)
+      ✓ should increment implementation version (140ms)
+      ✓ new implementation should work (172ms)
+      ✓ new implementation should use the same storage (128ms)
+  Contract: ProxyStorage upgraded [all features]
+    #constructor
+      ✓ sets MoC and Poa
+    #initializeAddresses
+      ✓ sets all addresses (204ms)
+      ✓ prevents Moc to call it more than once (86ms)
+    #setContractAddress
+      ✓ can only be called from votingToChangeProxy address (90ms)
+      ✓ cannot be set to 0x0 address (63ms)
+      ✓ sets keysManager (145ms)
+      ✓ sets votingToChangeKeys (189ms)
+      ✓ sets votingToChangeMinThreshold (154ms)
+      ✓ sets ballotsStorage (156ms)
+      ✓ sets poaConsensus (100ms)
+      ✓ sets validatorMetadata (180ms)
+      ✓ changes proxyStorage (itself) implementation (173ms)
   Contract: Voting to change keys [all features]
     #constructor
-      ✓ happy path (568ms)
-      ✓ should not let create voting with invalid duration (138ms)
-      ✓ should not let create more ballots than the limit (14233ms)
+      ✓ happy path (438ms)
+      ✓ should not let create voting with invalid duration (101ms)
+      ✓ should not let create more ballots than the limit (9607ms)
     #vote
-      ✓ should let a validator to vote (161ms)
-      ✓ reject vote should be accepted (223ms)
-      ✓ should allow multiple voters to vote (809ms)
-      ✓ should not let vote nonVoting key (76ms)
-      ✓ should not let vote before startTime key (129ms)
-      ✓ should not let vote after endTime key (115ms)
-      ✓ should not let vote with already voted key (256ms)
-      ✓ should not let vote with invalid choice (240ms)
-      ✓ should not let vote with invalid id (241ms)
+      ✓ should let a validator to vote (149ms)
+      ✓ reject vote should be accepted (141ms)
+      ✓ should allow multiple voters to vote (724ms)
+      ✓ should not let vote nonVoting key (52ms)
+      ✓ should not let vote before startTime key (109ms)
+      ✓ should not let vote after endTime key (106ms)
+      ✓ should not let vote with already voted key (197ms)
+      ✓ should not let vote with invalid choice (180ms)
+      ✓ should not let vote with invalid id (185ms)
     #finalize
-      ✓ happy path - no action since it didnot meet minimum number of totalVoters (741ms)
-      ✓ finalize addition of payout key (900ms)
-      ✓ finalize addition of VotingKey (1137ms)
-      ✓ cannot create ballot for using previous mining key (2281ms)
-      ✓ finalize addition of MiningKey (1369ms)
-      ✓ finalize removal of MiningKey (2228ms)
-      ✓ finalize removal of VotingKey (1312ms)
-      ✓ finalize removal of PayoutKey (1132ms)
-      ✓ finalize swap of VotingKey (1212ms)
-      ✓ finalize swap of PayoutKey (1283ms)
-      ✓ finalize swap of MiningKey (1410ms)
-      ✓ prevent double finalize (1788ms)
+      ✓ happy path - no action since it did not meet minimum number of totalVoters (820ms)
+      ✓ finalize addition of payout key (971ms)
+      ✓ finalize addition of VotingKey (1069ms)
+      ✓ cannot create ballot for using previous mining key (2239ms)
+      ✓ finalize addition of MiningKey (1129ms)
+      ✓ finalize removal of MiningKey (1177ms)
+      ✓ finalize removal of VotingKey (1170ms)
+      ✓ finalize removal of PayoutKey (1150ms)
+      ✓ finalize swap of VotingKey (1143ms)
+      ✓ finalize swap of PayoutKey (1165ms)
+      ✓ finalize swap of MiningKey (1322ms)
+      ✓ prevent double finalize (1390ms)
+    #upgradeTo
+      ✓ may be called only by ProxyStorage (123ms)
+      ✓ should change implementation address (126ms)
+      ✓ should increment implementation version (122ms)
+      ✓ new implementation should work (162ms)
+      ✓ new implementation should use the same proxyStorage address (96ms)
+      ✓ new implementation should use the same storage (955ms)
+  Contract: Voting to change keys upgraded [all features]
+    #constructor
+      ✓ happy path (373ms)
+      ✓ should not let create voting with invalid duration (103ms)
+      ✓ should not let create more ballots than the limit (9631ms)
+    #vote
+      ✓ should let a validator to vote (145ms)
+      ✓ reject vote should be accepted (183ms)
+      ✓ should allow multiple voters to vote (768ms)
+      ✓ should not let vote nonVoting key (54ms)
+      ✓ should not let vote before startTime key (93ms)
+      ✓ should not let vote after endTime key (103ms)
+      ✓ should not let vote with already voted key (188ms)
+      ✓ should not let vote with invalid choice (189ms)
+      ✓ should not let vote with invalid id (219ms)
+    #finalize
+      ✓ happy path - no action since it did not meet minimum number of totalVoters (798ms)
+      ✓ finalize addition of payout key (934ms)
+      ✓ finalize addition of VotingKey (1105ms)
+      ✓ cannot create ballot for using previous mining key (2196ms)
+      ✓ finalize addition of MiningKey (1120ms)
+      ✓ finalize removal of MiningKey (1194ms)
+      ✓ finalize removal of VotingKey (1138ms)
+      ✓ finalize removal of PayoutKey (1137ms)
+      ✓ finalize swap of VotingKey (1210ms)
+      ✓ finalize swap of PayoutKey (1192ms)
+      ✓ finalize swap of MiningKey (1298ms)
+      ✓ prevent double finalize (1449ms)
   Contract: VotingToChangeMinThreshold [all features]
     #createBallotToChangeThreshold
-      ✓ happy path (260ms)
-      ✓ proposed value should be more than or equal to 3 (51ms)
-      ✓ proposed value should not be equal to the same value (53ms)
-      ✓ should not let create more ballots than the limit (15616ms)
+      ✓ happy path (316ms)
+      ✓ proposed value should be more than or equal to 3 (39ms)
+      ✓ proposed value should not be equal to the same value (49ms)
+      ✓ should not let create more ballots than the limit (9463ms)
     #vote
-      ✓ should let a validator to vote (193ms)
-      ✓ reject vote should be accepted (196ms)
-      ✓ should allow multiple voters to vote (420ms)
-      ✓ should not let vote nonVoting key (63ms)
-      ✓ should not let vote before startTime key (118ms)
-      ✓ should not let vote after endTime key (118ms)
-      ✓ should not let vote with already voted key (232ms)
-      ✓ should not let vote with invalid choice (235ms)
-      ✓ should not let vote with invalid id (218ms)
+      ✓ should let a validator to vote (141ms)
+      ✓ reject vote should be accepted (195ms)
+      ✓ should allow multiple voters to vote (408ms)
+      ✓ should not let vote nonVoting key (56ms)
+      ✓ should not let vote before startTime key (108ms)
+      ✓ should not let vote after endTime key (100ms)
+      ✓ should not let vote with already voted key (198ms)
+      ✓ should not let vote with invalid choice (180ms)
+      ✓ should not let vote with invalid id (187ms)
     #finalize
-      ✓ doesnot change if it did not pass minimum threshold (646ms)
-      ✓ should change to proposedValue when quorum is reached (1911ms)
-      ✓ prevents double finalize (1852ms)
+      ✓ does not change if it did not pass minimum threshold (650ms)
+      ✓ should change to proposedValue when quorum is reached (1362ms)
+      ✓ prevents double finalize (1535ms)
+    #upgradeTo
+      ✓ may be called only by ProxyStorage (80ms)
+      ✓ should change implementation address (148ms)
+      ✓ should increment implementation version (110ms)
+      ✓ new implementation should work (118ms)
+      ✓ new implementation should use the same proxyStorage address (88ms)
+      ✓ new implementation should use the same storage (463ms)
+  Contract: VotingToChangeMinThreshold upgraded [all features]
+    #createBallotToChangeThreshold
+      ✓ happy path (308ms)
+      ✓ proposed value should be more than or equal to 3 (40ms)
+      ✓ proposed value should not be equal to the same value (51ms)
+      ✓ should not let create more ballots than the limit (9581ms)
+    #vote
+      ✓ should let a validator to vote (139ms)
+      ✓ reject vote should be accepted (154ms)
+      ✓ should allow multiple voters to vote (364ms)
+      ✓ should not let vote nonVoting key (53ms)
+      ✓ should not let vote before startTime key (103ms)
+      ✓ should not let vote after endTime key (165ms)
+      ✓ should not let vote with already voted key (192ms)
+      ✓ should not let vote with invalid choice (224ms)
+      ✓ should not let vote with invalid id (234ms)
+    #finalize
+      ✓ does not change if it did not pass minimum threshold (615ms)
+      ✓ should change to proposedValue when quorum is reached (1228ms)
+      ✓ prevents double finalize (1434ms)
   Contract: VotingToChangeProxyAddress [all features]
     #createBallotToChangeProxyAddress
-      ✓ happy path (259ms)
-      ✓ proposed address should not be 0x0 (49ms)
-      ✓ can creates multiple ballots (490ms)
-      ✓ should not let create more ballots than the limit (15156ms)
+      ✓ happy path (328ms)
+      ✓ proposed address should not be 0x0
+      ✓ can create multiple ballots (510ms)
+      ✓ should not let create more ballots than the limit (9297ms)
     #vote
-      ✓ should let a validator to vote (192ms)
-      ✓ reject vote should be accepted (191ms)
-      ✓ should allow multiple voters to vote (853ms)
-      ✓ should not let vote nonVoting key (67ms)
-      ✓ should not let vote before startTime key (137ms)
-      ✓ should not let vote after endTime key (114ms)
-      ✓ should not let vote with already voted key (225ms)
-      ✓ should not let vote with invalid choice (210ms)
-      ✓ should not let vote with invalid id (313ms)
+      ✓ should let a validator to vote (141ms)
+      ✓ reject vote should be accepted (142ms)
+      ✓ should allow multiple voters to vote (804ms)
+      ✓ should not let vote nonVoting key (49ms)
+      ✓ should not let vote before startTime key (134ms)
+      ✓ should not let vote after endTime key (108ms)
+      ✓ should not let vote with already voted key (194ms)
+      ✓ should not let vote with invalid choice (185ms)
+      ✓ should not let vote with invalid id (187ms)
     #finalize
-      ✓ doesnot change if it did not pass minimum threshold (649ms)
-      ✓ should change getKeysManager address (943ms)
-      ✓ should change getVotingToChangeKeys (1051ms)
-      ✓ should change getVotingToChangeMinThreshold (998ms)
-      ✓ should change getVotingToChangeProxy (1044ms)
-      ✓ should change getBallotsStorage (1075ms)
-      ✓ should change getValidatorMetadata (1125ms)
-      ✓ should change getValidatorMetadataEternalStorage (1100ms)
-      ✓ prevents double finalize (1461ms)
-  189 passing (4m)
+      ✓ does not change if it did not pass minimum threshold (697ms)
+      ✓ should change KeysManager implementation (952ms)
+      ✓ should change VotingToChangeKeys implementation (1097ms)
+      ✓ should change VotingToChangeMinThreshold implementation (1012ms)
+      ✓ should change VotingToChangeProxy implementation (1104ms)
+      ✓ should change BallotsStorage implementation (1010ms)
+      ✓ should change ValidatorMetadata implementation (1093ms)
+      ✓ should change ProxyStorage implementation (1021ms)
+      ✓ prevents double finalize (1537ms)
+    #upgradeTo
+      ✓ may be called only by ProxyStorage (92ms)
+      ✓ should change implementation address (117ms)
+      ✓ should increment implementation version (122ms)
+      ✓ new implementation should work (213ms)
+      ✓ new implementation should use the same proxyStorage address (97ms)
+      ✓ new implementation should use the same storage (592ms)
+  Contract: VotingToChangeProxyAddress upgraded [all features]
+    #createBallotToChangeProxyAddress
+      ✓ happy path (346ms)
+      ✓ proposed address should not be 0x0
+      ✓ can create multiple ballots (460ms)
+      ✓ should not let create more ballots than the limit (9227ms)
+    #vote
+      ✓ should let a validator to vote (144ms)
+      ✓ reject vote should be accepted (158ms)
+      ✓ should allow multiple voters to vote (855ms)
+      ✓ should not let vote nonVoting key (47ms)
+      ✓ should not let vote before startTime key (102ms)
+      ✓ should not let vote after endTime key (112ms)
+      ✓ should not let vote with already voted key (189ms)
+      ✓ should not let vote with invalid choice (182ms)
+      ✓ should not let vote with invalid id (187ms)
+    #finalize
+      ✓ does not change if it did not pass minimum threshold (703ms)
+      ✓ should change KeysManager implementation (917ms)
+      ✓ should change VotingToChangeKeys implementation (1002ms)
+      ✓ should change VotingToChangeMinThreshold implementation (1033ms)
+      ✓ should change VotingToChangeProxy implementation (1013ms)
+      ✓ should change BallotsStorage implementation (1006ms)
+      ✓ should change ValidatorMetadata implementation (1157ms)
+      ✓ should change ProxyStorage implementation (1020ms)
+      ✓ prevents double finalize (1504ms)
+  349 passing (8m)
  ```

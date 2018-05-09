@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
 import "./EternalStorage.sol";
-import "../interfaces/IEternalStorageProxy.sol";
+import "./IEternalStorageProxy.sol";
 
 
 /**
@@ -19,17 +19,38 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
     */
     event Upgraded(uint256 version, address indexed implementation);
 
+    event OwnershipRenounced(address indexed previousOwner);
+    event OwnershipTransferred(address indexed previousOwner, address indexed newOwner);
+
     modifier onlyProxyStorage() {
-        require(msg.sender == addressStorage[keccak256("proxyStorage")]);
+        require(msg.sender == getProxyStorage());
         _;
     }
 
+    modifier onlyOwner() {
+        require(msg.sender == getOwner());
+        _;
+    }
+
+    function getProxyStorage() public view returns(address) {
+        return addressStorage[keccak256("proxyStorage")];
+    }
+
+    function getOwner() public view returns(address) {
+        return addressStorage[keccak256("owner")];
+    }
+
     function EternalStorageProxy(address _proxyStorage, address _implementationAddress) public {
-        require(_proxyStorage != address(0));
         require(_implementationAddress != address(0));
-        addressStorage[keccak256("proxyStorage")] = _proxyStorage;
+
+        if (_proxyStorage != address(0)) {
+            _setProxyStorage(_proxyStorage);
+        } else {
+            _setProxyStorage(address(this));
+        }
+        
         _implementation = _implementationAddress;
-        addressStorage[keccak256("owner")] = msg.sender;
+        _setOwner(msg.sender);
     }
 
     /**
@@ -38,15 +59,13 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
     */
     function () public payable {
         address _impl = _implementation;
-
         require(_impl != address(0));
-        bytes memory data = msg.data;
 
         assembly {
-            let result := delegatecall(gas, _impl, add(data, 0x20), mload(data), 0, 0)
-            let size := returndatasize
-
             let ptr := mload(0x40)
+            calldatacopy(ptr, 0, calldatasize)
+            let result := delegatecall(gas, _impl, ptr, calldatasize, 0, 0)
+            let size := returndatasize
             returndatacopy(ptr, 0, size)
 
             switch result
@@ -61,6 +80,7 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
      */
     function upgradeTo(address implementation) public onlyProxyStorage {
         require(_implementation != implementation);
+        require(implementation != address(0));
 
         uint256 _newVersion = _version + 1;
         assert(_newVersion > _version);
@@ -68,6 +88,32 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
 
         _implementation = implementation;
         Upgraded(_version, _implementation);
+    }
+
+    /**
+     * @dev Allows the current owner to transfer control of the contract to a _newOwner.
+     * @param _newOwner The address to transfer ownership to.
+     */
+    function transferOwnership(address _newOwner) public onlyOwner {
+        require(_newOwner != address(0));
+        OwnershipTransferred(getOwner(), _newOwner);
+        _setOwner(_newOwner);
+    }
+
+    /**
+     * @dev Allows the current owner to relinquish ownership.
+     */
+    function renounceOwnership() public onlyOwner {
+        OwnershipRenounced(getOwner());
+        _setOwner(address(0));
+    }
+
+    function _setProxyStorage(address _proxyStorage) private {
+        addressStorage[keccak256("proxyStorage")] = _proxyStorage;
+    }
+
+    function _setOwner(address _owner) private {
+        addressStorage[keccak256("owner")] = _owner;
     }
 
 }

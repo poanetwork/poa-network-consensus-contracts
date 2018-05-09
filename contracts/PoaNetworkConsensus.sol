@@ -29,12 +29,13 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     bool public finalized = false;
     bool public isMasterOfCeremonyInitialized = false;
     address public masterOfCeremony;
-    address public systemAddress = 0xfffffffffffffffffffffffffffffffffffffffe;
+    address public systemAddress = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
     address[] public currentValidators;
     address[] public pendingList;
     uint256 public currentValidatorsLength;
     mapping(address => ValidatorState) public validatorsState;
     IProxyStorage public proxyStorage;
+    address owner;
 
     modifier onlySystemAndNotFinalized() {
         require(msg.sender == systemAddress && !finalized);
@@ -73,6 +74,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         }
         currentValidatorsLength = currentValidators.length;
         pendingList = currentValidators;
+        owner = msg.sender;
     }
 
     /// Get current validator set (last enacted or initial if no changes ever made)
@@ -109,7 +111,10 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         }
     }
 
-    function removeValidator(address _validator, bool _shouldFireEvent) public onlyKeysManager isNotNewValidator(_validator) {
+    function removeValidator(
+        address _validator,
+        bool _shouldFireEvent
+    ) public onlyKeysManager isNotNewValidator(_validator) {
         uint256 removedIndex = validatorsState[_validator].index;
         // Can not remove the last validator.
         uint256 lastIndex = pendingList.length - 1;
@@ -137,8 +142,8 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     }
 
     function setProxyStorage(address _newAddress) public {
-        // any miner can change the address;
-        require(isValidator(msg.sender));
+        // any miner can change the address
+        require(isValidator(msg.sender) || msg.sender == owner);
         require(!isMasterOfCeremonyInitialized);
         require(_newAddress != address(0));
         proxyStorage = IProxyStorage(_newAddress);

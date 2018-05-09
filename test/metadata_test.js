@@ -4,7 +4,7 @@ let ValidatorMetadata = artifacts.require('./mockContracts/ValidatorMetadataMock
 let ValidatorMetadataNew = artifacts.require('./upgradeContracts/ValidatorMetadataNew');
 let BallotsStorage = artifacts.require('./BallotsStorage');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
-let EternalStorageProxy = artifacts.require('./EternalStorageProxyMock');
+let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
 
@@ -17,7 +17,7 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
-let keysManager, ballotsStorage, poaNetworkConsensusMock;
+let keysManager, poaNetworkConsensusMock;
 let metadata, metadataEternalStorage;
 let votingKey, votingKey2, votingKey3, miningKey;
 let fakeData = [
@@ -41,9 +41,26 @@ contract('ValidatorMetadata [all features]', function (accounts) {
   votingKey3 = accounts[7];
   beforeEach(async () => { 
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
-    proxyStorageMock = await ProxyStorageMock.new(poaNetworkConsensusMock.address);
-    keysManager = await KeysManagerMock.new(proxyStorageMock.address, poaNetworkConsensusMock.address, masterOfCeremony, "0x0000000000000000000000000000000000000000");
-    ballotsStorage = await BallotsStorage.new(proxyStorageMock.address);
+    
+    proxyStorageMock = await ProxyStorageMock.new();
+    const proxyStorageEternalStorage = await EternalStorageProxy.new(0, proxyStorageMock.address);
+    proxyStorageMock = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
+    await proxyStorageMock.init(poaNetworkConsensusMock.address).should.be.fulfilled;
+    
+    keysManager = await KeysManagerMock.new();
+    const keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, keysManager.address);
+    keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);
+    await keysManager.init(
+      poaNetworkConsensusMock.address,
+      masterOfCeremony,
+      "0x0000000000000000000000000000000000000000"
+    ).should.be.fulfilled;
+    
+    let ballotsStorage = await BallotsStorage.new();
+    const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
+    ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
+    await ballotsStorage.init(false).should.be.fulfilled;
+    
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
 
     metadata = await ValidatorMetadata.new();
@@ -54,7 +71,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       masterOfCeremony,
       masterOfCeremony,
       masterOfCeremony,
-      ballotsStorage.address,
+      ballotsEternalStorage.address,
       metadataEternalStorage.address
     );
     
@@ -305,6 +322,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       "0x0000000000000000000000000000000000000000".should.be.equal
         (await metadata.pendingProxyStorage());
       (await metadata.proxyStorage()).should.be.equal(proxyStorageMock.address);
+      await metadata.setProxyAddress(newProxy, {from: miningKey}).should.be.rejectedWith(ERROR_MSG);
       const {logs} = await metadata.setProxyAddress(newProxy, {from: votingKey}).should.be.fulfilled;
       (await metadata.pendingProxyStorage()).should.be.equal(newProxy);
       (await metadata.pendingProxyConfirmations(newProxy))[0].should.be.bignumber.deep.equal(1);
