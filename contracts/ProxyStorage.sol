@@ -2,7 +2,7 @@ pragma solidity ^0.4.18;
 
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
-import "./eternal-storage/IEternalStorageProxy.sol";
+import "./interfaces/IEternalStorageProxy.sol";
 import "./eternal-storage/EternalStorage.sol";
 
 

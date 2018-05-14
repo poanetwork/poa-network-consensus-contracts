@@ -15,7 +15,17 @@ async function compile(dir, contractName) {
 			'': fs.readFileSync(dir + contractName + '.sol').toString()
 		}
 	}, 1, function (path) {
-		return {contents: fs.readFileSync(dir + path).toString()}
+		let content;
+		try {
+			content = fs.readFileSync(dir + path);
+		} catch (e) {
+			if (e.code == 'ENOENT') {
+				content = fs.readFileSync(dir + '../' + path);
+			}
+		}
+		return {
+			contents: content.toString()
+		}
 	});
 	const abi = JSON.parse(compiled.contracts[':' + contractName].interface);
 	const bytecode = compiled.contracts[':' + contractName].bytecode;

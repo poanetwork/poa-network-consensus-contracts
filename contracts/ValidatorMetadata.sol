@@ -1,6 +1,6 @@
 pragma solidity ^0.4.18;
 
-import "./SafeMath.sol";
+import "./libs/SafeMath.sol";
 import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IKeysManager.sol";

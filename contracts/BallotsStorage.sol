@@ -3,7 +3,7 @@ import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
 import "./eternal-storage/EternalStorage.sol";
-import "./SafeMath.sol";
+import "./libs/SafeMath.sol";
 
 
 contract BallotsStorage is EternalStorage, IBallotsStorage {

@@ -1,7 +1,7 @@
 pragma solidity ^0.4.18;
 
 import "./EternalStorage.sol";
-import "./IEternalStorageProxy.sol";
+import "../interfaces/IEternalStorageProxy.sol";
 
 
 /**
