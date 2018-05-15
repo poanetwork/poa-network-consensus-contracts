@@ -16,9 +16,9 @@
     "ethereumjs-testrpc": "^6.0.3",
     "mochawesome": "^3.0.0",
     "moment": "^2.19.3",
-    "solhint": "^1.1.9",
-    "solidity-coverage": "^0.4.2",
-    "truffle": "^4.0.1"
+    "solhint": "^1.1.10",
+    "solidity-coverage": "^0.4.15",
+    "truffle": "^4.1.8"
   },
   "dependencies": {}
 }

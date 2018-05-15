@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./libs/SafeMath.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
@@ -12,11 +12,22 @@ contract KeysManager is EternalStorage, IKeysManager {
 
     enum InitialKeyState {Invalid, Activated, Deactivated}
 
-    event PayoutKeyChanged(address key, address indexed miningKey, string action);
-    event VotingKeyChanged(address key, address indexed miningKey, string action);
     event MiningKeyChanged(address key, string action);
-    event ValidatorInitialized(address indexed miningKey, address indexed votingKey, address indexed payoutKey);
-    event InitialKeyCreated(address indexed initialKey, uint256 time, uint256 initialKeysCount);
+    event VotingKeyChanged(address key, address indexed miningKey, string action);
+    event PayoutKeyChanged(address key, address indexed miningKey, string action);
+    
+    event ValidatorInitialized(
+        address indexed miningKey,
+        address indexed votingKey,
+        address indexed payoutKey
+    );
+
+    event InitialKeyCreated(
+        address indexed initialKey,
+        uint256 time,
+        uint256 initialKeysCount
+    );
+    
     event Migrated(string name, address key);
 
     modifier onlyOwner() {
@@ -120,7 +131,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsVotingActive(false, _masterOfCeremony);
         _setIsPayoutActive(false, _masterOfCeremony);
         _setSuccessfulValidatorClone(true, _masterOfCeremony);
-        Migrated("miningKey", _masterOfCeremony);
+        emit Migrated("miningKey", _masterOfCeremony);
         if (_previousKeysManager != address(0)) {
             _setPreviousKeysManager(_previousKeysManager);
             IKeysManager previous = IKeysManager(_previousKeysManager);
@@ -153,7 +164,7 @@ contract KeysManager is EternalStorage, IKeysManager {
             _setMiningKeyHistory(currentMiningKey, oldMiningKey);
             currentMiningKey = oldMiningKey;
         }
-        Migrated("miningKey", _miningKey);
+        emit Migrated("miningKey", _miningKey);
     }
 
     function migrateInitialKey(address _initialKey) public {
@@ -167,7 +178,7 @@ contract KeysManager is EternalStorage, IKeysManager {
             status == uint8(InitialKeyState.Deactivated)
         );
         _setInitialKeyStatus(_initialKey, status);
-        Migrated("initialKey", _initialKey);
+        emit Migrated("initialKey", _initialKey);
     }
 
     function initiateKeys(address _initialKey) public {
@@ -180,13 +191,26 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setInitialKeyStatus(_initialKey, uint8(InitialKeyState.Activated));
         _initialKeysCount = _initialKeysCount.add(1);
         _setInitialKeysCount(_initialKeysCount);
-        InitialKeyCreated(_initialKey, getTime(), _initialKeysCount);
+        emit InitialKeyCreated(_initialKey, getTime(), _initialKeysCount);
     }
 
-    function createKeys(address _miningKey, address _votingKey, address _payoutKey) public onlyValidInitialKey {
-        require(_miningKey != address(0) && _votingKey != address(0) && _payoutKey != address(0));
-        require(_miningKey != _votingKey && _miningKey != _payoutKey && _votingKey != _payoutKey);
-        require(_miningKey != msg.sender && _votingKey != msg.sender && _payoutKey != msg.sender);
+    function createKeys(
+        address _miningKey,
+        address _votingKey,
+        address _payoutKey
+    )
+        public
+        onlyValidInitialKey
+    {
+        require(_miningKey != address(0));
+        require(_votingKey != address(0));
+        require(_payoutKey != address(0));
+        require(_miningKey != _votingKey);
+        require(_miningKey != _payoutKey);
+        require(_votingKey != _payoutKey);
+        require(_miningKey != msg.sender);
+        require(_votingKey != msg.sender);
+        require(_payoutKey != msg.sender);
         _setVotingKey(_votingKey, _miningKey);
         _setPayoutKey(_payoutKey, _miningKey);
         _setIsMiningActive(true, _miningKey);
@@ -195,7 +219,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setMiningKeyByVoting(_votingKey, _miningKey);
         _setInitialKeyStatus(msg.sender, uint8(InitialKeyState.Deactivated));
         IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_miningKey, true);
-        ValidatorInitialized(_miningKey, _votingKey, _payoutKey);
+        emit ValidatorInitialized(_miningKey, _votingKey, _payoutKey);
     }
 
     function getTime() public view returns(uint256) {
@@ -267,7 +291,10 @@ contract KeysManager is EternalStorage, IKeysManager {
         _removePayoutKey(_miningKey);
     }
 
-    function swapMiningKey(address _key, address _oldMiningKey) public onlyVotingToChangeKeys {
+    function swapMiningKey(address _key, address _oldMiningKey)
+        public
+        onlyVotingToChangeKeys
+    {
         _setMiningKeyHistory(_key, _oldMiningKey);
         address votingKey = getVotingByMining(_oldMiningKey);
         require(isMiningActive(_oldMiningKey));
@@ -283,7 +310,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsVotingActive(false, _oldMiningKey);
         _setIsPayoutActive(false, _oldMiningKey);
         _setMiningKeyByVoting(votingKey, _key);
-        MiningKeyChanged(_key, "swapped");
+        emit MiningKeyChanged(_key, "swapped");
     }
 
     function swapVotingKey(address _key, address _miningKey) public onlyVotingToChangeKeys {
@@ -311,7 +338,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsVotingActive(false, _key);
         _setIsPayoutActive(false, _key);
         IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_key, true);
-        MiningKeyChanged(_key, "added");
+        emit MiningKeyChanged(_key, "added");
     }
 
     function _addVotingKey(address _key, address _miningKey) private {
@@ -324,7 +351,7 @@ contract KeysManager is EternalStorage, IKeysManager {
             _setVotingKey(_key, _miningKey);
             _setIsVotingActive(true, _miningKey);
             _setMiningKeyByVoting(_key, _miningKey);
-            VotingKeyChanged(_key, _miningKey, "added");
+            emit VotingKeyChanged(_key, _miningKey, "added");
         }
     }
 
@@ -337,7 +364,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         } else {
             _setPayoutKey(_key, _miningKey);
             _setIsPayoutActive(true, _miningKey);
-            PayoutKeyChanged(_key, _miningKey, "added");
+            emit PayoutKeyChanged(_key, _miningKey, "added");
         }
     }
 
@@ -350,7 +377,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsVotingActive(false, _key);
         _setIsPayoutActive(false, _key);
         IPoaNetworkConsensus(poaNetworkConsensus()).removeValidator(_key, true);
-        MiningKeyChanged(_key, "removed");
+        emit MiningKeyChanged(_key, "removed");
     }
 
     function _removeVotingKey(address _miningKey) private {
@@ -359,7 +386,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setVotingKey(address(0), _miningKey);
         _setIsVotingActive(false, _miningKey);
         _setMiningKeyByVoting(oldVoting, address(0));
-        VotingKeyChanged(oldVoting, _miningKey, "removed");
+        emit VotingKeyChanged(oldVoting, _miningKey, "removed");
     }
 
     function _removePayoutKey(address _miningKey) private {
@@ -367,7 +394,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         address oldPayout = getPayoutByMining(_miningKey);
         _setPayoutKey(address(0), _miningKey);
         _setIsPayoutActive(false, _miningKey);
-        PayoutKeyChanged(oldPayout, _miningKey, "removed");
+        emit PayoutKeyChanged(oldPayout, _miningKey, "removed");
     }
 
     function _setMasterOfCeremony(address _moc) private {

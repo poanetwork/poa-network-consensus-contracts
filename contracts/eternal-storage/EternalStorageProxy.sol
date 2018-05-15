@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./EternalStorage.sol";
 import "../interfaces/IEternalStorageProxy.sol";
@@ -32,15 +32,7 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
         _;
     }
 
-    function getProxyStorage() public view returns(address) {
-        return addressStorage[keccak256("proxyStorage")];
-    }
-
-    function getOwner() public view returns(address) {
-        return addressStorage[keccak256("owner")];
-    }
-
-    function EternalStorageProxy(address _proxyStorage, address _implementationAddress) public {
+    constructor(address _proxyStorage, address _implementationAddress) public {
         require(_implementationAddress != address(0));
 
         if (_proxyStorage != address(0)) {
@@ -74,6 +66,32 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
         }
     }
 
+    function getOwner() public view returns(address) {
+        return addressStorage[keccak256("owner")];
+    }
+
+    function getProxyStorage() public view returns(address) {
+        return addressStorage[keccak256("proxyStorage")];
+    }
+
+    /**
+     * @dev Allows the current owner to relinquish ownership.
+     */
+    function renounceOwnership() public onlyOwner {
+        emit OwnershipRenounced(getOwner());
+        _setOwner(address(0));
+    }
+
+    /**
+     * @dev Allows the current owner to transfer control of the contract to a _newOwner.
+     * @param _newOwner The address to transfer ownership to.
+     */
+    function transferOwnership(address _newOwner) public onlyOwner {
+        require(_newOwner != address(0));
+        emit OwnershipTransferred(getOwner(), _newOwner);
+        _setOwner(_newOwner);
+    }
+
     /**
      * @dev Allows ProxyStorage contract to upgrade the current implementation.
      * @param implementation representing the address of the new implementation to be set.
@@ -87,25 +105,7 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
         _version = _newVersion;
 
         _implementation = implementation;
-        Upgraded(_version, _implementation);
-    }
-
-    /**
-     * @dev Allows the current owner to transfer control of the contract to a _newOwner.
-     * @param _newOwner The address to transfer ownership to.
-     */
-    function transferOwnership(address _newOwner) public onlyOwner {
-        require(_newOwner != address(0));
-        OwnershipTransferred(getOwner(), _newOwner);
-        _setOwner(_newOwner);
-    }
-
-    /**
-     * @dev Allows the current owner to relinquish ownership.
-     */
-    function renounceOwnership() public onlyOwner {
-        OwnershipRenounced(getOwner());
-        _setOwner(address(0));
+        emit Upgraded(_version, _implementation);
     }
 
     function _setProxyStorage(address _proxyStorage) private {

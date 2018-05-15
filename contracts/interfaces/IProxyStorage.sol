@@ -1,13 +1,13 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 
 interface IProxyStorage {
-    function getKeysManager() public view returns(address);
-    function getBallotsStorage() public view returns(address);
-    function getVotingToChangeKeys() public view returns(address);
-    function getVotingToChangeMinThreshold() public view returns(address);
-    function getPoaConsensus() public view returns(address);
-    function initializeAddresses(address, address, address, address, address, address) public;
-    function setContractAddress(uint256, address) public;
-    function isValidator(address) public view returns(bool);
+    function getKeysManager() external view returns(address);
+    function getBallotsStorage() external view returns(address);
+    function getVotingToChangeKeys() external view returns(address);
+    function getVotingToChangeMinThreshold() external view returns(address);
+    function getPoaConsensus() external view returns(address);
+    function initializeAddresses(address, address, address, address, address, address) external;
+    function setContractAddress(uint256, address) external;
+    function isValidator(address) external view returns(bool);
 }

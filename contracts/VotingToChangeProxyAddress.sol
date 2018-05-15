@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IBallotsStorage.sol";
@@ -58,7 +58,7 @@ contract VotingToChangeProxyAddress is IVotingToChangeProxyAddress, VotingToChan
         _setContractType(_id, prev.getContractType(_id));
     }
 
-    function _finalizeBallotInner(uint256 _id) private {
+    function _finalizeBallotInner(uint256 _id) internal {
         IProxyStorage(proxyStorage()).setContractAddress(
             getContractType(_id),
             getProposedValue(_id)

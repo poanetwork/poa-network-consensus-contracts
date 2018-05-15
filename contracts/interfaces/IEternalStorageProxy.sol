@@ -1,6 +1,6 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 
 interface IEternalStorageProxy {
-    function upgradeTo(address) public;
+    function upgradeTo(address) external;
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "../interfaces/IBallotsStorage.sol";
 import "../interfaces/IPoaNetworkConsensus.sol";
@@ -41,7 +41,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
         _finalizeBallot(_id);
         _decreaseValidatorLimit(_id);
         _setIsFinalized(_id, true);
-        BallotFinalized(_id, msg.sender);
+        emit BallotFinalized(_id, msg.sender);
     }
 
     function getBallotLimitPerValidator() public view returns(uint256) {
@@ -120,7 +120,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
         }
         _votersAdd(_id, miningKey);
         _setTotalVoters(_id, getTotalVoters(_id).add(1));
-        Vote(_id, _choice, msg.sender, getTime(), miningKey);
+        emit Vote(_id, _choice, msg.sender, getTime(), miningKey);
     }
 
     function withinLimit(address _miningKey) public view returns(bool) {
@@ -131,11 +131,11 @@ contract VotingToChange is IVotingToChange, VotingTo {
         uintArrayStorage[_activeBallotsHash()].push(_id);
     }
 
-    function _activeBallotsClear() private {
+    function _activeBallotsClear() internal {
         delete uintArrayStorage[_activeBallotsHash()];
     }
 
-    function _activeBallotsDecreaseLength() private {
+    function _activeBallotsDecreaseLength() internal {
         if (activeBallotsLength() > 0) {
             uintArrayStorage[_activeBallotsHash()].length--;
         }
@@ -145,7 +145,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
         return keccak256("activeBallots");
     }
 
-    function _activeBallotsSet(uint256 _index, uint256 _id) private {
+    function _activeBallotsSet(uint256 _index, uint256 _id) internal {
         uintArrayStorage[_activeBallotsHash()][_index] = _id;
     }
 
@@ -176,7 +176,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
         _activeBallotsAdd(ballotId);
         _increaseValidatorLimit(creatorMiningKey);
         _setNextBallotId(ballotId.add(1));
-        BallotCreated(ballotId, _ballotType, msg.sender);
+        emit BallotCreated(ballotId, _ballotType, msg.sender);
         return ballotId;
     }
 
@@ -197,7 +197,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
         _setValidatorActiveBallots(miningKey, validatorActiveBallots(miningKey).sub(1));
     }
 
-    function _finalizeBallot(uint256 _id) private {
+    function _finalizeBallot(uint256 _id) internal {
         if (getProgress(_id) > 0 && getTotalVoters(_id) >= getMinThresholdOfVoters(_id)) {
             _setQuorumState(_id, uint8(QuorumStates.Accepted));
             _finalizeBallotInner(_id);
@@ -207,7 +207,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
         _deactiveBallot(_id);
     }
 
-    function _finalizeBallotInner(uint256 _id) private;
+    function _finalizeBallotInner(uint256 _id) internal;
 
     function _increaseValidatorLimit(address _miningKey) internal {
         _setValidatorActiveBallots(_miningKey, validatorActiveBallots(_miningKey).add(1));

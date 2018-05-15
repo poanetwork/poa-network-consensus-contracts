@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./libs/SafeMath.sol";
 import "./interfaces/IBallotsStorage.sol";
@@ -107,11 +107,14 @@ contract ValidatorMetadata is EternalStorage {
         count = voters.length;
     }
 
-    function setProxyAddress(address _newProxyAddress) public onlyValidVotingKey(msg.sender) {
+    function setProxyAddress(address _newProxyAddress)
+        public
+        onlyValidVotingKey(msg.sender)
+    {
         require(pendingProxyStorage() == address(0));
         _setPendingProxyStorage(_newProxyAddress);
         _pendingProxyConfirmationsVoterAdd(_newProxyAddress, msg.sender);
-        RequestForNewProxy(_newProxyAddress);
+        emit RequestForNewProxy(_newProxyAddress);
     }
 
     function confirmNewProxyAddress(address _newProxyAddress)
@@ -128,10 +131,10 @@ contract ValidatorMetadata is EternalStorage {
             delete addressArrayStorage[
                 keccak256("pendingProxyConfirmations", _newProxyAddress, "voters")
             ];
-            ChangeProxyStorage(_newProxyAddress);
+            emit ChangeProxyStorage(_newProxyAddress);
         }
         
-        Confirmed(_newProxyAddress, msg.sender);
+        emit Confirmed(_newProxyAddress, msg.sender);
     }
 
     function initMetadataDisabled() public view returns(bool) {
@@ -199,7 +202,7 @@ contract ValidatorMetadata is EternalStorage {
         _setCreatedDate(false, miningKey, getTime());
         _setUpdatedDate(false, miningKey, 0);
         _setMinThreshold(false, miningKey, getMinThreshold());
-        MetadataCreated(miningKey);
+        emit MetadataCreated(miningKey);
     }
 
     function changeRequest(
@@ -253,19 +256,25 @@ contract ValidatorMetadata is EternalStorage {
         _setUpdatedDate(true, _miningKey, getTime());
         _setMinThreshold(true, _miningKey, _getMinThreshold(false, _miningKey));
         delete addressArrayStorage[keccak256("confirmations", _miningKey, "voters")];
-        ChangeRequestInitiated(_miningKey);
+        emit ChangeRequestInitiated(_miningKey);
         return true;
     }
 
     function cancelPendingChange() public onlyValidVotingKey(msg.sender) returns(bool) {
         address miningKey = getMiningByVotingKey(msg.sender);
         _deletePendingChange(miningKey);
-        CancelledRequest(miningKey);
+        emit CancelledRequest(miningKey);
         return true;
     }
 
-    function isAddressAlreadyVoted(address _miningKey, address _voter) public view returns(bool) {
-        var (count, voters) = confirmations(_miningKey);
+    function isAddressAlreadyVoted(address _miningKey, address _voter)
+        public
+        view
+        returns(bool)
+    {
+        uint256 count;
+        address[] memory voters;
+        (count, voters) = confirmations(_miningKey);
         for (uint256 i = 0; i < count; i++) {
             if (voters[i] == _voter) {
                 return true;   
@@ -274,8 +283,14 @@ contract ValidatorMetadata is EternalStorage {
         return false;
     }
 
-    function isAddressAlreadyVotedProxy(address _newProxy, address _voter) public view returns(bool) {
-        var (count, voters) = pendingProxyConfirmations(_newProxy);
+    function isAddressAlreadyVotedProxy(address _newProxy, address _voter)
+        public
+        view
+        returns(bool)
+    {
+        uint256 count;
+        address[] memory voters;
+        (count, voters) = pendingProxyConfirmations(_newProxy);
         for (uint256 i = 0; i < count; i++) {
             if (voters[i] == _voter) {
                 return true;   
@@ -284,14 +299,17 @@ contract ValidatorMetadata is EternalStorage {
         return false;
     }
 
-    function confirmPendingChange(address _miningKey) public onlyValidVotingKey(msg.sender) {
+    function confirmPendingChange(address _miningKey)
+        public
+        onlyValidVotingKey(msg.sender)
+    {
         require(!isAddressAlreadyVoted(_miningKey, msg.sender));
         uint256 count = _getConfirmationsVoters(_miningKey).length;
         require(count <= 50); // no need for more confirmations
         address miningKey = getMiningByVotingKey(msg.sender);
         require(miningKey != _miningKey);
         _confirmationsVoterAdd(_miningKey, msg.sender);
-        Confirmed(_miningKey, msg.sender);
+        emit Confirmed(_miningKey, msg.sender);
     }
 
     function finalize(address _miningKey) public onlyValidVotingKey(msg.sender) {
@@ -310,7 +328,7 @@ contract ValidatorMetadata is EternalStorage {
         _setUpdatedDate(false, _miningKey, _getUpdatedDate(true, _miningKey));
         _setMinThreshold(false, _miningKey, _getMinThreshold(true, _miningKey));
         _deletePendingChange(_miningKey);
-        FinalizedChange(_miningKey);
+        emit FinalizedChange(_miningKey);
     }
 
     function getMiningByVotingKey(address _votingKey) public view returns(address) {
@@ -344,52 +362,102 @@ contract ValidatorMetadata is EternalStorage {
         return _pending ? "pendingChanges" : "validators";
     }
 
-    function _getFirstName(bool _pending, address _miningKey) private view returns(bytes32) {
+    function _getFirstName(bool _pending, address _miningKey)
+        private
+        view
+        returns(bytes32)
+    {
         return bytes32Storage[keccak256(_storeName(_pending), _miningKey, "firstName")];
     }
 
-    function _getLastName(bool _pending, address _miningKey) private view returns(bytes32) {
+    function _getLastName(bool _pending, address _miningKey)
+        private
+        view
+        returns(bytes32)
+    {
         return bytes32Storage[keccak256(_storeName(_pending), _miningKey, "lastName")];
     }
 
-    function _getLicenseId(bool _pending, address _miningKey) private view returns(bytes32) {
+    function _getLicenseId(bool _pending, address _miningKey)
+        private
+        view
+        returns(bytes32)
+    {
         return bytes32Storage[keccak256(_storeName(_pending), _miningKey, "licenseId")];
     }
 
-    function _getFullAddress(bool _pending, address _miningKey) private view returns(string) {
+    function _getFullAddress(bool _pending, address _miningKey)
+        private
+        view
+        returns(string)
+    {
         return stringStorage[keccak256(_storeName(_pending), _miningKey, "fullAddress")];
     }
 
-    function _getState(bool _pending, address _miningKey) private view returns(bytes32) {
+    function _getState(bool _pending, address _miningKey)
+        private
+        view
+        returns(bytes32)
+    {
         return bytes32Storage[keccak256(_storeName(_pending), _miningKey, "state")];
     }
 
-    function _getZipcode(bool _pending, address _miningKey) private view returns(bytes32) {
+    function _getZipcode(bool _pending, address _miningKey)
+        private
+        view
+        returns(bytes32)
+    {
         return bytes32Storage[keccak256(_storeName(_pending), _miningKey, "zipcode")];
     }
 
-    function _getExpirationDate(bool _pending, address _miningKey) private view returns(uint256) {
+    function _getExpirationDate(bool _pending, address _miningKey)
+        private
+        view
+        returns(uint256)
+    {
         return uintStorage[keccak256(_storeName(_pending), _miningKey, "expirationDate")];
     }
 
-    function _getCreatedDate(bool _pending, address _miningKey) private view returns(uint256) {
+    function _getCreatedDate(bool _pending, address _miningKey)
+        private
+        view
+        returns(uint256)
+    {
         return uintStorage[keccak256(_storeName(_pending), _miningKey, "createdDate")];
     }
 
-    function _getUpdatedDate(bool _pending, address _miningKey) private view returns(uint256) {
+    function _getUpdatedDate(bool _pending, address _miningKey)
+        private
+        view
+        returns(uint256)
+    {
         return uintStorage[keccak256(_storeName(_pending), _miningKey, "updatedDate")];
     }
 
-    function _getMinThreshold(bool _pending, address _miningKey) private view returns(uint256) {
+    function _getMinThreshold(bool _pending, address _miningKey)
+        private
+        view
+        returns(uint256)
+    {
         return uintStorage[keccak256(_storeName(_pending), _miningKey, "minThreshold")];
     }
 
-    function _getConfirmationsVoters(address _miningKey) private view returns(address[] voters) {
+    function _getConfirmationsVoters(address _miningKey)
+        private
+        view
+        returns(address[] voters)
+    {
         voters = addressArrayStorage[keccak256("confirmations", _miningKey, "voters")];
     }
 
-    function _getPendingProxyConfirmationsVoters(address _newProxyAddress) private view returns(address[] voters) {
-        voters = addressArrayStorage[keccak256("pendingProxyConfirmations", _newProxyAddress, "voters")];
+    function _getPendingProxyConfirmationsVoters(address _newProxyAddress)
+        private
+        view
+        returns(address[] voters)
+    {
+        voters = addressArrayStorage[
+            keccak256("pendingProxyConfirmations", _newProxyAddress, "voters")
+        ];
     }
 
     function _deletePendingChange(address _miningKey) private {
@@ -438,7 +506,11 @@ contract ValidatorMetadata is EternalStorage {
         )] = _state;
     }
 
-    function _setFullAddress(bool _pending, address _miningKey, string _fullAddress) private {
+    function _setFullAddress(
+        bool _pending,
+        address _miningKey,
+        string _fullAddress
+    ) private {
         stringStorage[keccak256(
             _storeName(_pending),
             _miningKey,
@@ -454,7 +526,11 @@ contract ValidatorMetadata is EternalStorage {
         )] = _zipcode;
     }
 
-    function _setExpirationDate(bool _pending, address _miningKey, uint256 _expirationDate) private {
+    function _setExpirationDate(
+        bool _pending,
+        address _miningKey,
+        uint256 _expirationDate
+    ) private {
         uintStorage[keccak256(
             _storeName(_pending),
             _miningKey,
@@ -462,7 +538,11 @@ contract ValidatorMetadata is EternalStorage {
         )] = _expirationDate;
     }
 
-    function _setCreatedDate(bool _pending, address _miningKey, uint256 _createdDate) private {
+    function _setCreatedDate(
+        bool _pending,
+        address _miningKey,
+        uint256 _createdDate
+    ) private {
         uintStorage[keccak256(
             _storeName(_pending),
             _miningKey,
@@ -470,7 +550,11 @@ contract ValidatorMetadata is EternalStorage {
         )] = _createdDate;
     }
 
-    function _setUpdatedDate(bool _pending, address _miningKey, uint256 _updatedDate) private {
+    function _setUpdatedDate(
+        bool _pending,
+        address _miningKey,
+        uint256 _updatedDate
+    ) private {
         uintStorage[keccak256(
             _storeName(_pending),
             _miningKey,
@@ -478,7 +562,11 @@ contract ValidatorMetadata is EternalStorage {
         )] = _updatedDate;
     }
 
-    function _setMinThreshold(bool _pending, address _miningKey, uint256 _minThreshold) private {
+    function _setMinThreshold(
+        bool _pending,
+        address _miningKey,
+        uint256 _minThreshold
+    ) private {
         uintStorage[keccak256(
             _storeName(_pending),
             _miningKey,
@@ -495,11 +583,18 @@ contract ValidatorMetadata is EternalStorage {
     }
 
     function _confirmationsVoterAdd(address _miningKey, address _voter) private {
-        addressArrayStorage[keccak256("confirmations", _miningKey, "voters")].push(_voter);
+        addressArrayStorage[
+            keccak256("confirmations", _miningKey, "voters")
+        ].push(_voter);
     }
 
-    function _pendingProxyConfirmationsVoterAdd(address _newProxyAddress, address _voter) private {
-        addressArrayStorage[keccak256("pendingProxyConfirmations", _newProxyAddress, "voters")].push(_voter);
+    function _pendingProxyConfirmationsVoterAdd(
+        address _newProxyAddress,
+        address _voter
+    ) private {
+        addressArrayStorage[
+            keccak256("pendingProxyConfirmations", _newProxyAddress, "voters")
+        ].push(_voter);
     }
 
 }

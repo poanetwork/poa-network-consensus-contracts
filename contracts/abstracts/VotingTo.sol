@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "../libs/SafeMath.sol";
 import "../interfaces/IBallotsStorage.sol";
@@ -15,10 +15,12 @@ contract VotingTo is EternalStorage {
         uint256 indexed ballotType,
         address indexed creator
     );
+    
     event BallotFinalized(
         uint256 indexed id,
         address indexed voter
     );
+    
     event Vote(
         uint256 indexed id,
         uint256 decision,

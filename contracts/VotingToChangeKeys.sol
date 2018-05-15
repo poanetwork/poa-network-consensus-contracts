@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./interfaces/IKeysManager.sol";
 import "./interfaces/IVotingToChangeKeys.sol";
@@ -15,7 +15,10 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         uint256 _affectedKeyType,
         address _miningKey
     ) public view returns(bool) {
-        if (_affectedKeyType == uint256(KeyTypes.MiningKey) && _ballotType != uint256(BallotTypes.Removal)) {
+        if (
+            _affectedKeyType == uint256(KeyTypes.MiningKey) &&
+            _ballotType != uint256(BallotTypes.Removal)
+        ) {
             require(!checkIfMiningExisted(_miningKey, _affectedKey));
         }
         require(_affectedKeyType > 0);
@@ -32,7 +35,10 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         }
         require(_affectedKey != _miningKey);
         bool keyCheck;
-        if (_ballotType == uint256(BallotTypes.Removal) || _ballotType == uint256(BallotTypes.Swap)) {
+        if (
+            _ballotType == uint256(BallotTypes.Removal) ||
+            _ballotType == uint256(BallotTypes.Swap)
+        ) {
             if (_affectedKeyType == uint256(KeyTypes.MiningKey)) {
                 return isMiningActive;
             }
@@ -89,7 +95,12 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         string memo
     ) public {
         //only if ballotType is swap or remove
-        require(areBallotParamsValid(_ballotType, _affectedKey, _affectedKeyType, _miningKey));
+        require(areBallotParamsValid(
+            _ballotType,
+            _affectedKey,
+            _affectedKeyType,
+            _miningKey
+        ));
         uint256 ballotId = _createBallot(_ballotType, _startTime, _endTime, memo);
         _setAffectedKey(ballotId, _affectedKey);
         _setAffectedKeyType(ballotId, _affectedKeyType);
@@ -152,7 +163,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         }
     }
 
-    function _finalizeBallotInner(uint256 _id) private {
+    function _finalizeBallotInner(uint256 _id) internal {
         if (getBallotType(_id) == uint256(BallotTypes.Adding)) {
             _finalizeAdding(_id);
         } else if (getBallotType(_id) == uint256(BallotTypes.Removal)) {

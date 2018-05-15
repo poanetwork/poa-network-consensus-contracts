@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./interfaces/IVotingToChangeMinThreshold.sol";
 import "./abstracts/VotingToChange.sol";
@@ -51,7 +51,7 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
         _setProposedValue(_id, prev.getProposedValue(_id));
     }
 
-    function _finalizeBallotInner(uint256 _id) private {
+    function _finalizeBallotInner(uint256 _id) internal {
         uint8 thresholdForKeysType = 1;
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
         ballotsStorage.setThreshold(getProposedValue(_id), thresholdForKeysType);

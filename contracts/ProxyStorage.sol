@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
@@ -107,7 +107,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         addressStorage[keccak256("validatorMetadataEternalStorage")] =
             _validatorMetadataEternalStorage;
         boolStorage[keccak256("mocInitialized")] = true;
-        ProxyInitialized(
+        emit ProxyInitialized(
             _keysManagerEternalStorage,
             _votingToChangeKeysEternalStorage,
             _votingToChangeMinThresholdEternalStorage,
@@ -151,7 +151,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         } else if (_contractType == uint8(ContractTypes.ProxyStorage)) {
             IEternalStorageProxy(this).upgradeTo(_contractAddress);
         }
-        AddressSet(_contractType, _contractAddress);
+        emit AddressSet(_contractType, _contractAddress);
     }
 
     function isValidator(address _validator) public view returns(bool) {
