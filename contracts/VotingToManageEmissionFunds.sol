@@ -1,6 +1,7 @@
 pragma solidity ^0.4.23;
 
 import "./interfaces/IEmissionFunds.sol";
+import "./interfaces/IPoaNetworkConsensus.sol";
 import "./abstracts/VotingTo.sol";
 
 
@@ -35,6 +36,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         _setMinThresholdOfVoters(ballotId, getGlobalMinThresholdOfVoters());
         _setCreator(ballotId, getMiningByVotingKey(msg.sender));
         _setMemo(ballotId, memo);
+        _setAmount(ballotId, emissionFunds().balance);
         _setPreviousBallotFinalized(false);
         _setNextBallotId(ballotId.add(1));
         emit BallotCreated(ballotId, 6, msg.sender);
@@ -62,13 +64,11 @@ contract VotingToManageEmissionFunds is VotingTo {
         require(!isActive(_id));
         require(!getIsFinalized(_id));
         require(!previousBallotFinalized());
-        _finalizeBallot(_id);
-        _setIsFinalized(_id, true);
-        _setPreviousBallotFinalized(true);
-        _setEmissionReleaseTime(
-            emissionReleaseTime().add(emissionReleaseThreshold())
-        );
-        emit BallotFinalized(_id, msg.sender);
+        _finalize(_id);
+    }
+
+    function getAmount(uint256 _id) public view returns(uint256) {
+        return uintStorage[keccak256(_storeName(), _id, "amount")];
     }
 
     function getBurnVotes(uint256 _id) public view returns(uint256) {
@@ -144,9 +144,27 @@ contract VotingToManageEmissionFunds is VotingTo {
         address miningKey = getMiningByVotingKey(msg.sender);
         _votersAdd(_id, miningKey);
         emit Vote(_id, _choice, msg.sender, getTime(), miningKey);
+
+        uint256 validatorsLength =
+            IPoaNetworkConsensus(IProxyStorage(proxyStorage()).getPoaConsensus())
+                .getCurrentValidatorsLength();
+        if (validatorsLength > 0) {
+            validatorsLength--; // exclude MasterOfCeremony
+        }
+        if (getTotalVoters(_id) >= validatorsLength) {
+            _finalize(_id);
+        }
     }
 
-    function _finalizeBallot(uint256 _id) private {
+    function _finalize(uint256 _id) private {
+        _setIsFinalized(_id, true);
+        _setPreviousBallotFinalized(true);
+        _setEmissionReleaseTime(
+            emissionReleaseTime().add(emissionReleaseThreshold())
+        );
+        
+        emit BallotFinalized(_id, msg.sender);
+        
         if (getTotalVoters(_id) < getMinThresholdOfVoters(_id)) {
             _setQuorumState(_id, uint8(QuorumStates.Frozen));
             return;
@@ -182,9 +200,9 @@ contract VotingToManageEmissionFunds is VotingTo {
         _setQuorumState(_id, uint8(quorumState));
 
         if (quorumState == QuorumStates.Sent) {
-            IEmissionFunds(emissionFunds()).sendFundsTo(getReceiver(_id));
+            IEmissionFunds(emissionFunds()).sendFundsTo(getReceiver(_id), getAmount(_id));
         } else if (quorumState == QuorumStates.Burnt) {
-            IEmissionFunds(emissionFunds()).burnFunds();
+            IEmissionFunds(emissionFunds()).burnFunds(getAmount(_id));
         }
     }
 
@@ -193,6 +211,10 @@ contract VotingToManageEmissionFunds is VotingTo {
         (max < b) && ((max = b) != 0);
         (max < c) && ((max = c) != 0);
         return max;
+    }
+
+    function _setAmount(uint256 _ballotId, uint256 _amount) private {
+        uintStorage[keccak256(_storeName(), _ballotId, "amount")] = _amount;
     }
 
     function _setBurnVotes(uint256 _ballotId, uint256 _value) private {

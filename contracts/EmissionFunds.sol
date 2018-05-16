@@ -9,15 +9,20 @@ contract EmissionFunds is IEmissionFunds {
     event SendFundsTo(
         address indexed receiver,
         address indexed caller,
-        uint256 value,
+        uint256 amount,
         bool success
     );
     
     event BurnFunds(
         address indexed burner,
-        uint256 value,
+        uint256 amount,
         bool success
     );
+
+    modifier onlyPayloadSize(uint256 numwords) {
+        assert(msg.data.length >= numwords * 32 + 4);
+        _;
+    }
 
     modifier onlyVotingToManageEmissionFunds() {
         require(msg.sender == votingToManageEmissionFunds);
@@ -31,31 +36,26 @@ contract EmissionFunds is IEmissionFunds {
 
     function() external payable {}
 
-    function sendFundsTo(address _receiver)
+    function sendFundsTo(address _receiver, uint256 _amount)
+        external
+        onlyVotingToManageEmissionFunds
+        onlyPayloadSize(2)
+        returns(bool)
+    {
+        // using `send` instead of `transfer` to avoid revert on failure
+        bool success = _receiver.send(_amount);
+        emit SendFundsTo(_receiver, msg.sender, _amount, success);
+        return success;
+    }
+
+    function burnFunds(uint256 _amount)
         external
         onlyVotingToManageEmissionFunds
         returns(bool)
     {
-        uint256 value = _balance();
         // using `send` instead of `transfer` to avoid revert on failure
-        bool success = _receiver.send(value);
-        emit SendFundsTo(_receiver, msg.sender, value, success);
+        bool success = address(0).send(_amount);
+        emit BurnFunds(msg.sender, _amount, success);
         return success;
-    }
-
-    function burnFunds()
-        external
-        onlyVotingToManageEmissionFunds
-        returns(bool)
-    {
-        uint256 value = _balance();
-        // using `send` instead of `transfer` to avoid revert on failure
-        bool success = address(0).send(value);
-        emit BurnFunds(msg.sender, value, success);
-        return success;
-    }
-
-    function _balance() private view returns(uint256) {
-        return address(this).balance;
     }
 }
