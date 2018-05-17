@@ -1,7 +1,7 @@
 pragma solidity ^0.4.23;
 
 
-interface IVotingToChangeProxyAddress {
+interface IVotingToChange {
     function nextBallotId() external view returns(uint256);
     function activeBallots(uint256) external view returns(uint256);
     function activeBallotsLength() external view returns(uint256);
@@ -12,6 +12,4 @@ interface IVotingToChangeProxyAddress {
     function getProgress(uint256) external view returns(int256);
     function getIsFinalized(uint256) external view returns(bool);
     function getMinThresholdOfVoters(uint256) external view returns(uint256);
-    function getProposedValue(uint256) external view returns(address);
-    function getContractType(uint256) external view returns(uint256);
 }

@@ -1,11 +1,8 @@
-const fs = require('fs');
 const Web3 = require('web3');
-const readline = require('readline');
-var Writable = require('stream').Writable;
-const EthereumTx = require('ethereumjs-tx');
 const EthereumUtil = require('ethereumjs-util');
 const axios = require('axios');
-const solc = require('solc');
+const utils = require('./utils/utils');
+const constants = require('./utils/constants');
 
 const NETWORK = process.env.NETWORK; // sokol or core
 const KEYS_MANAGER_NEW_ADDRESS = process.env.KEYS_MANAGER_NEW_ADDRESS;
@@ -20,9 +17,6 @@ require('chai')
 	.use(require('chai-bignumber')(web3.BigNumber))
 	.should();
 
-const GAS_PRICE = web3.utils.toWei('1', 'gwei');
-const GAS_LIMIT = 4700000;
-
 let KEYS_MANAGER_OLD_ADDRESS;
 let POA_CONSENSUS_OLD_ADDRESS;
 let MOC_ADDRESS;
@@ -36,20 +30,20 @@ async function main() {
 	let commit;
 
 	if (NETWORK == 'core') {
-		commit = 'fb311a6c475e37bd9ccc0781b369cf14d738f98e';
+		commit = process.env.CORE_COMMIT ? process.env.CORE_COMMIT : constants.CORE_COMMIT;
 	} else if (NETWORK == 'sokol') {
-		commit = '4e020b68a3d477e1c41859c3f0402c0626254529';
+		commit = process.env.SOKOL_COMMIT ? process.env.SOKOL_COMMIT : constants.SOKOL_COMMIT;
 	}
 
 	try {
 		console.log('Retrieve addresses and ABIs...');
-		
 		let contracts = await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/contracts.json');
 		KEYS_MANAGER_OLD_ADDRESS = contracts.data.KEYS_MANAGER_ADDRESS;
 		POA_CONSENSUS_OLD_ADDRESS = contracts.data.POA_ADDRESS;
 		MOC_ADDRESS = contracts.data.MOC;
 		KEYS_MANAGER_OLD_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/KeysManager.abi.json')).data;
 		POA_CONSENSUS_OLD_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/PoaNetworkConsensus.abi.json')).data;
+		console.log('');
 	} catch (err) {
 		console.log('Cannot read contracts.json');
 		success = false;
@@ -59,8 +53,12 @@ async function main() {
 		if (ONLY_CHECK) {
 			migrateAndCheck();
 		} else {
-			readPrivateKey();
+			let privateKey = process.env.PRIVATE_KEY;
+			if (!privateKey) privateKey = await utils.readPrivateKey();
+			migrateAndCheck(privateKey);
 		}
+	} else {
+		process.exit(1);
 	}
 }
 
@@ -82,12 +80,18 @@ async function migrateAndCheck(privateKey) {
 			console.log('KeysManager migration...');
 		}
 
-		const implCompiled = await compile('../../contracts/', 'KeysManager');
+		const implCompiled = await utils.compile('../../contracts/', 'KeysManager');
 		if (!contractNewAddress && !ONLY_CHECK) {
-			const implAddress = await deploy('KeysManager', implCompiled, sender, key, chainId);
+			const implAddress = await utils.deploy('KeysManager', implCompiled, sender, key, chainId);
 			console.log(`  KeysManager implementation address is ${implAddress}`);
-			const storageCompiled = await compile('../../contracts/eternal-storage/', 'EternalStorageProxy');
-			contractNewAddress = await deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, [PROXY_STORAGE_NEW_ADDRESS, implAddress]);
+			const storageCompiled = await utils.compile('../../contracts/eternal-storage/', 'EternalStorageProxy');
+			contractNewAddress = await utils.deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, [PROXY_STORAGE_NEW_ADDRESS, implAddress]);
+			if (process.send) {
+				process.send({
+					keysManagerNewAddress: contractNewAddress,
+					keysManagerNewAbi: implCompiled.abi
+				});
+			}
 		}
 		console.log(`  KeysManager storage address is ${contractNewAddress}`);
 
@@ -110,14 +114,14 @@ async function migrateAndCheck(privateKey) {
 				MOC_ADDRESS,
 				KEYS_MANAGER_OLD_ADDRESS
 			);
-			await call(init, sender, contractNewAddress, key, chainId);
+			await utils.call(init, sender, contractNewAddress, key, chainId);
 
 			console.log('  Migrate initial keys...');
 			for (let i = 0; i < initialKeys.length; i++) {
 				const migrateInitialKey = keysManagerNewInstance.methods.migrateInitialKey(
 					initialKeys[i]
 				);
-				await call(migrateInitialKey, sender, contractNewAddress, key, chainId);
+				await utils.call(migrateInitialKey, sender, contractNewAddress, key, chainId);
 			}
 
 			console.log(`  Migrate each of ${miningKeys.length} mining key(s)...`);
@@ -130,7 +134,7 @@ async function migrateAndCheck(privateKey) {
 				const migrateMiningKey = keysManagerNewInstance.methods.migrateMiningKey(
 					miningKey
 				);
-				await call(migrateMiningKey, sender, contractNewAddress, key, chainId);
+				await utils.call(migrateMiningKey, sender, contractNewAddress, key, chainId);
 			}
 		}
 		
@@ -209,83 +213,8 @@ async function migrateAndCheck(privateKey) {
 		} else {
 			console.log('Cannot migrate KeysManager: ' + err.message);
 		}
+		process.exit(1);
 	}
-}
-
-async function compile(dir, contractName) {
-	console.log(`  ${contractName} compile...`);
-	const compiled = solc.compile({
-		sources: {
-			'': fs.readFileSync(dir + contractName + '.sol').toString()
-		}
-	}, 1, function (path) {
-		return {contents: fs.readFileSync(dir + path).toString()}
-	});
-	const abi = JSON.parse(compiled.contracts[':' + contractName].interface);
-	const bytecode = compiled.contracts[':' + contractName].bytecode;
-	return {abi: abi, bytecode: bytecode};
-}
-
-async function deploy(contractName, contractSpec, sender, key, chainId, args) {
-	console.log(`  ${contractName} deploy...`);
-	const contract = new web3.eth.Contract(contractSpec.abi);
-	const deploy = await contract.deploy({data: '0x' + contractSpec.bytecode, arguments: args});
-	return (await call(deploy, sender, '', key, chainId)).contractAddress;
-}
-
-async function call(method, from, to, key, chainId) {
-	const estimateGas = await method.estimateGas({
-		from: from,
-		gas: web3.utils.toHex(GAS_LIMIT)
-	});
-
-	const nonce = await web3.eth.getTransactionCount(from);
-	const nonceHex = web3.utils.toHex(nonce);
-	const data = await method.encodeABI();
-	
-	var tx = new EthereumTx({
-		nonce: nonceHex,
-		gasPrice: web3.utils.toHex(GAS_PRICE),
-		gasLimit: web3.utils.toHex(estimateGas),
-		to: to,
-		value: '0x00',
-		data: data,
-		chainId: chainId
-	});
-	
-	tx.sign(key);
-
-	const serializedTx = tx.serialize();
-	
-	return (await web3.eth.sendSignedTransaction("0x" + serializedTx.toString('hex')));
-}
-
-async function readPrivateKey() {
-	var mutableStdout = new Writable({
-		write: function(chunk, encoding, callback) {
-			if (!this.muted) {
-				process.stdout.write(chunk, encoding);
-			}
-			callback();
-		}
-	});
-	
-	mutableStdout.muted = false;
-	
-	const readlineInterface = readline.createInterface({
-		input: process.stdin,
-		output: mutableStdout,
-		terminal: true
-	});
-
-	readlineInterface.question('Enter your private key: ', (privateKey) => {
-		readlineInterface.close();
-		console.log('');
-		console.log('');
-		migrateAndCheck(privateKey);
-	});
-	
-	mutableStdout.muted = true;
 }
 
 // Deploy, init, migrate and check:

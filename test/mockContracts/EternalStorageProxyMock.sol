@@ -1,10 +1,10 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import '../../contracts/eternal-storage/EternalStorageProxy.sol';
 
 
 contract EternalStorageProxyMock is EternalStorageProxy {
-    function EternalStorageProxyMock(
+    constructor(
         address _proxyStorage,
         address _implementationAddress
     ) EternalStorageProxy(

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 
 import "./interfaces/IPoaNetworkConsensus.sol";
 import "./interfaces/IProxyStorage.sol";
@@ -57,7 +57,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         _;
     }
 
-    function PoaNetworkConsensus(address _masterOfCeremony, address[] validators) public {
+    constructor(address _masterOfCeremony, address[] validators) public {
         // TODO: When you deploy this contract, make sure you hardcode items below
         // Make sure you have those addresses defined in spec.json
         require(_masterOfCeremony != address(0));
@@ -95,10 +95,14 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         finalized = true;
         currentValidators = pendingList;
         currentValidatorsLength = currentValidators.length;
-        ChangeFinalized(getValidators());
+        emit ChangeFinalized(getValidators());
     }
 
-    function addValidator(address _validator, bool _shouldFireEvent) public onlyKeysManager isNewValidator(_validator) {
+    function addValidator(address _validator, bool _shouldFireEvent)
+        public
+        onlyKeysManager
+        isNewValidator(_validator)
+    {
         require(_validator != address(0));
         validatorsState[_validator] = ValidatorState({
             isValidator: true,
@@ -107,7 +111,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         pendingList.push(_validator);
         finalized = false;
         if (_shouldFireEvent) {
-            InitiateChange(block.blockhash(block.number - 1), pendingList);
+            emit InitiateChange(blockhash(block.number - 1), pendingList);
         }
     }
 
@@ -130,7 +134,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         validatorsState[_validator].isValidator = false;
         finalized = false;
         if (_shouldFireEvent) {
-            InitiateChange(block.blockhash(block.number - 1), pendingList);
+            emit InitiateChange(blockhash(block.number - 1), pendingList);
         }
     }
 
@@ -138,7 +142,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         require(isValidator(_oldKey));
         removeValidator(_oldKey, false);
         addValidator(_newKey, false);
-        InitiateChange(block.blockhash(block.number - 1), pendingList);
+        emit InitiateChange(blockhash(block.number - 1), pendingList);
     }
 
     function setProxyStorage(address _newAddress) public {
@@ -148,7 +152,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         require(_newAddress != address(0));
         proxyStorage = IProxyStorage(_newAddress);
         isMasterOfCeremonyInitialized = true;
-        MoCInitializedProxyStorage(proxyStorage);
+        emit MoCInitializedProxyStorage(proxyStorage);
     }
 
     function isValidator(address _someone) public view returns(bool) {

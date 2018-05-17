@@ -1,9 +1,9 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.23;
 import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
 import "./eternal-storage/EternalStorage.sol";
-import "./SafeMath.sol";
+import "./libs/SafeMath.sol";
 
 
 contract BallotsStorage is EternalStorage, IBallotsStorage {
@@ -63,7 +63,7 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
         require(_newValue > 0);
         require(_newValue != getBallotThreshold(_thresholdType));
         _setThreshold(_newValue, _thresholdType);
-        ThresholdChanged(_thresholdType, _newValue);
+        emit ThresholdChanged(_thresholdType, _newValue);
     }
 
     function getBallotThreshold(uint8 _ballotType) public view returns(uint256) {
