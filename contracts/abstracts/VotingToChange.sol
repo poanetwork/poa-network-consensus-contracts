@@ -7,6 +7,15 @@ import "./VotingTo.sol";
 
 
 contract VotingToChange is IVotingToChange, VotingTo {
+    bytes32 internal constant ACTIVE_BALLOTS = keccak256("activeBallots");
+    bytes32 internal constant MIGRATE_DISABLED = keccak256("migrateDisabled");
+    bytes32 internal constant MIN_BALLOT_DURATION = keccak256("minBallotDuration");
+
+    string internal constant INDEX = "index";
+    string internal constant PROGRESS = "progress";
+    string internal constant TOTAL_VOTERS = "totalVoters";
+    string internal constant VALIDATOR_ACTIVE_BALLOTS = "validatorActiveBallots";
+
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
     enum ActionChoice {Invalid, Accept, Reject}
 
@@ -14,23 +23,17 @@ contract VotingToChange is IVotingToChange, VotingTo {
         require(_startTime > 0 && _endTime > 0);
         require(_endTime > _startTime && _startTime > getTime());
         uint256 diffTime = _endTime.sub(_startTime);
-        if (!demoMode()) {
-            require(diffTime > 2 days);
-        }
-        require(diffTime <= 14 days);
+        require(diffTime > minBallotDuration());
+        require(diffTime <= maxBallotDuration());
         _;
     }
 
     function activeBallots(uint256 _index) public view returns(uint256) {
-        return uintArrayStorage[_activeBallotsHash()][_index];
+        return uintArrayStorage[ACTIVE_BALLOTS][_index];
     }
 
     function activeBallotsLength() public view returns(uint256) {
-        return uintArrayStorage[_activeBallotsHash()].length;
-    }
-
-    function demoMode() public view returns(bool) {
-        return boolStorage[keccak256("demoMode")];
+        return uintArrayStorage[ACTIVE_BALLOTS].length;
     }
 
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
@@ -50,21 +53,23 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function getIndex(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(_storeName(), _id, "index")];
+        return uintStorage[keccak256(VOTING_STATE, _id, INDEX)];
     }
 
     function getProgress(uint256 _id) public view returns(int) {
-        return intStorage[keccak256(_storeName(), _id, "progress")];
+        return intStorage[keccak256(VOTING_STATE, _id, PROGRESS)];
     }
 
     function getTotalVoters(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(_storeName(), _id, "totalVoters")];
+        return uintStorage[keccak256(VOTING_STATE, _id, TOTAL_VOTERS)];
     }
 
-    function init(bool _demoMode) public onlyOwner {
-        require(!initDisabled());
-        boolStorage[keccak256("demoMode")] = _demoMode;
-        boolStorage[keccak256("initDisabled")] = true;
+    function init(uint256 _minBallotDuration) public {
+        _init(_minBallotDuration);
+    }
+
+    function maxBallotDuration() public pure returns(uint256) {
+        return 14 days;
     }
 
     function migrateBasicAll(address _prevVotingToChange) public onlyOwner {
@@ -96,15 +101,19 @@ contract VotingToChange is IVotingToChange, VotingTo {
 
     function migrateDisable() public onlyOwner {
         require(!migrateDisabled());
-        boolStorage[keccak256("migrateDisabled")] = true;
+        boolStorage[MIGRATE_DISABLED] = true;
     }
 
     function migrateDisabled() public view returns(bool) {
-        return boolStorage[keccak256("migrateDisabled")];
+        return boolStorage[MIGRATE_DISABLED];
+    }
+
+    function minBallotDuration() public view returns(uint256) {
+        return uintStorage[MIN_BALLOT_DURATION];
     }
 
     function validatorActiveBallots(address _miningKey) public view returns(uint256) {
-        return uintStorage[keccak256("validatorActiveBallots", _miningKey)];
+        return uintStorage[keccak256(VALIDATOR_ACTIVE_BALLOTS, _miningKey)];
     }
 
     function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
@@ -128,25 +137,21 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function _activeBallotsAdd(uint256 _id) internal {
-        uintArrayStorage[_activeBallotsHash()].push(_id);
+        uintArrayStorage[ACTIVE_BALLOTS].push(_id);
     }
 
     function _activeBallotsClear() internal {
-        delete uintArrayStorage[_activeBallotsHash()];
+        delete uintArrayStorage[ACTIVE_BALLOTS];
     }
 
     function _activeBallotsDecreaseLength() internal {
         if (activeBallotsLength() > 0) {
-            uintArrayStorage[_activeBallotsHash()].length--;
+            uintArrayStorage[ACTIVE_BALLOTS].length--;
         }
     }
 
-    function _activeBallotsHash() internal pure returns(bytes32) {
-        return keccak256("activeBallots");
-    }
-
     function _activeBallotsSet(uint256 _index, uint256 _id) internal {
-        uintArrayStorage[_activeBallotsHash()][_index] = _id;
+        uintArrayStorage[ACTIVE_BALLOTS][_index] = _id;
     }
 
     function _createBallot(
@@ -213,6 +218,13 @@ contract VotingToChange is IVotingToChange, VotingTo {
         _setValidatorActiveBallots(_miningKey, validatorActiveBallots(_miningKey).add(1));
     }
 
+    function _init(uint256 _minBallotDuration) internal onlyOwner {
+        require(!initDisabled());
+        require(_minBallotDuration < maxBallotDuration());
+        uintStorage[MIN_BALLOT_DURATION] = _minBallotDuration;
+        boolStorage[INIT_DISABLED] = true;
+    }
+
     function _migrateBasicOne(
         uint256 _id,
         address _prevVotingToChange,
@@ -242,18 +254,18 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function _setIndex(uint256 _ballotId, uint256 _value) internal {
-        uintStorage[keccak256(_storeName(), _ballotId, "index")] = _value;
+        uintStorage[keccak256(VOTING_STATE, _ballotId, INDEX)] = _value;
     }
 
     function _setProgress(uint256 _ballotId, int256 _value) internal {
-        intStorage[keccak256(_storeName(), _ballotId, "progress")] = _value;
+        intStorage[keccak256(VOTING_STATE, _ballotId, PROGRESS)] = _value;
     }
 
     function _setTotalVoters(uint256 _ballotId, uint256 _value) internal {
-        uintStorage[keccak256(_storeName(), _ballotId, "totalVoters")] = _value;
+        uintStorage[keccak256(VOTING_STATE, _ballotId, TOTAL_VOTERS)] = _value;
     }
 
     function _setValidatorActiveBallots(address _miningKey, uint256 _count) internal {
-        uintStorage[keccak256("validatorActiveBallots", _miningKey)] = _count;
+        uintStorage[keccak256(VALIDATOR_ACTIVE_BALLOTS, _miningKey)] = _count;
     }
 }

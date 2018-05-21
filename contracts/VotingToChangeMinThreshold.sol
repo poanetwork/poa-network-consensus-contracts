@@ -5,27 +5,40 @@ import "./abstracts/VotingToChange.sol";
 
 
 contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChange {
+    bytes32 internal constant MIN_POSSIBLE_THRESHOLD = keccak256("minPossibleThreshold");
+
+    string internal constant PROPOSED_VALUE = "proposedValue";
+
     function createBallot(
         uint256 _startTime,
         uint256 _endTime,
         uint256 _proposedValue,
         string memo
     ) public {
+        require(initDisabled());
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
-        if (demoMode()) {
-            require(_proposedValue >= 1);
-        } else {
-            require(_proposedValue >= 3);
-        }
+        require(_proposedValue >= minPossibleThreshold());
         require(_proposedValue != getGlobalMinThresholdOfVoters());
         require(_proposedValue <= ballotsStorage.getProxyThreshold());
-        uint256 ballotType = 4;
-        uint256 ballotId = _createBallot(ballotType, _startTime, _endTime, memo);
+        uint256 ballotId = _createBallot(
+            uint256(BallotTypes.MinThreshold),
+            _startTime,
+            _endTime,
+            memo
+        );
         _setProposedValue(ballotId, _proposedValue);
     }
 
     function getProposedValue(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(_storeName(), _id, "proposedValue")];
+        return uintStorage[keccak256(VOTING_STATE, _id, PROPOSED_VALUE)];
+    }
+
+    function init(
+        uint256 _minBallotDuration,
+        uint256 _minPossibleThreshold
+    ) public {
+        _init(_minBallotDuration);
+        uintStorage[MIN_POSSIBLE_THRESHOLD] = _minPossibleThreshold;
     }
 
     function migrateBasicOne(
@@ -51,6 +64,10 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
         _setProposedValue(_id, prev.getProposedValue(_id));
     }
 
+    function minPossibleThreshold() public view returns(uint256) {
+        return uintStorage[MIN_POSSIBLE_THRESHOLD];
+    }
+
     function _finalizeBallotInner(uint256 _id) internal {
         uint8 thresholdForKeysType = 1;
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
@@ -58,7 +75,7 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
     }
 
     function _setProposedValue(uint256 _ballotId, uint256 _value) private {
-        uintStorage[keccak256(_storeName(), _ballotId, "proposedValue")] = _value;
+        uintStorage[keccak256(VOTING_STATE, _ballotId, PROPOSED_VALUE)] = _value;
     }
 
 }

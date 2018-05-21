@@ -21,9 +21,9 @@
 - We need a bytecode of `PoaNetworkConsensus` contract to add it to [`spec.json`](https://github.com/poanetwork/poa-chain-spec/blob/core/spec.json) of the network. <br />
 Go to `scripts` directory and run `poa-bytecode.js`: <br />
 ```bash
-cd scripts
-npm i
-MASTER_OF_CEREMONY=0x0039F22efB07A647557C7C5d17854CFD6D489eF3 node poa-bytecode.js
+$ cd scripts
+$ npm i
+$ MASTER_OF_CEREMONY=0x0039F22efB07A647557C7C5d17854CFD6D489eF3 node poa-bytecode.js
 ```
 It will show the bytecode of `PoaNetworkConsensus` contract. Copy the bytecode and paste it into `spec.json`.
 
@@ -54,22 +54,22 @@ Compile and deploy contracts in the next sequence:
 - `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of BallotsStorage contract.
--  Make a call to `BallotsStorage init` with `_demoMode` parameter equal to `false`, using the address of `EternalStorageProxy` and ABI of `BallotsStorage`.
+-  Make a call to `BallotsStorage init` with `_thresholds` parameter equal to [3, 2], using the address of `EternalStorageProxy` and ABI of `BallotsStorage`.
 - `VotingToChangeKeys_flat.sol` - Select contract `VotingToChangeKeys`.
 - `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of VotingToChangeKeys contract.
--  Make a call to `VotingToChangeKeys init` with `_demoMode` parameter equal to `false`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeKeys`.
+-  Make a call to `VotingToChangeKeys init` with `_minBallotDuration` parameter equal to `172800`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeKeys`.
 - `VotingToChangeMinThreshold_flat.sol` - Select contract `VotingToChangeMinThreshold`.
 - `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of VotingToChangeMinThreshold contract.
--  Make a call to `VotingToChangeMinThreshold init` with `_demoMode` parameter equal to `false`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeMinThreshold`.
+-  Make a call to `VotingToChangeMinThreshold init` with `_minBallotDuration` parameter equal to `172800` and `_minPossibleThreshold` parameter equal to `3`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeMinThreshold`.
 - `VotingToChangeProxyAddress_flat.sol` - Select contract `VotingToChangeProxyAddress`.
 - `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of VotingToChangeProxyAddress contract.
--  Make a call to `VotingToChangeProxyAddress init` with `_demoMode` parameter equal to `false`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeProxyAddress`.
+-  Make a call to `VotingToChangeProxyAddress init` with `_minBallotDuration` parameter equal to `172800`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeProxyAddress`.
 - `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata`.
 - `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,

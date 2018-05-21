@@ -3,7 +3,7 @@ pragma solidity ^0.4.23;
 
 contract Migrations {
     address public owner;
-    uint public last_completed_migration;
+    uint public last_completed_migration; // solhint-disable-line
 
     modifier restricted() {
         if (msg.sender == owner) _;

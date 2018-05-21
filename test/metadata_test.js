@@ -59,7 +59,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     let ballotsStorage = await BallotsStorage.new();
     const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
     ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
-    await ballotsStorage.init(false).should.be.fulfilled;
+    await ballotsStorage.init([3, 2]).should.be.fulfilled;
     
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
 

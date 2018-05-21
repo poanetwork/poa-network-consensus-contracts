@@ -59,10 +59,10 @@ contract('Voting to change keys [all features]', function (accounts) {
     );
 
     ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
-    await ballotsStorage.init(false).should.be.fulfilled;
+    await ballotsStorage.init([3, 2]).should.be.fulfilled;
 
     voting = await VotingToChangeKeysMock.at(votingEternalStorage.address);
-    await voting.init(false).should.be.fulfilled;
+    await voting.init(172800).should.be.fulfilled;
   })
   describe('#constructor', async () => {
     it('happy path', async () => {

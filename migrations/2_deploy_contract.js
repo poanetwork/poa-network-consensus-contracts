@@ -46,7 +46,11 @@ module.exports = async function(deployer, network, accounts) {
       await deployer.deploy(EternalStorageProxy, proxyStorage.address, BallotsStorage.address);
       const ballotsStorageEternalStorageAddress = EternalStorageProxy.address;
       const ballotsStorage = await BallotsStorage.at(ballotsStorageEternalStorageAddress);
-      await ballotsStorage.init(demoMode);
+      if (demoMode) {
+        await ballotsStorage.init([1, 1]);
+      } else {
+        await ballotsStorage.init([3, 2]);
+      }
       
       await deployer.deploy(ValidatorMetadata);
       await deployer.deploy(EternalStorageProxy, proxyStorage.address, ValidatorMetadata.address);
@@ -56,19 +60,19 @@ module.exports = async function(deployer, network, accounts) {
       await deployer.deploy(EternalStorageProxy, proxyStorage.address, VotingToChangeKeys.address);
       const votingToChangeKeysEternalStorageAddress = EternalStorageProxy.address;
       const votingToChangeKeys = await VotingToChangeKeys.at(votingToChangeKeysEternalStorageAddress);
-      await votingToChangeKeys.init(demoMode);
+      await votingToChangeKeys.init(demoMode ? 0 : 172800);
       
       await deployer.deploy(VotingToChangeMinThreshold);
       await deployer.deploy(EternalStorageProxy, proxyStorage.address, VotingToChangeMinThreshold.address);
       const votingToChangeMinThresholdEternalStorageAddress = EternalStorageProxy.address;
       const votingToChangeMinThreshold = await VotingToChangeMinThreshold.at(votingToChangeMinThresholdEternalStorageAddress);
-      await votingToChangeMinThreshold.init(demoMode);
+      await votingToChangeMinThreshold.init(demoMode ? 0 : 172800, demoMode ? 1 : 3);
 
       await deployer.deploy(VotingToChangeProxyAddress);
       await deployer.deploy(EternalStorageProxy, proxyStorage.address, VotingToChangeProxyAddress.address);
       const votingToChangeProxyAddressEternalStorageAddress = EternalStorageProxy.address;
       const votingToChangeProxyAddress = await VotingToChangeProxyAddress.at(votingToChangeProxyAddressEternalStorageAddress);
-      await votingToChangeProxyAddress.init(demoMode);
+      await votingToChangeProxyAddress.init(demoMode ? 0 : 172800);
 
       await proxyStorage.initializeAddresses(
         keysManagerEternalStorageAddress,

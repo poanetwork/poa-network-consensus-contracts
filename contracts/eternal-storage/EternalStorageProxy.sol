@@ -1,7 +1,6 @@
 pragma solidity ^0.4.23;
 
 import "./EternalStorage.sol";
-import "../interfaces/IEternalStorageProxy.sol";
 
 
 /**
@@ -10,7 +9,9 @@ import "../interfaces/IEternalStorageProxy.sol";
  * Besides, it allows to upgrade the token's behaviour towards further implementations, and provides
  * authorization control functionalities
  */
-contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
+contract EternalStorageProxy is EternalStorage {
+    bytes32 internal constant OWNER = keccak256("owner");
+    bytes32 internal constant PROXY_STORAGE = keccak256("proxyStorage");
 
     /**
     * @dev This event will be emitted every time the implementation gets upgraded
@@ -49,7 +50,8 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
     * @dev Fallback function allowing to perform a delegatecall to the given implementation.
     * This function will return whatever the implementation call returns
     */
-    function () public payable {
+    // solhint-disable no-complex-fallback, no-inline-assembly
+    function() public payable {
         address _impl = _implementation;
         require(_impl != address(0));
 
@@ -65,13 +67,14 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
             default { return(ptr, size) }
         }
     }
+    // solhint-enable no-complex-fallback, no-inline-assembly
 
     function getOwner() public view returns(address) {
-        return addressStorage[keccak256("owner")];
+        return addressStorage[OWNER];
     }
 
     function getProxyStorage() public view returns(address) {
-        return addressStorage[keccak256("proxyStorage")];
+        return addressStorage[PROXY_STORAGE];
     }
 
     /**
@@ -109,11 +112,10 @@ contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
     }
 
     function _setProxyStorage(address _proxyStorage) private {
-        addressStorage[keccak256("proxyStorage")] = _proxyStorage;
+        addressStorage[PROXY_STORAGE] = _proxyStorage;
     }
 
     function _setOwner(address _owner) private {
-        addressStorage[keccak256("owner")] = _owner;
+        addressStorage[OWNER] = _owner;
     }
-
 }
