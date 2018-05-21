@@ -6,7 +6,7 @@ import "./interfaces/IProxyStorage.sol";
 
 
 contract BlockReward is IBlockReward {
-    address constant SYSTEM_ADDRESS = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
+    address private constant SYSTEM_ADDRESS = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
     
     IProxyStorage public proxyStorage;
     address public emissionFunds;
@@ -67,11 +67,11 @@ contract BlockReward is IBlockReward {
     }
 
     function _getPayoutByMining(address _miningKey)
-    	private
-    	view
-    	returns (address)
+        private
+        view
+        returns (address)
     {
-    	IKeysManager keysManager = IKeysManager(proxyStorage.getKeysManager());
-    	return keysManager.getPayoutByMining(_miningKey);
+        IKeysManager keysManager = IKeysManager(proxyStorage.getKeysManager());
+        return keysManager.getPayoutByMining(_miningKey);
     }
 }

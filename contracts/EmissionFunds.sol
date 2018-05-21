@@ -6,14 +6,14 @@ import "./interfaces/IEmissionFunds.sol";
 contract EmissionFunds is IEmissionFunds {
     address public votingToManageEmissionFunds;
 
-    event SendFundsTo(
+    event FundsSentTo(
         address indexed receiver,
         address indexed caller,
         uint256 amount,
         bool success
     );
     
-    event BurnFunds(
+    event FundsBurnt(
         address indexed burner,
         uint256 amount,
         bool success
@@ -34,7 +34,7 @@ contract EmissionFunds is IEmissionFunds {
         votingToManageEmissionFunds = _votingToManageEmissionFunds;
     }
 
-    function() external payable {}
+    function() external payable {} // solhint-disable-line no-empty-blocks
 
     function sendFundsTo(address _receiver, uint256 _amount)
         external
@@ -44,7 +44,7 @@ contract EmissionFunds is IEmissionFunds {
     {
         // using `send` instead of `transfer` to avoid revert on failure
         bool success = _receiver.send(_amount);
-        emit SendFundsTo(_receiver, msg.sender, _amount, success);
+        emit FundsSentTo(_receiver, msg.sender, _amount, success);
         return success;
     }
 
@@ -55,7 +55,7 @@ contract EmissionFunds is IEmissionFunds {
     {
         // using `send` instead of `transfer` to avoid revert on failure
         bool success = address(0).send(_amount);
-        emit BurnFunds(msg.sender, _amount, success);
+        emit FundsBurnt(msg.sender, _amount, success);
         return success;
     }
 }
