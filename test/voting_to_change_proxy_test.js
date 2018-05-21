@@ -51,23 +51,23 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
     ballotsStorage = await BallotsStorage.new();
     const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
     ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
-    await ballotsStorage.init(false).should.be.fulfilled;
+    await ballotsStorage.init([3, 2]).should.be.fulfilled;
 
     let votingForKeys = await VotingForKeys.new();
     votingForKeysEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingForKeys.address);
     votingForKeys = await VotingForKeys.at(votingForKeysEternalStorage.address);
-    await votingForKeys.init(false).should.be.fulfilled;
+    await votingForKeys.init(172800).should.be.fulfilled;
 
     let votingForMinThreshold = await VotingForMinThreshold.new();
     const votingForMinThresholdEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingForMinThreshold.address);
     votingForMinThreshold = await VotingForMinThreshold.at(votingForMinThresholdEternalStorage.address);
-    await votingForMinThreshold.init(false).should.be.fulfilled;
+    await votingForMinThreshold.init(172800, 3).should.be.fulfilled;
     
     voting = await VotingToChangeProxyAddress.new();
     const votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, voting.address);
     voting = await VotingToChangeProxyAddress.at(votingEternalStorage.address);
-    await voting.init(false, {from: accounts[8]}).should.be.rejectedWith(ERROR_MSG);
-    await voting.init(false).should.be.fulfilled;
+    await voting.init(172800, {from: accounts[8]}).should.be.rejectedWith(ERROR_MSG);
+    await voting.init(172800).should.be.fulfilled;
 
     const validatorMetadata = await ValidatorMetadata.new();
     const validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, validatorMetadata.address);
@@ -461,7 +461,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       voting = await VotingToChangeProxyAddress.new();
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, voting.address);
       voting = await VotingToChangeProxyAddress.at(votingEternalStorage.address);
-      await voting.init(false).should.be.fulfilled;
+      await voting.init(172800).should.be.fulfilled;
     });
     it('may be called only by ProxyStorage', async () => {
       let votingNew = await VotingToChangeProxyAddressNew.new();

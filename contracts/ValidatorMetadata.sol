@@ -10,6 +10,27 @@ import "./eternal-storage/EternalStorage.sol";
 contract ValidatorMetadata is EternalStorage {
     using SafeMath for uint256;
 
+    bytes32 internal constant INIT_METADATA_DISABLED = keccak256("initMetadataDisabled");
+    bytes32 internal constant OWNER = keccak256("owner");
+    bytes32 internal constant PENDING_PROXY_STORAGE = keccak256("pendingProxyStorage");
+    bytes32 internal constant PROXY_STORAGE = keccak256("proxyStorage");
+
+    string internal constant CONFIRMATIONS = "confirmations";
+    string internal constant CREATED_DATE = "createdDate";
+    string internal constant EXPIRATION_DATE = "expirationDate";
+    string internal constant FIRST_NAME = "firstName";
+    string internal constant FULL_ADDRESS = "fullAddress";
+    string internal constant LAST_NAME = "lastName";
+    string internal constant LICENSE_ID = "licenseId";
+    string internal constant MIN_THRESHOLD = "minThreshold";
+    string internal constant PENDING_PROXY_CONFIRMATIONS = "pendingProxyConfirmations";
+    string internal constant STATE = "state";
+    string internal constant UPDATED_DATE = "updatedDate";
+    string internal constant VOTERS = "voters";
+    string internal constant ZIP_CODE = "zipcode";
+
+    uint256 public constant MAX_PENDING_CHANGE_CONFIRMATIONS = 50;
+
     event MetadataCreated(address indexed miningKey);
     event ChangeRequestInitiated(address indexed miningKey);
     event CancelledRequest(address indexed miningKey);
@@ -31,16 +52,16 @@ contract ValidatorMetadata is EternalStorage {
     }
 
     modifier onlyOwner() {
-        require(msg.sender == addressStorage[keccak256("owner")]);
+        require(msg.sender == addressStorage[OWNER]);
         _;
     }
 
     function proxyStorage() public view returns (address) {
-        return addressStorage[keccak256("proxyStorage")];
+        return addressStorage[PROXY_STORAGE];
     }
 
     function pendingProxyStorage() public view returns (address) {
-        return addressStorage[keccak256("pendingProxyStorage")];
+        return addressStorage[PENDING_PROXY_STORAGE];
     }
 
     function validators(address _miningKey) public view returns (
@@ -55,16 +76,7 @@ contract ValidatorMetadata is EternalStorage {
         uint256 updatedDate,
         uint256 minThreshold
     ) {
-        firstName = _getFirstName(false, _miningKey);
-        lastName = _getLastName(false, _miningKey);
-        licenseId = _getLicenseId(false, _miningKey);
-        fullAddress = _getFullAddress(false, _miningKey);
-        state = _getState(false, _miningKey);
-        zipcode = _getZipcode(false, _miningKey);
-        expirationDate = _getExpirationDate(false, _miningKey);
-        createdDate = _getCreatedDate(false, _miningKey);
-        updatedDate = _getUpdatedDate(false, _miningKey);
-        minThreshold = _getMinThreshold(false, _miningKey);
+        return _validators(false, _miningKey);
     }
 
     function pendingChanges(address _miningKey) public view returns (
@@ -79,16 +91,7 @@ contract ValidatorMetadata is EternalStorage {
         uint256 updatedDate,
         uint256 minThreshold
     ) {
-        firstName = _getFirstName(true, _miningKey);
-        lastName = _getLastName(true, _miningKey);
-        licenseId = _getLicenseId(true, _miningKey);
-        fullAddress = _getFullAddress(true, _miningKey);
-        state = _getState(true, _miningKey);
-        zipcode = _getZipcode(true, _miningKey);
-        expirationDate = _getExpirationDate(true, _miningKey);
-        createdDate = _getCreatedDate(true, _miningKey);
-        updatedDate = _getUpdatedDate(true, _miningKey);
-        minThreshold = _getMinThreshold(true, _miningKey);
+        return _validators(true, _miningKey);
     }
 
     function confirmations(address _miningKey) public view returns (
@@ -129,7 +132,7 @@ contract ValidatorMetadata is EternalStorage {
             _setProxyStorage(_newProxyAddress);
             _setPendingProxyStorage(address(0));
             delete addressArrayStorage[
-                keccak256("pendingProxyConfirmations", _newProxyAddress, "voters")
+                keccak256(PENDING_PROXY_CONFIRMATIONS, _newProxyAddress, VOTERS)
             ];
             emit ChangeProxyStorage(_newProxyAddress);
         }
@@ -138,7 +141,7 @@ contract ValidatorMetadata is EternalStorage {
     }
 
     function initMetadataDisabled() public view returns(bool) {
-        return boolStorage[keccak256("initMetadataDisabled")];
+        return boolStorage[INIT_METADATA_DISABLED];
     }
 
     function initMetadata(
@@ -153,29 +156,30 @@ contract ValidatorMetadata is EternalStorage {
         uint256 _updatedDate,
         uint256 _minThreshold,
         address _miningKey
-    )
-        public
-        onlyOwner
-    {
+    ) public onlyOwner {
         IKeysManager keysManager = IKeysManager(getKeysManager());
         require(keysManager.isMiningActive(_miningKey));
         require(_getCreatedDate(false, _miningKey) == 0);
         require(_createdDate != 0);
         require(!initMetadataDisabled());
-        _setFirstName(false, _miningKey, _firstName);
-        _setLastName(false, _miningKey, _lastName);
-        _setLicenseId(false, _miningKey, _licenseId);
-        _setState(false, _miningKey, _state);
-        _setFullAddress(false, _miningKey, _fullAddress);
-        _setZipcode(false, _miningKey, _zipcode);
-        _setExpirationDate(false, _miningKey, _expirationDate);
-        _setCreatedDate(false, _miningKey, _createdDate);
-        _setUpdatedDate(false, _miningKey, _updatedDate);
-        _setMinThreshold(false, _miningKey, _minThreshold);
+        _setMetadata(
+            false,
+            _miningKey,
+            _firstName,
+            _lastName,
+            _licenseId,
+            _fullAddress,
+            _state,
+            _zipcode,
+            _expirationDate,
+            _createdDate,
+            _updatedDate,
+            _minThreshold
+        );
     }
 
     function initMetadataDisable() public onlyOwner {
-        boolStorage[keccak256("initMetadataDisabled")] = true;
+        boolStorage[INIT_METADATA_DISABLED] = true;
     }
 
     function createMetadata(
@@ -192,16 +196,20 @@ contract ValidatorMetadata is EternalStorage {
         onlyFirstTime(msg.sender)
     {
         address miningKey = getMiningByVotingKey(msg.sender);
-        _setFirstName(false, miningKey, _firstName);
-        _setLastName(false, miningKey, _lastName);
-        _setLicenseId(false, miningKey, _licenseId);
-        _setState(false, miningKey, _state);
-        _setFullAddress(false, miningKey, _fullAddress);
-        _setZipcode(false, miningKey, _zipcode);
-        _setExpirationDate(false, miningKey, _expirationDate);
-        _setCreatedDate(false, miningKey, getTime());
-        _setUpdatedDate(false, miningKey, 0);
-        _setMinThreshold(false, miningKey, getMinThreshold());
+        _setMetadata(
+            false,
+            miningKey,
+            _firstName,
+            _lastName,
+            _licenseId,
+            _fullAddress,
+            _state,
+            _zipcode,
+            _expirationDate,
+            getTime(),
+            0,
+            getMinThreshold()
+        );
         emit MetadataCreated(miningKey);
     }
 
@@ -245,17 +253,22 @@ contract ValidatorMetadata is EternalStorage {
         onlyValidVotingKey(msg.sender)
         returns(bool) 
     {
-        _setFirstName(true, _miningKey, _firstName);
-        _setLastName(true, _miningKey, _lastName);
-        _setLicenseId(true, _miningKey, _licenseId);
-        _setState(true, _miningKey, _state);
-        _setFullAddress(true, _miningKey, _fullAddress);
-        _setZipcode(true, _miningKey, _zipcode);
-        _setExpirationDate(true, _miningKey, _expirationDate);
-        _setCreatedDate(true, _miningKey, _getCreatedDate(false, _miningKey));
-        _setUpdatedDate(true, _miningKey, getTime());
+        _setMetadata(
+            true,
+            _miningKey,
+            _firstName,
+            _lastName,
+            _licenseId,
+            _fullAddress,
+            _state,
+            _zipcode,
+            _expirationDate,
+            _getCreatedDate(false, _miningKey),
+            getTime(),
+            getMinThreshold()
+        );
         _setMinThreshold(true, _miningKey, _getMinThreshold(false, _miningKey));
-        delete addressArrayStorage[keccak256("confirmations", _miningKey, "voters")];
+        delete addressArrayStorage[keccak256(CONFIRMATIONS, _miningKey, VOTERS)];
         emit ChangeRequestInitiated(_miningKey);
         return true;
     }
@@ -305,7 +318,7 @@ contract ValidatorMetadata is EternalStorage {
     {
         require(!isAddressAlreadyVoted(_miningKey, msg.sender));
         uint256 count = _getConfirmationsVoters(_miningKey).length;
-        require(count <= 50); // no need for more confirmations
+        require(count <= MAX_PENDING_CHANGE_CONFIRMATIONS); // no need for more confirmations
         address miningKey = getMiningByVotingKey(msg.sender);
         require(miningKey != _miningKey);
         _confirmationsVoterAdd(_miningKey, msg.sender);
@@ -367,7 +380,7 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, "firstName")];
+        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, FIRST_NAME)];
     }
 
     function _getLastName(bool _pending, address _miningKey)
@@ -375,7 +388,7 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, "lastName")];
+        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, LAST_NAME)];
     }
 
     function _getLicenseId(bool _pending, address _miningKey)
@@ -383,7 +396,7 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, "licenseId")];
+        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, LICENSE_ID)];
     }
 
     function _getFullAddress(bool _pending, address _miningKey)
@@ -391,7 +404,7 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(string)
     {
-        return stringStorage[keccak256(_storeName(_pending), _miningKey, "fullAddress")];
+        return stringStorage[keccak256(_storeName(_pending), _miningKey, FULL_ADDRESS)];
     }
 
     function _getState(bool _pending, address _miningKey)
@@ -399,7 +412,7 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, "state")];
+        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, STATE)];
     }
 
     function _getZipcode(bool _pending, address _miningKey)
@@ -407,7 +420,7 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, "zipcode")];
+        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, ZIP_CODE)];
     }
 
     function _getExpirationDate(bool _pending, address _miningKey)
@@ -415,7 +428,7 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(uint256)
     {
-        return uintStorage[keccak256(_storeName(_pending), _miningKey, "expirationDate")];
+        return uintStorage[keccak256(_storeName(_pending), _miningKey, EXPIRATION_DATE)];
     }
 
     function _getCreatedDate(bool _pending, address _miningKey)
@@ -423,7 +436,7 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(uint256)
     {
-        return uintStorage[keccak256(_storeName(_pending), _miningKey, "createdDate")];
+        return uintStorage[keccak256(_storeName(_pending), _miningKey, CREATED_DATE)];
     }
 
     function _getUpdatedDate(bool _pending, address _miningKey)
@@ -431,7 +444,7 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(uint256)
     {
-        return uintStorage[keccak256(_storeName(_pending), _miningKey, "updatedDate")];
+        return uintStorage[keccak256(_storeName(_pending), _miningKey, UPDATED_DATE)];
     }
 
     function _getMinThreshold(bool _pending, address _miningKey)
@@ -439,7 +452,7 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(uint256)
     {
-        return uintStorage[keccak256(_storeName(_pending), _miningKey, "minThreshold")];
+        return uintStorage[keccak256(_storeName(_pending), _miningKey, MIN_THRESHOLD)];
     }
 
     function _getConfirmationsVoters(address _miningKey)
@@ -447,7 +460,7 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(address[] voters)
     {
-        voters = addressArrayStorage[keccak256("confirmations", _miningKey, "voters")];
+        voters = addressArrayStorage[keccak256(CONFIRMATIONS, _miningKey, VOTERS)];
     }
 
     function _getPendingProxyConfirmationsVoters(address _newProxyAddress)
@@ -456,29 +469,29 @@ contract ValidatorMetadata is EternalStorage {
         returns(address[] voters)
     {
         voters = addressArrayStorage[
-            keccak256("pendingProxyConfirmations", _newProxyAddress, "voters")
+            keccak256(PENDING_PROXY_CONFIRMATIONS, _newProxyAddress, VOTERS)
         ];
     }
 
     function _deletePendingChange(address _miningKey) private {
         string memory _store = _storeName(true);
-        delete bytes32Storage[keccak256(_store, _miningKey, "firstName")];
-        delete bytes32Storage[keccak256(_store, _miningKey, "lastName")];
-        delete bytes32Storage[keccak256(_store, _miningKey, "licenseId")];
-        delete bytes32Storage[keccak256(_store, _miningKey, "state")];
-        delete stringStorage[keccak256(_store, _miningKey, "fullAddress")];
-        delete bytes32Storage[keccak256(_store, _miningKey, "zipcode")];
-        delete uintStorage[keccak256(_store, _miningKey, "expirationDate")];
-        delete uintStorage[keccak256(_store, _miningKey, "createdDate")];
-        delete uintStorage[keccak256(_store, _miningKey, "updatedDate")];
-        delete uintStorage[keccak256(_store, _miningKey, "minThreshold")];
+        delete bytes32Storage[keccak256(_store, _miningKey, FIRST_NAME)];
+        delete bytes32Storage[keccak256(_store, _miningKey, LAST_NAME)];
+        delete bytes32Storage[keccak256(_store, _miningKey, LICENSE_ID)];
+        delete bytes32Storage[keccak256(_store, _miningKey, STATE)];
+        delete stringStorage[keccak256(_store, _miningKey, FULL_ADDRESS)];
+        delete bytes32Storage[keccak256(_store, _miningKey, ZIP_CODE)];
+        delete uintStorage[keccak256(_store, _miningKey, EXPIRATION_DATE)];
+        delete uintStorage[keccak256(_store, _miningKey, CREATED_DATE)];
+        delete uintStorage[keccak256(_store, _miningKey, UPDATED_DATE)];
+        delete uintStorage[keccak256(_store, _miningKey, MIN_THRESHOLD)];
     }
 
     function _setFirstName(bool _pending, address _miningKey, bytes32 _firstName) private {
         bytes32Storage[keccak256(
             _storeName(_pending),
             _miningKey,
-            "firstName"
+            FIRST_NAME
         )] = _firstName;
     }
 
@@ -486,7 +499,7 @@ contract ValidatorMetadata is EternalStorage {
         bytes32Storage[keccak256(
             _storeName(_pending),
             _miningKey,
-            "lastName"
+            LAST_NAME
         )] = _lastName;
     }
 
@@ -494,7 +507,7 @@ contract ValidatorMetadata is EternalStorage {
         bytes32Storage[keccak256(
             _storeName(_pending),
             _miningKey,
-            "licenseId"
+            LICENSE_ID
         )] = _licenseId;
     }
 
@@ -502,7 +515,7 @@ contract ValidatorMetadata is EternalStorage {
         bytes32Storage[keccak256(
             _storeName(_pending),
             _miningKey,
-            "state"
+            STATE
         )] = _state;
     }
 
@@ -514,7 +527,7 @@ contract ValidatorMetadata is EternalStorage {
         stringStorage[keccak256(
             _storeName(_pending),
             _miningKey,
-            "fullAddress"
+            FULL_ADDRESS
         )] = _fullAddress;
     }
 
@@ -522,7 +535,7 @@ contract ValidatorMetadata is EternalStorage {
         bytes32Storage[keccak256(
             _storeName(_pending),
             _miningKey,
-            "zipcode"
+            ZIP_CODE
         )] = _zipcode;
     }
 
@@ -534,7 +547,7 @@ contract ValidatorMetadata is EternalStorage {
         uintStorage[keccak256(
             _storeName(_pending),
             _miningKey,
-            "expirationDate"
+            EXPIRATION_DATE
         )] = _expirationDate;
     }
 
@@ -546,7 +559,7 @@ contract ValidatorMetadata is EternalStorage {
         uintStorage[keccak256(
             _storeName(_pending),
             _miningKey,
-            "createdDate"
+            CREATED_DATE
         )] = _createdDate;
     }
 
@@ -558,8 +571,34 @@ contract ValidatorMetadata is EternalStorage {
         uintStorage[keccak256(
             _storeName(_pending),
             _miningKey,
-            "updatedDate"
+            UPDATED_DATE
         )] = _updatedDate;
+    }
+
+    function _setMetadata(
+        bool _pending,
+        address _miningKey,
+        bytes32 _firstName,
+        bytes32 _lastName,
+        bytes32 _licenseId,
+        string _fullAddress,
+        bytes32 _state,
+        bytes32 _zipcode,
+        uint256 _expirationDate,
+        uint256 _createdDate,
+        uint256 _updatedDate,
+        uint256 _minThreshold
+    ) private {
+        _setFirstName(_pending, _miningKey, _firstName);
+        _setLastName(_pending, _miningKey, _lastName);
+        _setLicenseId(_pending, _miningKey, _licenseId);
+        _setState(_pending, _miningKey, _state);
+        _setFullAddress(_pending, _miningKey, _fullAddress);
+        _setZipcode(_pending, _miningKey, _zipcode);
+        _setExpirationDate(_pending, _miningKey, _expirationDate);
+        _setCreatedDate(_pending, _miningKey, _createdDate);
+        _setUpdatedDate(_pending, _miningKey, _updatedDate);
+        _setMinThreshold(_pending, _miningKey, _minThreshold);
     }
 
     function _setMinThreshold(
@@ -570,21 +609,21 @@ contract ValidatorMetadata is EternalStorage {
         uintStorage[keccak256(
             _storeName(_pending),
             _miningKey,
-            "minThreshold"
+            MIN_THRESHOLD
         )] = _minThreshold;
     }
 
     function _setProxyStorage(address _proxyStorage) private {
-        addressStorage[keccak256("proxyStorage")] = _proxyStorage;
+        addressStorage[PROXY_STORAGE] = _proxyStorage;
     }
 
     function _setPendingProxyStorage(address _proxyStorage) private {
-        addressStorage[keccak256("pendingProxyStorage")] = _proxyStorage;
+        addressStorage[PENDING_PROXY_STORAGE] = _proxyStorage;
     }
 
     function _confirmationsVoterAdd(address _miningKey, address _voter) private {
         addressArrayStorage[
-            keccak256("confirmations", _miningKey, "voters")
+            keccak256(CONFIRMATIONS, _miningKey, VOTERS)
         ].push(_voter);
     }
 
@@ -593,8 +632,32 @@ contract ValidatorMetadata is EternalStorage {
         address _voter
     ) private {
         addressArrayStorage[
-            keccak256("pendingProxyConfirmations", _newProxyAddress, "voters")
+            keccak256(PENDING_PROXY_CONFIRMATIONS, _newProxyAddress, VOTERS)
         ].push(_voter);
+    }
+
+    function _validators(bool _pending, address _miningKey) private view returns (
+        bytes32 firstName,
+        bytes32 lastName,
+        bytes32 licenseId,
+        string fullAddress,
+        bytes32 state,
+        bytes32 zipcode,
+        uint256 expirationDate,
+        uint256 createdDate,
+        uint256 updatedDate,
+        uint256 minThreshold
+    ) {
+        firstName = _getFirstName(_pending, _miningKey);
+        lastName = _getLastName(_pending, _miningKey);
+        licenseId = _getLicenseId(_pending, _miningKey);
+        fullAddress = _getFullAddress(_pending, _miningKey);
+        state = _getState(_pending, _miningKey);
+        zipcode = _getZipcode(_pending, _miningKey);
+        expirationDate = _getExpirationDate(_pending, _miningKey);
+        createdDate = _getCreatedDate(_pending, _miningKey);
+        updatedDate = _getUpdatedDate(_pending, _miningKey);
+        minThreshold = _getMinThreshold(_pending, _miningKey);
     }
 
 }

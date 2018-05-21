@@ -1,4 +1,5 @@
 pragma solidity ^0.4.23;
+
 import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
@@ -9,11 +10,17 @@ import "./libs/SafeMath.sol";
 contract BallotsStorage is EternalStorage, IBallotsStorage {
     using SafeMath for uint256;
 
+    bytes32 internal constant INIT_DISABLED = keccak256("initDisabled");
+    bytes32 internal constant OWNER = keccak256("owner");
+    bytes32 internal constant PROXY_STORAGE = keccak256("proxyStorage");
+
+    string internal constant BALLOT_THRESHOLDS = "ballotThresholds";
+
     enum ThresholdTypes {Invalid, Keys, MetadataChange}
     event ThresholdChanged(uint8 indexed thresholdType, uint256 newValue);
 
     modifier onlyOwner() {
-        require(msg.sender == addressStorage[keccak256("owner")]);
+        require(msg.sender == addressStorage[OWNER]);
         _;
     }
 
@@ -23,17 +30,23 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
     }
 
     function proxyStorage() public view returns(address) {
-        return addressStorage[keccak256("proxyStorage")];
+        return addressStorage[PROXY_STORAGE];
     }
 
     function initDisabled() public view returns(bool) {
-        return boolStorage[keccak256("initDisabled")];
+        return boolStorage[INIT_DISABLED];
     }
 
-    function init(bool _demoMode) public onlyOwner {
+    function init(
+        uint256[] _thresholds
+    ) public onlyOwner {
         require(!initDisabled());
-        _setThreshold(_demoMode ? 1 : 3, uint8(ThresholdTypes.Keys));
-        _setThreshold(_demoMode ? 1 : 2, uint8(ThresholdTypes.MetadataChange));
+        require(_thresholds.length == uint256(ThresholdTypes.MetadataChange));
+        require(_thresholds.length <= 255);
+        for (uint8 thresholdType = 1; thresholdType <= _thresholds.length; thresholdType++) {
+            uint256 thresholdValue = _thresholds[thresholdType - 1];
+            _setThreshold(thresholdValue, thresholdType);
+        }
         _initDisable();
     }
 
@@ -67,7 +80,7 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
     }
 
     function getBallotThreshold(uint8 _ballotType) public view returns(uint256) {
-        return uintStorage[keccak256("ballotThresholds", _ballotType)];
+        return uintStorage[keccak256(BALLOT_THRESHOLDS, _ballotType)];
     }
 
     function getVotingToChangeThreshold() public view returns(address) {
@@ -98,10 +111,10 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
     }
 
     function _initDisable() private {
-        boolStorage[keccak256("initDisabled")] = true;
+        boolStorage[INIT_DISABLED] = true;
     }
 
     function _setThreshold(uint256 _newValue, uint8 _thresholdType) private {
-        uintStorage[keccak256("ballotThresholds", _thresholdType)] = _newValue;
+        uintStorage[keccak256(BALLOT_THRESHOLDS, _thresholdType)] = _newValue;
     }
 }

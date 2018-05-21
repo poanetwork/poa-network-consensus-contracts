@@ -224,7 +224,12 @@ async function votingToChangeMigrateAndCheck(sender, key, chainId, contractName)
 
 		const initDisabled = await votingNewInstance.methods.initDisabled().call();
 		if (!initDisabled) {
-			const init = await votingNewInstance.methods.init(false);
+			let init;
+			if (contractName == 'VotingToChangeMinThreshold') {
+				init = await votingNewInstance.methods.init(172800, 3);
+			} else {
+				init = await votingNewInstance.methods.init(172800);
+			}
 			await utils.call(init, sender, contractNewAddress, key, chainId);
 		}
 

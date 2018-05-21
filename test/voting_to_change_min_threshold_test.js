@@ -53,7 +53,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     voting = await Voting.new();
     const votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, voting.address);
     voting = await Voting.at(votingEternalStorage.address);
-    await voting.init(false).should.be.fulfilled;
+    await voting.init(172800, 3).should.be.fulfilled;
     
     await proxyStorageMock.initializeAddresses(
       keysManager.address,
@@ -65,7 +65,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     );
     
     ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
-    await ballotsStorage.init(false).should.be.fulfilled;
+    await ballotsStorage.init([3, 2]).should.be.fulfilled;
 
     await proxyStorageMock.setVotingContractMock(accounts[0]);
     await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
@@ -312,7 +312,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       let votingForKeys = await VotingForKeys.new();
       const votingForKeysEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingForKeys.address);
       votingForKeys = await VotingForKeys.at(votingForKeysEternalStorage.address);
-      await votingForKeys.init(false);
+      await votingForKeys.init(172800);
 
       const nextId = await votingForKeys.nextBallotId();
       await votingForKeys.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 3, accounts[1], 1, "memo", {from: votingKey});
@@ -366,7 +366,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       voting = await Voting.new();
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, voting.address);
       voting = await Voting.at(votingEternalStorage.address);
-      await voting.init(false).should.be.fulfilled;
+      await voting.init(172800, 3).should.be.fulfilled;
     });
     it('may be called only by ProxyStorage', async () => {
       let votingNew = await VotingNew.new();

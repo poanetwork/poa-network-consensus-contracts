@@ -10,6 +10,41 @@ import "./eternal-storage/EternalStorage.sol";
 contract KeysManager is EternalStorage, IKeysManager {
     using SafeMath for uint256;
 
+    bytes32 internal constant INIT_DISABLED =
+        keccak256("initDisabled");
+    
+    bytes32 internal constant INITIAL_KEYS_COUNT =
+        keccak256("initialKeysCount");
+    
+    bytes32 internal constant MASTER_OF_CEREMONY =
+        keccak256("masterOfCeremony");
+    
+    bytes32 internal constant OWNER =
+        keccak256("owner");
+    
+    bytes32 internal constant POA_NETWORK_CONSENSUS =
+        keccak256("poaNetworkConsensus");
+    
+    bytes32 internal constant PREVIOUS_KEYS_MANAGER =
+        keccak256("previousKeysManager");
+    
+    bytes32 internal constant PROXY_STORAGE =
+        keccak256("proxyStorage");
+    
+    bytes32 internal constant MAX_NUMBER_OF_INITIAL_KEYS =
+        keccak256("maxNumberOfInitialKeys");
+
+    string internal constant INITIAL_KEYS = "initialKeys";
+    string internal constant IS_MINING_ACTIVE = "isMiningActive";
+    string internal constant IS_PAYOUT_ACTIVE = "isPayoutActive";
+    string internal constant IS_VOTING_ACTIVE = "isVotingActive";
+    string internal constant MINING_KEY_BY_VOTING = "miningKeyByVoting";
+    string internal constant MINING_KEY_HISTORY = "miningKeyHistory";
+    string internal constant PAYOUT_KEY = "payoutKey";
+    string internal constant SUCCESSFUL_VALIDATOR_CLONE = "successfulValidatorClone";
+    string internal constant VALIDATOR_KEYS = "validatorKeys";
+    string internal constant VOTING_KEY = "votingKey";
+
     enum InitialKeyState {Invalid, Activated, Deactivated}
 
     event MiningKeyChanged(address key, string action);
@@ -31,7 +66,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     event Migrated(string name, address key);
 
     modifier onlyOwner() {
-        require(msg.sender == addressStorage[keccak256("owner")]);
+        require(msg.sender == addressStorage[OWNER]);
         _;
     }
 
@@ -56,43 +91,43 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function masterOfCeremony() public view returns(address) {
-        return addressStorage[keccak256("masterOfCeremony")];
+        return addressStorage[MASTER_OF_CEREMONY];
     }
 
     function previousKeysManager() public view returns(address) {
-        return addressStorage[keccak256("previousKeysManager")];
+        return addressStorage[PREVIOUS_KEYS_MANAGER];
     }
 
     function proxyStorage() public view returns(address) {
-        return addressStorage[keccak256("proxyStorage")];
+        return addressStorage[PROXY_STORAGE];
     }
 
     function poaNetworkConsensus() public view returns(address) {
-        return addressStorage[keccak256("poaNetworkConsensus")];
+        return addressStorage[POA_NETWORK_CONSENSUS];
     }
 
     function maxNumberOfInitialKeys() public view returns(uint256) {
-        return uintStorage[keccak256("maxNumberOfInitialKeys")];
+        return uintStorage[MAX_NUMBER_OF_INITIAL_KEYS];
     }
 
     function initialKeysCount() public view returns(uint256) {
-        return uintStorage[keccak256("initialKeysCount")];
+        return uintStorage[INITIAL_KEYS_COUNT];
     }
 
     function initialKeys(address _initialKey) public view returns(uint8) {
-        return uint8(uintStorage[keccak256("initialKeys", _initialKey)]);
+        return uint8(uintStorage[keccak256(INITIAL_KEYS, _initialKey)]);
     }
 
     function miningKeyByVoting(address _votingKey) public view returns(address) {
-        return addressStorage[keccak256("miningKeyByVoting", _votingKey)];
+        return addressStorage[keccak256(MINING_KEY_BY_VOTING, _votingKey)];
     }
 
     function miningKeyHistory(address _miningKey) public view returns(address) {
-        return addressStorage[keccak256("miningKeyHistory", _miningKey)];
+        return addressStorage[keccak256(MINING_KEY_HISTORY, _miningKey)];
     }
 
     function successfulValidatorClone(address _miningKey) public view returns(bool) {
-        return boolStorage[keccak256("successfulValidatorClone", _miningKey)];
+        return boolStorage[keccak256(SUCCESSFUL_VALIDATOR_CLONE, _miningKey)];
     }
 
     function validatorKeys(address _miningKey) public view returns(
@@ -110,7 +145,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function initDisabled() public view returns(bool) {
-        return boolStorage[keccak256("initDisabled")];
+        return boolStorage[INIT_DISABLED];
     }
 
     function init(
@@ -137,7 +172,7 @@ contract KeysManager is EternalStorage, IKeysManager {
             IKeysManager previous = IKeysManager(_previousKeysManager);
             _setInitialKeysCount(previous.initialKeysCount());
         }
-        boolStorage[keccak256("initDisabled")] = true;
+        boolStorage[INIT_DISABLED] = true;
     }
 
     function migrateMiningKey(address _miningKey) public {
@@ -231,7 +266,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function isMiningActive(address _key) public view returns(bool) {
-        return boolStorage[keccak256("validatorKeys", _key, "isMiningActive")];
+        return boolStorage[keccak256(VALIDATOR_KEYS, _key, IS_MINING_ACTIVE)];
     }
 
     function isVotingActive(address _votingKey) public view returns(bool) {
@@ -240,19 +275,19 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function isVotingActiveByMiningKey(address _miningKey) public view returns(bool) {
-        return boolStorage[keccak256("validatorKeys", _miningKey, "isVotingActive")];
+        return boolStorage[keccak256(VALIDATOR_KEYS, _miningKey, IS_VOTING_ACTIVE)];
     }
 
     function isPayoutActive(address _miningKey) public view returns(bool) {
-        return boolStorage[keccak256("validatorKeys", _miningKey, "isPayoutActive")];
+        return boolStorage[keccak256(VALIDATOR_KEYS, _miningKey, IS_PAYOUT_ACTIVE)];
     }
 
     function getVotingByMining(address _miningKey) public view returns(address) {
-        return addressStorage[keccak256("validatorKeys", _miningKey, "votingKey")];
+        return addressStorage[keccak256(VALIDATOR_KEYS, _miningKey, VOTING_KEY)];
     }
 
     function getPayoutByMining(address _miningKey) public view returns(address) {
-        return addressStorage[keccak256("validatorKeys", _miningKey, "payoutKey")];
+        return addressStorage[keccak256(VALIDATOR_KEYS, _miningKey, PAYOUT_KEY)];
     }
 
     function getMiningKeyHistory(address _miningKey) public view returns(address) {
@@ -398,58 +433,58 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function _setMasterOfCeremony(address _moc) private {
-        addressStorage[keccak256("masterOfCeremony")] = _moc;
+        addressStorage[MASTER_OF_CEREMONY] = _moc;
     }
 
     function _setPreviousKeysManager(address _keysManager) private {
-        addressStorage[keccak256("previousKeysManager")] = _keysManager;
+        addressStorage[PREVIOUS_KEYS_MANAGER] = _keysManager;
     }
 
     function _setPoaNetworkConsensus(address _poa) private {
-        addressStorage[keccak256("poaNetworkConsensus")] = _poa;
+        addressStorage[POA_NETWORK_CONSENSUS] = _poa;
     }
 
     function _setMaxNumberOfInitialKeys(uint256 _max) private {
-        uintStorage[keccak256("maxNumberOfInitialKeys")] = _max;
+        uintStorage[MAX_NUMBER_OF_INITIAL_KEYS] = _max;
     }
 
     function _setInitialKeysCount(uint256 _count) private {
-        uintStorage[keccak256("initialKeysCount")] = _count;
+        uintStorage[INITIAL_KEYS_COUNT] = _count;
     }
 
     function _setInitialKeyStatus(address _initialKey, uint8 _status) private {
-        uintStorage[keccak256("initialKeys", _initialKey)] = _status;
+        uintStorage[keccak256(INITIAL_KEYS, _initialKey)] = _status;
     }
 
     function _setVotingKey(address _key, address _miningKey) private {
-        addressStorage[keccak256("validatorKeys", _miningKey, "votingKey")] = _key;
+        addressStorage[keccak256(VALIDATOR_KEYS, _miningKey, VOTING_KEY)] = _key;
     }
 
     function _setPayoutKey(address _key, address _miningKey) private {
-        addressStorage[keccak256("validatorKeys", _miningKey, "payoutKey")] = _key;
+        addressStorage[keccak256(VALIDATOR_KEYS, _miningKey, PAYOUT_KEY)] = _key;
     }
 
     function _setIsMiningActive(bool _active, address _miningKey) private {
-        boolStorage[keccak256("validatorKeys", _miningKey, "isMiningActive")] = _active;
+        boolStorage[keccak256(VALIDATOR_KEYS, _miningKey, IS_MINING_ACTIVE)] = _active;
     }
 
     function _setIsVotingActive(bool _active, address _miningKey) private {
-        boolStorage[keccak256("validatorKeys", _miningKey, "isVotingActive")] = _active;
+        boolStorage[keccak256(VALIDATOR_KEYS, _miningKey, IS_VOTING_ACTIVE)] = _active;
     }
 
     function _setIsPayoutActive(bool _active, address _miningKey) private {
-        boolStorage[keccak256("validatorKeys", _miningKey, "isPayoutActive")] = _active;
+        boolStorage[keccak256(VALIDATOR_KEYS, _miningKey, IS_PAYOUT_ACTIVE)] = _active;
     }
 
     function _setMiningKeyByVoting(address _votingKey, address _miningKey) private {
-        addressStorage[keccak256("miningKeyByVoting", _votingKey)] = _miningKey;
+        addressStorage[keccak256(MINING_KEY_BY_VOTING, _votingKey)] = _miningKey;
     }
 
     function _setMiningKeyHistory(address _key, address _oldMiningKey) private {
-        addressStorage[keccak256("miningKeyHistory", _key)] = _oldMiningKey;
+        addressStorage[keccak256(MINING_KEY_HISTORY, _key)] = _oldMiningKey;
     }
 
     function _setSuccessfulValidatorClone(bool _success, address _miningKey) private {
-        boolStorage[keccak256("successfulValidatorClone", _miningKey)] = _success;
+        boolStorage[keccak256(SUCCESSFUL_VALIDATOR_CLONE, _miningKey)] = _success;
     }
 }

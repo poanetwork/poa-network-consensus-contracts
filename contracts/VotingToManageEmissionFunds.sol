@@ -6,6 +6,27 @@ import "./abstracts/VotingTo.sol";
 
 
 contract VotingToManageEmissionFunds is VotingTo {
+    bytes32 internal constant DISTRIBUTION_THRESHOLD =
+        keccak256("distributionThreshold");
+    
+    bytes32 internal constant EMISSION_FUNDS =
+        keccak256("emissionFunds");
+    
+    bytes32 internal constant EMISSION_RELEASE_THRESHOLD =
+        keccak256("emissionReleaseThreshold");
+    
+    bytes32 internal constant EMISSION_RELEASE_TIME =
+        keccak256("emissionReleaseTime");
+    
+    bytes32 internal constant PREVIOUS_BALLOT_FINALIZED =
+        keccak256("previousBallotFinalized");
+
+    string internal constant AMOUNT = "amount";
+    string internal constant BURN_VOTES = "burnVotes";
+    string internal constant FREEZE_VOTES = "freezeVotes";
+    string internal constant RECEIVER = "receiver";
+    string internal constant SEND_VOTES = "sendVotes";
+
     enum QuorumStates {Invalid, InProgress, Sent, Burnt, Frozen}
     enum ActionChoice {Invalid, Send, Burn, Freeze}
 
@@ -15,6 +36,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         address _receiver,
         string memo
     ) public onlyValidVotingKey(msg.sender) {
+        require(initDisabled());
         require(_startTime > 0 && _endTime > 0);
         uint256 currentTime = getTime();
         require(_endTime > _startTime && _startTime > currentTime);
@@ -39,23 +61,23 @@ contract VotingToManageEmissionFunds is VotingTo {
         _setAmount(ballotId, emissionFunds().balance);
         _setPreviousBallotFinalized(false);
         _setNextBallotId(ballotId.add(1));
-        emit BallotCreated(ballotId, 6, msg.sender);
+        emit BallotCreated(ballotId, uint256(BallotTypes.ManageEmissionFunds), msg.sender);
     }
 
     function distributionThreshold() public view returns(uint256) {
-        return uintStorage[keccak256("distributionThreshold")];
+        return uintStorage[DISTRIBUTION_THRESHOLD];
     }
 
     function emissionFunds() public view returns(address) {
-        return addressStorage[keccak256("emissionFunds")];
+        return addressStorage[EMISSION_FUNDS];
     }
 
     function emissionReleaseThreshold() public view returns(uint256) {
-        return uintStorage[keccak256("emissionReleaseThreshold")];
+        return uintStorage[EMISSION_RELEASE_THRESHOLD];
     }
 
     function emissionReleaseTime() public view returns(uint256) {
-        return uintStorage[keccak256("emissionReleaseTime")];
+        return uintStorage[EMISSION_RELEASE_TIME];
     }
 
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
@@ -68,23 +90,23 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
 
     function getAmount(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(_storeName(), _id, "amount")];
+        return uintStorage[keccak256(VOTING_STATE, _id, AMOUNT)];
     }
 
     function getBurnVotes(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(_storeName(), _id, "burnVotes")];
+        return uintStorage[keccak256(VOTING_STATE, _id, BURN_VOTES)];
     }
 
     function getFreezeVotes(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(_storeName(), _id, "freezeVotes")];
+        return uintStorage[keccak256(VOTING_STATE, _id, FREEZE_VOTES)];
     }
 
     function getReceiver(uint256 _id) public view returns(address) {
-        return addressStorage[keccak256(_storeName(), _id, "receiver")];
+        return addressStorage[keccak256(VOTING_STATE, _id, RECEIVER)];
     }
 
     function getSendVotes(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(_storeName(), _id, "sendVotes")];
+        return uintStorage[keccak256(VOTING_STATE, _id, SEND_VOTES)];
     }
 
     function getTotalVoters(uint256 _id) public view returns(uint256) {
@@ -105,17 +127,18 @@ contract VotingToManageEmissionFunds is VotingTo {
         require(_emissionReleaseThreshold > _distributionThreshold);
         _setPreviousBallotFinalized(true);
         _setEmissionReleaseTime(_emissionReleaseTime);
-        addressStorage[keccak256("emissionFunds")] = _emissionFunds;
-        uintStorage[keccak256("emissionReleaseThreshold")] = _emissionReleaseThreshold;
-        uintStorage[keccak256("distributionThreshold")] = _distributionThreshold;
-        boolStorage[keccak256("initDisabled")] = true;
+        addressStorage[EMISSION_FUNDS] = _emissionFunds;
+        uintStorage[EMISSION_RELEASE_THRESHOLD] = _emissionReleaseThreshold;
+        uintStorage[DISTRIBUTION_THRESHOLD] = _distributionThreshold;
+        boolStorage[INIT_DISABLED] = true;
     }
 
     function previousBallotFinalized() public view returns(bool) {
-        return boolStorage[keccak256("previousBallotFinalized")];
+        return boolStorage[PREVIOUS_BALLOT_FINALIZED];
     }
 
     function refreshEmissionReleaseTime() public returns(uint256) {
+        require(initDisabled());
         uint256 releaseTime = emissionReleaseTime();
         uint256 currentTime = getTime();
         if (currentTime > releaseTime) {
@@ -156,6 +179,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         }
     }
 
+    // solhint-disable code-complexity
     function _finalize(uint256 _id) private {
         _setIsFinalized(_id, true);
         _setPreviousBallotFinalized(true);
@@ -205,6 +229,7 @@ contract VotingToManageEmissionFunds is VotingTo {
             IEmissionFunds(emissionFunds()).burnFunds(getAmount(_id));
         }
     }
+    // solhint-enable code-complexity
 
     function _max(uint256 a, uint256 b, uint256 c) private pure returns(uint256) {
         uint256 max = a;
@@ -214,30 +239,30 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
 
     function _setAmount(uint256 _ballotId, uint256 _amount) private {
-        uintStorage[keccak256(_storeName(), _ballotId, "amount")] = _amount;
+        uintStorage[keccak256(VOTING_STATE, _ballotId, AMOUNT)] = _amount;
     }
 
     function _setBurnVotes(uint256 _ballotId, uint256 _value) private {
-        uintStorage[keccak256(_storeName(), _ballotId, "burnVotes")] = _value;
+        uintStorage[keccak256(VOTING_STATE, _ballotId, BURN_VOTES)] = _value;
     }
 
     function _setEmissionReleaseTime(uint256 _time) private {
-        uintStorage[keccak256("emissionReleaseTime")] = _time;
+        uintStorage[EMISSION_RELEASE_TIME] = _time;
     }
 
     function _setFreezeVotes(uint256 _ballotId, uint256 _value) private {
-        uintStorage[keccak256(_storeName(), _ballotId, "freezeVotes")] = _value;
+        uintStorage[keccak256(VOTING_STATE, _ballotId, FREEZE_VOTES)] = _value;
     }
 
     function _setPreviousBallotFinalized(bool _finalized) private {
-        boolStorage[keccak256("previousBallotFinalized")] = _finalized;
+        boolStorage[PREVIOUS_BALLOT_FINALIZED] = _finalized;
     }
 
     function _setReceiver(uint256 _ballotId, address _value) private {
-        addressStorage[keccak256(_storeName(), _ballotId, "receiver")] = _value;
+        addressStorage[keccak256(VOTING_STATE, _ballotId, RECEIVER)] = _value;
     }
 
     function _setSendVotes(uint256 _ballotId, uint256 _value) private {
-        uintStorage[keccak256(_storeName(), _ballotId, "sendVotes")] = _value;
+        uintStorage[keccak256(VOTING_STATE, _ballotId, SEND_VOTES)] = _value;
     }
 }

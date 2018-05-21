@@ -7,6 +7,36 @@ import "./eternal-storage/EternalStorage.sol";
 
 
 contract ProxyStorage is EternalStorage, IProxyStorage {
+    bytes32 internal constant INIT_DISABLED =
+        keccak256("initDisabled");
+    
+    bytes32 internal constant BALLOTS_STORAGE_ETERNAL_STORAGE =
+        keccak256("ballotsStorageEternalStorage");
+    
+    bytes32 internal constant KEYS_MANAGER_ETERNAL_STORAGE =
+        keccak256("keysManagerEternalStorage");
+    
+    bytes32 internal constant MOC_INITIALIZED =
+        keccak256("mocInitialized");
+    
+    bytes32 internal constant OWNER =
+        keccak256("owner");
+    
+    bytes32 internal constant POA_CONSENSUS =
+        keccak256("poaConsensus");
+    
+    bytes32 internal constant VALIDATOR_METADATA_ETERNAL_STORAGE =
+        keccak256("validatorMetadataEternalStorage");
+    
+    bytes32 internal constant VOTING_TO_CHANGE_KEYS_ETERNAL_STORAGE =
+        keccak256("votingToChangeKeysEternalStorage");
+    
+    bytes32 internal constant VOTING_TO_CHANGE_MIN_THRESHOLD_ETERNAL_STORAGE =
+        keccak256("votingToChangeMinThresholdEternalStorage");
+    
+    bytes32 internal constant VOTING_TO_CHANGE_PROXY_ETERNAL_STORAGE =
+        keccak256("votingToChangeProxyEternalStorage");
+
     enum ContractTypes {
         Invalid,
         KeysManager,
@@ -41,45 +71,45 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     }
 
     function initDisabled() public view returns(bool) {
-        return boolStorage[keccak256("initDisabled")];
+        return boolStorage[INIT_DISABLED];
     }
 
     function init(address _poaConsensus) public onlyOwner {
         require(!initDisabled());
         _setPoaConsensus(_poaConsensus);
-        boolStorage[keccak256("initDisabled")] = true;
+        boolStorage[INIT_DISABLED] = true;
     }
 
     function mocInitialized() public view returns(bool) {
-        return boolStorage[keccak256("mocInitialized")];
+        return boolStorage[MOC_INITIALIZED];
     }
 
     function getKeysManager() public view returns(address) {
-        return addressStorage[keccak256("keysManagerEternalStorage")];
+        return addressStorage[KEYS_MANAGER_ETERNAL_STORAGE];
     }
 
     function getVotingToChangeKeys() public view returns(address) {
-        return addressStorage[keccak256("votingToChangeKeysEternalStorage")];
+        return addressStorage[VOTING_TO_CHANGE_KEYS_ETERNAL_STORAGE];
     }
 
     function getVotingToChangeMinThreshold() public view returns(address) {
-        return addressStorage[keccak256("votingToChangeMinThresholdEternalStorage")];
+        return addressStorage[VOTING_TO_CHANGE_MIN_THRESHOLD_ETERNAL_STORAGE];
     }
 
     function getVotingToChangeProxy() public view returns(address) {
-        return addressStorage[keccak256("votingToChangeProxyEternalStorage")];
+        return addressStorage[VOTING_TO_CHANGE_PROXY_ETERNAL_STORAGE];
     }
 
     function getPoaConsensus() public view returns(address) {
-        return addressStorage[keccak256("poaConsensus")];
+        return addressStorage[POA_CONSENSUS];
     }
 
     function getBallotsStorage() public view returns(address) {
-        return addressStorage[keccak256("ballotsStorageEternalStorage")];
+        return addressStorage[BALLOTS_STORAGE_ETERNAL_STORAGE];
     }
 
     function getValidatorMetadata() public view returns(address) {
-        return addressStorage[keccak256("validatorMetadataEternalStorage")];
+        return addressStorage[VALIDATOR_METADATA_ETERNAL_STORAGE];
     }
 
     function initializeAddresses(
@@ -89,24 +119,22 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         address _votingToChangeProxyEternalStorage,
         address _ballotsStorageEternalStorage,
         address _validatorMetadataEternalStorage
-    )
-        public
-    {
+    ) public {
         require(isValidator(msg.sender) || _isOwner(msg.sender));
         require(!mocInitialized());
-        addressStorage[keccak256("keysManagerEternalStorage")] =
+        addressStorage[KEYS_MANAGER_ETERNAL_STORAGE] =
             _keysManagerEternalStorage;
-        addressStorage[keccak256("votingToChangeKeysEternalStorage")] =
+        addressStorage[VOTING_TO_CHANGE_KEYS_ETERNAL_STORAGE] =
             _votingToChangeKeysEternalStorage;
-        addressStorage[keccak256("votingToChangeMinThresholdEternalStorage")] =
+        addressStorage[VOTING_TO_CHANGE_MIN_THRESHOLD_ETERNAL_STORAGE] =
             _votingToChangeMinThresholdEternalStorage;
-        addressStorage[keccak256("votingToChangeProxyEternalStorage")] =
+        addressStorage[VOTING_TO_CHANGE_PROXY_ETERNAL_STORAGE] =
             _votingToChangeProxyEternalStorage;
-        addressStorage[keccak256("ballotsStorageEternalStorage")] =
+        addressStorage[BALLOTS_STORAGE_ETERNAL_STORAGE] =
             _ballotsStorageEternalStorage;
-        addressStorage[keccak256("validatorMetadataEternalStorage")] =
+        addressStorage[VALIDATOR_METADATA_ETERNAL_STORAGE] =
             _validatorMetadataEternalStorage;
-        boolStorage[keccak256("mocInitialized")] = true;
+        boolStorage[MOC_INITIALIZED] = true;
         emit ProxyInitialized(
             _keysManagerEternalStorage,
             _votingToChangeKeysEternalStorage,
@@ -117,6 +145,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         );
     }
 
+    // solhint-disable code-complexity
     function setContractAddress(uint256 _contractType, address _contractAddress)
         public
         onlyVotingToChangeProxy
@@ -153,6 +182,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         }
         emit AddressSet(_contractType, _contractAddress);
     }
+    // solhint-enable code-complexity
 
     function isValidator(address _validator) public view returns(bool) {
         IPoaNetworkConsensus poa = IPoaNetworkConsensus(getPoaConsensus());
@@ -160,10 +190,10 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     }
 
     function _isOwner(address _sender) private view returns(bool) {
-        return _sender == addressStorage[keccak256("owner")];
+        return _sender == addressStorage[OWNER];
     }
 
     function _setPoaConsensus(address _poaConsensus) private {
-        addressStorage[keccak256("poaConsensus")] = _poaConsensus;
+        addressStorage[POA_CONSENSUS] = _poaConsensus;
     }
 }

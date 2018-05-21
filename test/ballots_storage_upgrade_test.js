@@ -38,8 +38,8 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     ballotsStorage = await BallotsStorage.new();
     const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorage.address, ballotsStorage.address);
     ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
-    await ballotsStorage.init(false, {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
-    await ballotsStorage.init(false).should.be.fulfilled;
+    await ballotsStorage.init([3, 2], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
+    await ballotsStorage.init([3, 2]).should.be.fulfilled;
 
     keysManager = await KeysManagerMock.new();
     const keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorage.address, keysManager.address);
@@ -69,7 +69,7 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
   
   describe('#init', async () => {
     it('prevent from double init', async () => {
-      await ballotsStorage.init(false).should.be.rejectedWith(ERROR_MSG);
+      await ballotsStorage.init([3, 2]).should.be.rejectedWith(ERROR_MSG);
     })
     it('thresholds are correct', async () => {
       new web3.BigNumber(3).should.be.bignumber.equal(

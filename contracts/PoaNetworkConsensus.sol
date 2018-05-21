@@ -35,7 +35,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     uint256 public currentValidatorsLength;
     mapping(address => ValidatorState) public validatorsState;
     IProxyStorage public proxyStorage;
-    address owner;
+    address private owner;
 
     modifier onlySystemAndNotFinalized() {
         require(msg.sender == systemAddress && !finalized);

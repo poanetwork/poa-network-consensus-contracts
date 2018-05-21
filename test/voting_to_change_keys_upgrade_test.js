@@ -60,8 +60,8 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       masterOfCeremony
     );
 
-    await ballotsStorage.init(false).should.be.fulfilled;
-    await voting.init(false).should.be.fulfilled;
+    await ballotsStorage.init([3, 2]).should.be.fulfilled;
+    await voting.init(172800).should.be.fulfilled;
 
     let votingNew = await VotingToChangeKeysNew.new();
     await votingEternalStorage.setProxyStorage(accounts[6]);
