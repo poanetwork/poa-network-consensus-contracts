@@ -150,6 +150,8 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         public
         onlyVotingToChangeProxy
     {
+        require(mocInitialized());
+        require(initDisabled());
         require(_contractAddress != address(0));
         if (_contractType == uint8(ContractTypes.KeysManager)) {
             IEternalStorageProxy(

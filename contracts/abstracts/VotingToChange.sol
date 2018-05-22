@@ -165,6 +165,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
         onlyValidTime(_startTime, _endTime)
         returns(uint256)
     {
+        require(initDisabled());
         address creatorMiningKey = getMiningByVotingKey(msg.sender);
         require(withinLimit(creatorMiningKey));
         uint256 ballotId = nextBallotId();

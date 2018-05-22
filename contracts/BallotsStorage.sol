@@ -45,6 +45,7 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
         require(_thresholds.length <= 255);
         for (uint8 thresholdType = 1; thresholdType <= _thresholds.length; thresholdType++) {
             uint256 thresholdValue = _thresholds[thresholdType - 1];
+            require(thresholdValue > 0);
             _setThreshold(thresholdValue, thresholdType);
         }
         _initDisable();

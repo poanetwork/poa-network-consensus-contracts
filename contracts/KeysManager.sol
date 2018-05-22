@@ -367,6 +367,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function _addMiningKey(address _key) private {
+        require(initDisabled());
         _setVotingKey(address(0), _key);
         _setPayoutKey(address(0), _key);
         _setIsMiningActive(true, _key);
@@ -377,6 +378,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function _addVotingKey(address _key, address _miningKey) private {
+        require(initDisabled());
         require(isMiningActive(_miningKey));
         require(_key != _miningKey);
         address oldVotingKey = getVotingByMining(_miningKey);
@@ -391,6 +393,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function _addPayoutKey(address _key, address _miningKey) private {
+        require(initDisabled());
         require(isMiningActive(_miningKey));
         require(_key != _miningKey);
         address oldPayoutKey = getPayoutByMining(_miningKey);
@@ -404,6 +407,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function _removeMiningKey(address _key) private {
+        require(initDisabled());
         require(isMiningActive(_key));
         _setMiningKeyByVoting(getVotingByMining(_key), address(0));
         _setVotingKey(address(0), _key);
@@ -416,6 +420,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function _removeVotingKey(address _miningKey) private {
+        require(initDisabled());
         require(isVotingActiveByMiningKey(_miningKey));
         address oldVoting = getVotingByMining(_miningKey);
         _setVotingKey(address(0), _miningKey);
@@ -425,6 +430,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function _removePayoutKey(address _miningKey) private {
+        require(initDisabled());
         require(isPayoutActive(_miningKey));
         address oldPayout = getPayoutByMining(_miningKey);
         _setPayoutKey(address(0), _miningKey);

@@ -609,6 +609,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       voting = await VotingToChangeKeysMock.new();
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, voting.address);
       voting = await VotingToChangeKeysMock.at(votingEternalStorage.address);
+      await voting.init(172800).should.be.fulfilled;
     });
     it('may be called only by ProxyStorage', async () => {
       let votingNew = await VotingToChangeKeysNew.new();
