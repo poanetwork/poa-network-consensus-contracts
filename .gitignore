@@ -3,5 +3,6 @@ build
 flat
 mochawesome-report
 coverageEnv
+scTopics
 .DS_Store
 contracts.json
