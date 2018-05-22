@@ -15,7 +15,6 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
         uint256 _proposedValue,
         string memo
     ) public {
-        require(initDisabled());
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
         require(_proposedValue >= minPossibleThreshold());
         require(_proposedValue != getGlobalMinThresholdOfVoters());
@@ -37,6 +36,7 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
         uint256 _minBallotDuration,
         uint256 _minPossibleThreshold
     ) public {
+        require(_minPossibleThreshold > 0);
         _init(_minBallotDuration);
         uintStorage[MIN_POSSIBLE_THRESHOLD] = _minPossibleThreshold;
     }
