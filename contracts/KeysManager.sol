@@ -15,6 +15,9 @@ contract KeysManager is EternalStorage, IKeysManager {
     
     bytes32 internal constant INITIAL_KEYS_COUNT =
         keccak256("initialKeysCount");
+
+    bytes32 internal constant IS_MASTER_OF_CEREMONY_REMOVED = 
+        keccak256("isMasterOfCeremonyRemoved");
     
     bytes32 internal constant MASTER_OF_CEREMONY =
         keccak256("masterOfCeremony");
@@ -30,9 +33,6 @@ contract KeysManager is EternalStorage, IKeysManager {
     
     bytes32 internal constant PROXY_STORAGE =
         keccak256("proxyStorage");
-    
-    bytes32 internal constant MAX_NUMBER_OF_INITIAL_KEYS =
-        keccak256("maxNumberOfInitialKeys");
 
     string internal constant INITIAL_KEYS = "initialKeys";
     string internal constant IS_MINING_ACTIVE = "isMiningActive";
@@ -86,6 +86,10 @@ contract KeysManager is EternalStorage, IKeysManager {
         _;
     }
 
+    function isMasterOfCeremonyRemoved() public view returns(bool) {
+        return boolStorage[IS_MASTER_OF_CEREMONY_REMOVED];
+    }
+
     function maxLimitValidators() public pure returns(uint256) {
         return 2000;
     }
@@ -106,8 +110,8 @@ contract KeysManager is EternalStorage, IKeysManager {
         return addressStorage[POA_NETWORK_CONSENSUS];
     }
 
-    function maxNumberOfInitialKeys() public view returns(uint256) {
-        return uintStorage[MAX_NUMBER_OF_INITIAL_KEYS];
+    function maxNumberOfInitialKeys() public pure returns(uint256) {
+        return 12;
     }
 
     function initialKeysCount() public view returns(uint256) {
@@ -159,7 +163,6 @@ contract KeysManager is EternalStorage, IKeysManager {
         require(_masterOfCeremony != address(0) && _masterOfCeremony != _poaConsensus);
         _setMasterOfCeremony(_masterOfCeremony);
         _setPoaNetworkConsensus(_poaConsensus);
-        _setMaxNumberOfInitialKeys(12);
         _setVotingKey(address(0), _masterOfCeremony);
         _setPayoutKey(address(0), _masterOfCeremony);
         _setIsMiningActive(true, _masterOfCeremony);
@@ -218,6 +221,7 @@ contract KeysManager is EternalStorage, IKeysManager {
 
     function initiateKeys(address _initialKey) public {
         require(msg.sender == masterOfCeremony());
+        require(!isMasterOfCeremonyRemoved());
         require(_initialKey != address(0));
         require(initialKeys(_initialKey) == uint8(InitialKeyState.Invalid));
         require(_initialKey != masterOfCeremony());
@@ -338,6 +342,9 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsMiningActive(true, _key);
         _setIsVotingActive(isVotingActive(votingKey), _key);
         _setIsPayoutActive(isPayoutActive(_oldMiningKey), _key);
+        if (_oldMiningKey == masterOfCeremony()) {
+            _setMasterOfCeremony(_key);
+        }
         IPoaNetworkConsensus(poaNetworkConsensus()).swapValidatorKey(_key, _oldMiningKey);
         _setVotingKey(address(0), _oldMiningKey);
         _setPayoutKey(address(0), _oldMiningKey);
@@ -415,8 +422,16 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsMiningActive(false, _key);
         _setIsVotingActive(false, _key);
         _setIsPayoutActive(false, _key);
+        if (_key == masterOfCeremony()) {
+            require(initialKeysCount() >= maxNumberOfInitialKeys());
+            _removeMoC();
+        }
         IPoaNetworkConsensus(poaNetworkConsensus()).removeValidator(_key, true);
         emit MiningKeyChanged(_key, "removed");
+    }
+
+    function _removeMoC() private {
+        boolStorage[IS_MASTER_OF_CEREMONY_REMOVED] = true;
     }
 
     function _removeVotingKey(address _miningKey) private {
@@ -448,10 +463,6 @@ contract KeysManager is EternalStorage, IKeysManager {
 
     function _setPoaNetworkConsensus(address _poa) private {
         addressStorage[POA_NETWORK_CONSENSUS] = _poa;
-    }
-
-    function _setMaxNumberOfInitialKeys(uint256 _max) private {
-        uintStorage[MAX_NUMBER_OF_INITIAL_KEYS] = _max;
     }
 
     function _setInitialKeysCount(uint256 _count) private {

@@ -1,6 +1,7 @@
 pragma solidity ^0.4.23;
 
 import "./interfaces/IBallotsStorage.sol";
+import "./interfaces/IKeysManager.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
 import "./eternal-storage/EternalStorage.sol";
@@ -95,12 +96,24 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
     }
 
     function getProxyThreshold() public view returns(uint256) {
-        uint256 validatorsCount = getTotalNumberOfValidators().sub(1);
+        uint256 validatorsCount = getTotalNumberOfValidators();
+        IKeysManager keysManager = IKeysManager(
+            IProxyStorage(proxyStorage()).getKeysManager()
+        );
+        if (!keysManager.isMasterOfCeremonyRemoved()) {
+            validatorsCount = validatorsCount.sub(1); // exclude MoC
+        }
         return validatorsCount.div(2).add(1);
     }
 
     function getBallotLimitPerValidator() public view returns(uint256) {
-        uint256 validatorsCount = getTotalNumberOfValidators().sub(1);
+        uint256 validatorsCount = getTotalNumberOfValidators();
+        IKeysManager keysManager = IKeysManager(
+            IProxyStorage(proxyStorage()).getKeysManager()
+        );
+        if (!keysManager.isMasterOfCeremonyRemoved()) {
+            validatorsCount = validatorsCount.sub(1); // exclude MoC
+        }
         if (validatorsCount == 0) {
             return getMaxLimitBallot();
         }

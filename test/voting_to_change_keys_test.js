@@ -72,8 +72,26 @@ contract('Voting to change keys [all features]', function (accounts) {
       const VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       const VOTING_END_DATE = moment.utc().add(10, 'days').unix();
       const id = await voting.nextBallotId();
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo", {from: miningKeyForVotingKey}).should.be.rejectedWith(ERROR_MSG);
-      const {logs} = await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo", {from: votingKey});
+      await voting.createBallot(
+        VOTING_START_DATE, // _startTime
+        VOTING_END_DATE,   // _endTime
+        accounts[1],       // _affectedKey
+        1,                 // _affectedKeyType (MiningKey)
+        accounts[2],       // _miningKey
+        1,                 // _ballotType (KeyAdding)
+        "memo",            // _memo
+        {from: miningKeyForVotingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
+      const {logs} = await voting.createBallot(
+        VOTING_START_DATE, // _startTime
+        VOTING_END_DATE,   // _endTime
+        accounts[1],       // _affectedKey
+        1,                 // _affectedKeyType (MiningKey)
+        accounts[2],       // _miningKey
+        1,                 // _ballotType (KeyAdding)
+        "memo",            // _memo
+        {from: votingKey}
+      ).should.be.fulfilled;
       const startTime = await voting.getStartTime(id.toNumber());
       const endTime = await voting.getEndTime(id.toNumber());
       const keysManagerFromContract = await voting.getKeysManager();
@@ -96,6 +114,17 @@ contract('Voting to change keys [all features]', function (accounts) {
       VOTING_END_DATE = 0
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo",{from: votingKey}).should.be.rejectedWith(ERROR_MSG);
     })
+    it('should not let add votingKey for MoC', async () => {
+      await proxyStorageMock.setVotingContractMock(masterOfCeremony);
+      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
+      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
+      await proxyStorageMock.setVotingContractMock(voting.address);
+      const VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
+      const VOTING_END_DATE = moment.utc().add(10, 'days').unix();
+      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, masterOfCeremony, 1, "memo", {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, accounts[2], 1, "memo", {from: votingKey}).should.be.fulfilled;
+    })
     it('should not let create more ballots than the limit', async () => {
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
@@ -110,7 +139,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo", {from: votingKey}).should.be.rejectedWith(ERROR_MSG)
     })
   })
-
+  
   describe('#vote', async() => {
     let VOTING_START_DATE, VOTING_END_DATE;
     let id;
@@ -301,15 +330,14 @@ contract('Voting to change keys [all features]', function (accounts) {
       // Ballot to Add Voting Key for miner account[1]
       let votingKeyToAdd = accounts[5];
 
-  // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
-  // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
+      // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
+      // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
 
       await deployAndTestBallot({
         _affectedKey: votingKeyToAdd,
         _affectedKeyType: 2,
         _miningKey: miningKey,
         _ballotType: 1,
-        
       })
       const keysState = await keysManager.validatorKeys(miningKey);
       keysState.should.be.deep.equal(
@@ -325,8 +353,8 @@ contract('Voting to change keys [all features]', function (accounts) {
       await proxyStorageMock.setVotingContractMock(voting.address);
       let miningKey = accounts[6];
 
-  // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
-  // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
+      // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
+      // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
 
       await deployAndTestBallot({
         _affectedKey: miningKey,
@@ -355,8 +383,8 @@ contract('Voting to change keys [all features]', function (accounts) {
       await proxyStorageMock.setVotingContractMock(voting.address);
       let miningKey = accounts[6];
 
-  // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
-  // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
+      // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
+      // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
 
       await deployAndTestBallot({
         _affectedKey: miningKey,
@@ -386,8 +414,8 @@ contract('Voting to change keys [all features]', function (accounts) {
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
       await proxyStorageMock.setVotingContractMock(voting.address);
       // Ballot to Add Voting Key for miner account[1]
-  // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
-  // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
+      // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
+      // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
 
       await deployAndTestBallot({
         _affectedKey: miningKey,
@@ -420,8 +448,8 @@ contract('Voting to change keys [all features]', function (accounts) {
 
       // Ballot to Add Voting Key for miner account[1]
 
-  // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
-  // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
+      // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
+      // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
 
       await deployAndTestBallot({
         _affectedKey: votingKeyToAdd,
@@ -449,8 +477,8 @@ contract('Voting to change keys [all features]', function (accounts) {
 
       // Ballot to Add Voting Key for miner account[1]
 
-  // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
-  // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
+      // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
+      // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
 
       await deployAndTestBallot({
         _affectedKey: affectedKey,
@@ -479,8 +507,8 @@ contract('Voting to change keys [all features]', function (accounts) {
 
       // Ballot to Add Voting Key for miner account[1]
 
-  // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
-  // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
+      // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
+      // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
       let newVotingKey = accounts[2];
       await deployAndTestBallot({
         _affectedKey: newVotingKey,
@@ -508,8 +536,8 @@ contract('Voting to change keys [all features]', function (accounts) {
 
       // Ballot to Add Voting Key for miner account[1]
 
-  // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
-  // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
+      // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
+      // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
       let newPayoutKey = accounts[2];
       await deployAndTestBallot({
         _affectedKey: newPayoutKey,
@@ -534,8 +562,8 @@ contract('Voting to change keys [all features]', function (accounts) {
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
       await proxyStorageMock.setVotingContractMock(voting.address);
       // Ballot to Add Voting Key for miner account[1]
-  // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
-  // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
+      // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
+      // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
 
       await deployAndTestBallot({
         _affectedKey: affectedKey,

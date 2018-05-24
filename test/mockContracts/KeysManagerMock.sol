@@ -8,10 +8,6 @@ contract KeysManagerMock is KeysManager {
         addressStorage[keccak256("masterOfCeremony")] = _newAddress;
     }
 
-    function setMaxNumberOfInitialKeys(uint256 _newMax) public {
-        uintStorage[keccak256("maxNumberOfInitialKeys")] = _newMax;
-    }
-
     function setPoaConsensus(address _poaConsensus) public {
         addressStorage[keccak256("poaNetworkConsensus")] = _poaConsensus;
     }
