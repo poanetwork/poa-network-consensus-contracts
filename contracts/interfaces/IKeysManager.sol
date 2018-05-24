@@ -16,6 +16,7 @@ interface IKeysManager {
     function swapVotingKey(address, address) external;
     function swapPayoutKey(address, address) external;
     function initialKeysCount() external view returns(uint256);
+    function isMasterOfCeremonyRemoved() external view returns(bool);
     function isMiningActive(address) external view returns(bool);
     function isVotingActive(address) external view returns(bool);
     function isPayoutActive(address) external view returns(bool);
@@ -25,4 +26,5 @@ interface IKeysManager {
     function getMiningKeyHistory(address) external view returns(address);
     function getMiningKeyByVoting(address) external view returns(address);
     function getInitialKey(address) external view returns(uint8);
+    function masterOfCeremony() external view returns(address);
 }

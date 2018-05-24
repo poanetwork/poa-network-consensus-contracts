@@ -20,22 +20,31 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         uint256 _affectedKeyType,
         address _miningKey
     ) public view returns(bool) {
-        if (
-            _affectedKeyType == uint256(KeyTypes.MiningKey) &&
-            _ballotType != uint256(BallotTypes.KeyRemoval)
-        ) {
-            require(!checkIfMiningExisted(_miningKey, _affectedKey));
-        }
-        require(_affectedKeyType > 0);
+        require(_ballotType >= uint256(BallotTypes.KeyAdding));
+        require(_ballotType <= uint256(BallotTypes.KeySwap));
         require(_affectedKey != address(0));
+        require(_affectedKeyType > 0);
+
         IKeysManager keysManager = IKeysManager(getKeysManager());
-        bool isMiningActive = keysManager.isMiningActive(_miningKey);
+
         if (_affectedKeyType == uint256(KeyTypes.MiningKey)) {
-            if (_ballotType == uint256(BallotTypes.KeyRemoval)) {
-                return isMiningActive;
+            if (_ballotType != uint256(BallotTypes.KeyRemoval)) {
+                require(!checkIfMiningExisted(_miningKey, _affectedKey));
             }
+        } else if (_affectedKeyType == uint256(KeyTypes.VotingKey)) {
+            if (_ballotType == uint256(BallotTypes.KeyAdding)) {
+                require(_miningKey != keysManager.masterOfCeremony());
+            }
+        }
+        
+        bool isMiningActive = keysManager.isMiningActive(_miningKey);
+        
+        if (_affectedKeyType == uint256(KeyTypes.MiningKey)) {
             if (_ballotType == uint256(BallotTypes.KeyAdding)) {
                 return true;
+            }
+            if (_ballotType == uint256(BallotTypes.KeyRemoval)) {
+                return isMiningActive;
             }
         }
         require(_affectedKey != _miningKey);
@@ -94,11 +103,11 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
     function createBallot(
         uint256 _startTime,
         uint256 _endTime,
-        address _affectedKey, 
-        uint256 _affectedKeyType, 
+        address _affectedKey,
+        uint256 _affectedKeyType,
         address _miningKey,
         uint256 _ballotType,
-        string memo
+        string _memo
     ) public {
         //only if ballotType is swap or remove
         require(areBallotParamsValid(
@@ -107,7 +116,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
             _affectedKeyType,
             _miningKey
         ));
-        uint256 ballotId = _createBallot(_ballotType, _startTime, _endTime, memo);
+        uint256 ballotId = _createBallot(_ballotType, _startTime, _endTime, _memo);
         _setAffectedKey(ballotId, _affectedKey);
         _setAffectedKeyType(ballotId, _affectedKeyType);
         _setMiningKey(ballotId, _miningKey);

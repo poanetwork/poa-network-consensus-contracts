@@ -71,9 +71,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
             await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
             finalized = await poaNetworkConsensus.finalized();
             finalized.should.be.true;
-
         })
-
         it('should set currentValidators to pendingList', async () => {
             await poaNetworkConsensus.setSystemAddress(accounts[0]);
             const { logs } = await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
@@ -175,11 +173,61 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
         })
     })
 
+    describe('#swapValidatorKey', async () => {
+        it('should swap validator key', async () => {
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
+            await poaNetworkConsensus.setSystemAddress(accounts[0]);
+
+            await poaNetworkConsensus.addValidator(accounts[1], true).should.be.fulfilled;
+            await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+
+            (await poaNetworkConsensus.getCurrentValidatorsLength()).should.be.bignumber.equal(2);
+            (await poaNetworkConsensus.isValidator(accounts[1])).should.be.equal(true);
+            (await poaNetworkConsensus.isValidator(accounts[2])).should.be.equal(false);
+            
+            await poaNetworkConsensus.swapValidatorKey(accounts[2], accounts[1]).should.be.fulfilled;
+            await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+
+            (await poaNetworkConsensus.getCurrentValidatorsLength()).should.be.bignumber.equal(2);
+            (await poaNetworkConsensus.isValidator(accounts[1])).should.be.equal(false);
+            (await poaNetworkConsensus.isValidator(accounts[2])).should.be.equal(true);
+        });
+        it('should swap MoC', async () => {
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
+            await poaNetworkConsensus.setSystemAddress(accounts[0]);
+
+            (await poaNetworkConsensus.getCurrentValidatorsLength()).should.be.bignumber.equal(1);
+            (await poaNetworkConsensus.isValidator(masterOfCeremony)).should.be.equal(true);
+            (await poaNetworkConsensus.isValidator(accounts[1])).should.be.equal(false);
+            (await poaNetworkConsensus.masterOfCeremony()).should.be.equal(masterOfCeremony);
+            
+            await poaNetworkConsensus.swapValidatorKey(accounts[1], masterOfCeremony).should.be.fulfilled;
+            await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+
+            (await poaNetworkConsensus.getCurrentValidatorsLength()).should.be.bignumber.equal(1);
+            (await poaNetworkConsensus.isValidator(masterOfCeremony)).should.be.equal(false);
+            (await poaNetworkConsensus.isValidator(accounts[1])).should.be.equal(true);
+            (await poaNetworkConsensus.masterOfCeremony()).should.be.equal(accounts[1]);
+        });
+    });
+
     describe('#removeValidator', async () => {
         it('should remove validator', async () => {
             await proxyStorageMock.setKeysManagerMock(accounts[0]);
             await poaNetworkConsensus.addValidator(accounts[1], true).should.be.fulfilled;
             await poaNetworkConsensus.removeValidator(accounts[1], true).should.be.fulfilled;
+        })
+
+        it('should remove MoC', async () => {
+            await proxyStorageMock.setKeysManagerMock(accounts[0]);
+            (await poaNetworkConsensus.isValidator(masterOfCeremony)).should.be.equal(true);
+            (await poaNetworkConsensus.masterOfCeremony()).should.be.equal(masterOfCeremony);
+            await poaNetworkConsensus.removeValidator(masterOfCeremony, true).should.be.fulfilled;
+            await poaNetworkConsensus.setSystemAddress(accounts[0]);
+            await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+            (await poaNetworkConsensus.getCurrentValidatorsLength()).should.be.bignumber.equal(0);
+            (await poaNetworkConsensus.isValidator(masterOfCeremony)).should.be.equal(false);
+            (await poaNetworkConsensus.masterOfCeremony()).should.be.equal(masterOfCeremony);
         })
 
         it('should be called only from keys manager', async () => {

@@ -142,6 +142,9 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         require(isValidator(_oldKey));
         removeValidator(_oldKey, false);
         addValidator(_newKey, false);
+        if (_oldKey == masterOfCeremony) {
+            masterOfCeremony = _newKey;
+        }
         emit InitiateChange(blockhash(block.number - 1), pendingList);
     }
 

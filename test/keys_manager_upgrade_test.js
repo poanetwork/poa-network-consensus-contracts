@@ -94,15 +94,6 @@ contract('KeysManager upgraded [all features]', function (accounts) {
     })
 
     it('should not allow to initialize more than maxNumberOfInitialKeys', async () => {
-      await keysManager.setMaxNumberOfInitialKeys(2);
-      let maxNumberOfInitialKeys = await keysManager.maxNumberOfInitialKeys();
-      maxNumberOfInitialKeys.should.be.bignumber.equal(2);
-      await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
-      await keysManager.initiateKeys(accounts[2], {from: masterOfCeremony}).should.be.fulfilled;
-      await keysManager.initiateKeys(accounts[3], {from: masterOfCeremony}).should.be.rejectedWith(ERROR_MSG);
-    })
-
-    it('should not allow to initialize more than maxNumberOfInitialKeys', async () => {
       let maxNumberOfInitialKeys = await keysManager.maxNumberOfInitialKeys();
       maxNumberOfInitialKeys.should.be.bignumber.equal(12);
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000001', {from: masterOfCeremony}).should.be.fulfilled;
@@ -327,6 +318,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       const miningKey = await keysManager.getMiningKeyByVoting(validator[0]);
       miningKey.should.be.equal('0x0000000000000000000000000000000000000000');
     })
+    
     it('removes validator from poaConsensus', async () => {
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
@@ -345,7 +337,37 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       const expected = currentValidatorsLength.sub(1);
       const actual = await poaNetworkConsensusMock.currentValidatorsLength();
       expected.should.be.bignumber.equal(actual);
-    })
+    });
+
+    it('removes MoC from poaConsensus', async () => {
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000001', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000002', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000003', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000004', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000005', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000006', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000007', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000008', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000009', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000010', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000011', {from: masterOfCeremony}).should.be.fulfilled;
+      
+      await keysManager.removeMiningKey(masterOfCeremony).should.be.rejectedWith(ERROR_MSG);
+      (await keysManager.isMasterOfCeremonyRemoved()).should.be.equal(false);
+      (await keysManager.masterOfCeremony()).should.be.equal(masterOfCeremony);
+      (await poaNetworkConsensusMock.isValidator(masterOfCeremony)).should.be.equal(true);
+      (await poaNetworkConsensusMock.getCurrentValidatorsLength()).should.be.bignumber.equal(1);
+
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000012', {from: masterOfCeremony}).should.be.fulfilled;
+      
+      await keysManager.removeMiningKey(masterOfCeremony).should.be.fulfilled;
+      (await keysManager.isMasterOfCeremonyRemoved()).should.be.equal(true);
+      (await keysManager.masterOfCeremony()).should.be.equal(masterOfCeremony);
+      await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
+      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
+      (await poaNetworkConsensusMock.isValidator(masterOfCeremony)).should.be.equal(false);
+      (await poaNetworkConsensusMock.getCurrentValidatorsLength()).should.be.bignumber.equal(0);
+    });
 
     it('should still enforce removal of votingKey to 0x0 even if voting key didnot exist', async () => {
       await keysManager.removeMiningKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
@@ -404,7 +426,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
   })
 
   describe('#swapMiningKey', async () => {
-    it ('should swap mining key', async () => {
+    it('should swap mining key', async () => {
       await keysManager.swapMiningKey(accounts[1], accounts[2], {from: accounts[4]}).should.be.rejectedWith(ERROR_MSG);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.swapMiningKey(accounts[2], accounts[1]).should.be.fulfilled;
@@ -424,7 +446,18 @@ contract('KeysManager upgraded [all features]', function (accounts) {
         false,
         false]
       )
-    })
+    });
+    it('should swap MoC', async () => {
+      (await keysManager.masterOfCeremony()).should.be.equal(masterOfCeremony);
+      (await poaNetworkConsensusMock.masterOfCeremony()).should.be.equal(masterOfCeremony);
+      await keysManager.swapMiningKey(accounts[1], masterOfCeremony).should.be.fulfilled;
+      await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
+      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
+      (await keysManager.masterOfCeremony()).should.be.equal(accounts[1]);
+      (await poaNetworkConsensusMock.masterOfCeremony()).should.be.equal(accounts[1]);
+      (await poaNetworkConsensusMock.isValidator(masterOfCeremony)).should.be.equal(false);
+      (await poaNetworkConsensusMock.isValidator(accounts[1])).should.be.equal(true);
+    });
     it('should keep voting and payout keys', async () => {
       const oldMining = accounts[1];
       const voting = accounts[2];

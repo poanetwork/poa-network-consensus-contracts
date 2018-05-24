@@ -110,9 +110,9 @@ contract('BallotsStorage [all features]', function (accounts) {
       new web3.BigNumber(2).should.be.bignumber.equal(getValidators.length);
       new web3.BigNumber(2).should.be.bignumber.equal(await ballotsStorage.getTotalNumberOfValidators())
     })
-  })  
+  })
   describe('#getProxyThreshold', async () => {
-    it('returns total number of validators', async () => {
+    it('return value is correct', async () => {
       new web3.BigNumber(1).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold())
       await proxyStorage.setKeysManagerMock(masterOfCeremony);
       await poaNetworkConsensus.addValidator(accounts[1], true);
@@ -120,12 +120,47 @@ contract('BallotsStorage [all features]', function (accounts) {
       await poaNetworkConsensus.addValidator(accounts[3], true);
       await poaNetworkConsensus.addValidator(accounts[4], true);
       await poaNetworkConsensus.addValidator(accounts[5], true);
+      await proxyStorage.setKeysManagerMock(keysManager.address);
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       const getValidators = await poaNetworkConsensus.getValidators();
       new web3.BigNumber(6).should.be.bignumber.equal(getValidators.length);
+      (await keysManager.isMasterOfCeremonyRemoved()).should.be.equal(false);
       new web3.BigNumber(3).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold())
-    })
+    });
+    it('return value is correct if MoC is removed', async () => {
+      new web3.BigNumber(1).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold())
+      await proxyStorage.setKeysManagerMock(masterOfCeremony);
+      await poaNetworkConsensus.addValidator(accounts[1], true);
+      await poaNetworkConsensus.addValidator(accounts[2], true);
+      await poaNetworkConsensus.addValidator(accounts[3], true);
+      await poaNetworkConsensus.addValidator(accounts[4], true);
+      await poaNetworkConsensus.addValidator(accounts[5], true);
+      await poaNetworkConsensus.addValidator(accounts[6], true);
+      await proxyStorage.setKeysManagerMock(keysManager.address);
+      await poaNetworkConsensus.setSystemAddress(accounts[0]);
+      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+      const getValidators = await poaNetworkConsensus.getValidators();
+      new web3.BigNumber(7).should.be.bignumber.equal(getValidators.length);
+      new web3.BigNumber(4).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold());
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000001', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000002', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000003', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000004', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000005', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000006', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000007', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000008', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000009', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000010', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000011', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000012', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.removeMiningKey(masterOfCeremony, {from: votingToChangeKeys});
+      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+      (await keysManager.isMasterOfCeremonyRemoved()).should.be.equal(true);
+      (await poaNetworkConsensus.getCurrentValidatorsLength()).should.be.bignumber.equal(6);
+      new web3.BigNumber(4).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold());
+    });
   })
   describe('#getVotingToChangeThreshold', async () => {
     it('returns voting to change min threshold address', async () => {
@@ -134,8 +169,8 @@ contract('BallotsStorage [all features]', function (accounts) {
       accounts[4].should.be.equal(await ballotsStorage.getVotingToChangeThreshold())
     })
   })
-  describe('#getBallotLimit', async () => {
-    it('returns limit per validator to create ballots', async () => {
+  describe('#getBallotLimitPerValidator', async () => {
+    it('returns correct limit', async () => {
       let limit = await ballotsStorage.getBallotLimitPerValidator();
       limit.should.be.bignumber.equal(200);
 
@@ -145,7 +180,37 @@ contract('BallotsStorage [all features]', function (accounts) {
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       limit = await ballotsStorage.getBallotLimitPerValidator();
       limit.should.be.bignumber.equal(100);
-    })
+    });
+    it('returns correct limit if MoC is removed', async () => {
+      let limit = await ballotsStorage.getBallotLimitPerValidator();
+      limit.should.be.bignumber.equal(200);
+
+      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
+      await poaNetworkConsensus.setSystemAddress(accounts[0]);
+      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+      (await poaNetworkConsensus.getCurrentValidatorsLength()).should.be.bignumber.equal(3);
+
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000001', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000002', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000003', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000004', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000005', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000006', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000007', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000008', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000009', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000010', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000011', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.initiateKeys('0x0000000000000000000000000000000000000012', {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.removeMiningKey(masterOfCeremony, {from: votingToChangeKeys});
+      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+      (await keysManager.isMasterOfCeremonyRemoved()).should.be.equal(true);
+      (await poaNetworkConsensus.getCurrentValidatorsLength()).should.be.bignumber.equal(2);
+
+      limit = await ballotsStorage.getBallotLimitPerValidator();
+      limit.should.be.bignumber.equal(100);
+    });
   })
   describe('#upgradeTo', async () => {
     const proxyStorageStubAddress = accounts[8];
