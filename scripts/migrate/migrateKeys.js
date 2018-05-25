@@ -6,7 +6,6 @@ const constants = require('./utils/constants');
 
 const NETWORK = process.env.NETWORK; // sokol or core
 const KEYS_MANAGER_NEW_ADDRESS = process.env.KEYS_MANAGER_NEW_ADDRESS;
-const POA_CONSENSUS_NEW_ADDRESS = process.env.POA_CONSENSUS_NEW_ADDRESS;
 const PROXY_STORAGE_NEW_ADDRESS = process.env.PROXY_STORAGE_NEW_ADDRESS;
 const ONLY_CHECK = !!process.env.ONLY_CHECK === true
 
@@ -110,7 +109,6 @@ async function migrateAndCheck(privateKey) {
 		if (!ONLY_CHECK) {
 			console.log('  Call init method...');
 			const init = keysManagerNewInstance.methods.init(
-				POA_CONSENSUS_NEW_ADDRESS,
 				MOC_ADDRESS,
 				KEYS_MANAGER_OLD_ADDRESS
 			);
@@ -218,10 +216,10 @@ async function migrateAndCheck(privateKey) {
 }
 
 // Deploy, init, migrate and check:
-//   NETWORK=sokol POA_CONSENSUS_NEW_ADDRESS=0x03048F666359CFD3C74a1A5b9a97848BF71d5038 PROXY_STORAGE_NEW_ADDRESS=0x3f918617a055d48e90f9fe06c168a75134565190 node migrateKeys
+//   NETWORK=sokol PROXY_STORAGE_NEW_ADDRESS=0x3f918617a055d48e90f9fe06c168a75134565190 node migrateKeys
 
 // Init, migrate and check without deploy:
-//   NETWORK=sokol POA_CONSENSUS_NEW_ADDRESS=0x03048F666359CFD3C74a1A5b9a97848BF71d5038 KEYS_MANAGER_NEW_ADDRESS=0x959C92248bde1b22433499e0D7ac7ab6452a005B node migrateKeys
+//   NETWORK=sokol KEYS_MANAGER_NEW_ADDRESS=0x959C92248bde1b22433499e0D7ac7ab6452a005B node migrateKeys
 
 // Only check:
 //   NETWORK=sokol KEYS_MANAGER_NEW_ADDRESS=0x959C92248bde1b22433499e0D7ac7ab6452a005B ONLY_CHECK=true node migrateKeys

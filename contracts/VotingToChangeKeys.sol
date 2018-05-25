@@ -79,24 +79,30 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
     }
     // solhint-enable code-complexity
 
-    function checkIfMiningExisted(address _currentKey, address _affectedKey)
+    function checkIfMiningExisted(address _currentKey, address _newKey)
         public
         view
         returns(bool)
     {
         IKeysManager keysManager = IKeysManager(getKeysManager());
+        
+        if (keysManager.isMiningActive(_newKey)) {
+            return true;
+        }
+        
         uint8 maxDeep = maxOldMiningKeysDeepCheck();
+        
         for (uint8 i = 0; i < maxDeep; i++) {
             address oldMiningKey = keysManager.getMiningKeyHistory(_currentKey);
             if (oldMiningKey == address(0)) {
                 return false;
             }
-            if (oldMiningKey == _affectedKey) {
+            if (oldMiningKey == _newKey) {
                 return true;
-            } else {
-                _currentKey = oldMiningKey;
             }
+            _currentKey = oldMiningKey;
         }
+        
         return false;
     }
 

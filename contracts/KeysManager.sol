@@ -107,7 +107,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function poaNetworkConsensus() public view returns(address) {
-        return addressStorage[POA_NETWORK_CONSENSUS];
+        return IProxyStorage(proxyStorage()).getPoaConsensus();
     }
 
     function maxNumberOfInitialKeys() public pure returns(uint256) {
@@ -153,16 +153,13 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function init(
-        address _poaConsensus,
         address _masterOfCeremony,
         address _previousKeysManager
     ) public onlyOwner {
         require(!initDisabled());
-        require(_poaConsensus != address(0));
-        require(_poaConsensus != proxyStorage());
-        require(_masterOfCeremony != address(0) && _masterOfCeremony != _poaConsensus);
+        require(_masterOfCeremony != address(0));
+        require(_masterOfCeremony != poaNetworkConsensus());
         _setMasterOfCeremony(_masterOfCeremony);
-        _setPoaNetworkConsensus(_poaConsensus);
         _setVotingKey(address(0), _masterOfCeremony);
         _setPayoutKey(address(0), _masterOfCeremony);
         _setIsMiningActive(true, _masterOfCeremony);
@@ -461,9 +458,9 @@ contract KeysManager is EternalStorage, IKeysManager {
         addressStorage[PREVIOUS_KEYS_MANAGER] = _keysManager;
     }
 
-    function _setPoaNetworkConsensus(address _poa) private {
-        addressStorage[POA_NETWORK_CONSENSUS] = _poa;
-    }
+    //function _setPoaNetworkConsensus(address _poa) private {
+    //    addressStorage[POA_NETWORK_CONSENSUS] = _poa;
+    //}
 
     function _setInitialKeysCount(uint256 _count) private {
         uintStorage[INITIAL_KEYS_COUNT] = _count;

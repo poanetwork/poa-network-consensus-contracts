@@ -17,7 +17,7 @@
     "mochawesome": "^3.0.2",
     "moment": "^2.19.3",
     "solhint": "^1.2.1",
-    "solidity-coverage": "^0.5.2",
+    "solidity-coverage": "^0.4.2",
     "truffle": "^4.1.8"
   },
   "dependencies": {}
