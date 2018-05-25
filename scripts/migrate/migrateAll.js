@@ -166,9 +166,6 @@ async function main() {
 		votingToChangeKeysNewAddress.should.be.equal(
 			await proxyStorageInstance.methods.getVotingToChangeKeys().call()
 		);
-		votingToChangeKeysNewAddress.should.be.equal(
-			await poaNewInstance.methods.getVotingToChangeKeys().call()
-		);
 		votingToChangeMinThresholdNewAddress.should.be.equal(
 			await proxyStorageInstance.methods.getVotingToChangeMinThreshold().call()
 		);

@@ -76,6 +76,8 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
 
     function init(address _poaConsensus) public onlyOwner {
         require(!initDisabled());
+        require(_poaConsensus != address(0));
+        require(_poaConsensus != address(this));
         _setPoaConsensus(_poaConsensus);
         boolStorage[INIT_DISABLED] = true;
     }

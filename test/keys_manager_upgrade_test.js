@@ -26,7 +26,6 @@ contract('KeysManager upgraded [all features]', function (accounts) {
     const keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, keysManager.address);
     keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);
     await keysManager.init(
-      poaNetworkConsensusMock.address,
       masterOfCeremony,
       "0x0000000000000000000000000000000000000000"
     ).should.be.fulfilled;
@@ -538,7 +537,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       let newKeysManager = await KeysManagerMock.new();
       const newKeysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, newKeysManager.address);
       newKeysManager = await KeysManagerMock.at(newKeysManagerEternalStorage.address);
-      await newKeysManager.init(poaNetworkConsensusMock.address, masterOfCeremony, keysManager.address).should.be.fulfilled;
+      await newKeysManager.init(masterOfCeremony, keysManager.address).should.be.fulfilled;
       
       keysManager.address.should.be.equal(
         await newKeysManager.previousKeysManager()
@@ -580,7 +579,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       let newKeysManager = await KeysManagerMock.new();
       const newKeysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, newKeysManager.address);
       newKeysManager = await KeysManagerMock.at(newKeysManagerEternalStorage.address);
-      await newKeysManager.init(poaNetworkConsensusMock.address, masterOfCeremony, keysManager.address).should.be.fulfilled;
+      await newKeysManager.init(masterOfCeremony, keysManager.address).should.be.fulfilled;
       
       // mining #1
       let {logs} = await newKeysManager.migrateMiningKey(miningKey);
@@ -638,7 +637,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       let newKeysManager = await KeysManagerMock.new();
       const newKeysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, newKeysManager.address);
       newKeysManager = await KeysManagerMock.at(newKeysManagerEternalStorage.address);
-      await newKeysManager.init(poaNetworkConsensusMock.address, masterOfCeremony, keysManager.address).should.be.fulfilled;
+      await newKeysManager.init(masterOfCeremony, keysManager.address).should.be.fulfilled;
       
       true.should.be.equal(
         await newKeysManager.successfulValidatorClone(masterOfCeremony)

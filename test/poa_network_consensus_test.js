@@ -327,12 +327,6 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
             await proxyStorageMock.setKeysManagerMock(newKeysManager);
             (await poaNetworkConsensus.getKeysManager()).should.be.equal(newKeysManager);
         })
-        it('#getVotingToChangeKeys', async () => {
-            let newVotingToChangeKeys = accounts[3];
-            await poaNetworkConsensus.setIsMasterOfCeremonyInitializedMock(false);
-            await proxyStorageMock.setVotingContractMock(newVotingToChangeKeys);
-            (await poaNetworkConsensus.getVotingToChangeKeys()).should.be.equal(newVotingToChangeKeys);
-        })
     })
     describe('#isValidator', async () => {
         it('returns address of miner', async () => {
