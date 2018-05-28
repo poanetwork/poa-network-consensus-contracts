@@ -34,7 +34,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         uint256 _startTime,
         uint256 _endTime,
         address _receiver,
-        string memo
+        string _memo
     ) public onlyValidVotingKey(msg.sender) {
         require(initDisabled());
         require(_startTime > 0 && _endTime > 0);
@@ -57,7 +57,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         _setReceiver(ballotId, _receiver);
         _setMinThresholdOfVoters(ballotId, getGlobalMinThresholdOfVoters());
         _setCreator(ballotId, getMiningByVotingKey(msg.sender));
-        _setMemo(ballotId, memo);
+        _setMemo(ballotId, _memo);
         _setAmount(ballotId, emissionFunds().balance);
         _setPreviousBallotFinalized(false);
         _setNextBallotId(ballotId.add(1));
@@ -81,6 +81,7 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
 
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
+        require(_id < nextBallotId());
         require(_id == nextBallotId().sub(1));
         require(getStartTime(_id) <= getTime());
         require(!isActive(_id));
@@ -168,11 +169,15 @@ contract VotingToManageEmissionFunds is VotingTo {
         _votersAdd(_id, miningKey);
         emit Vote(_id, _choice, msg.sender, getTime(), miningKey);
 
+        IProxyStorage proxy = IProxyStorage(proxyStorage());
+        IKeysManager keysManager = IKeysManager(proxy.getKeysManager());
         uint256 validatorsLength =
-            IPoaNetworkConsensus(IProxyStorage(proxyStorage()).getPoaConsensus())
+            IPoaNetworkConsensus(proxy.getPoaConsensus())
                 .getCurrentValidatorsLength();
         if (validatorsLength > 0) {
-            validatorsLength--; // exclude MasterOfCeremony
+            if (!keysManager.isMasterOfCeremonyRemoved()) {
+                validatorsLength--; // exclude MoC
+            }
         }
         if (getTotalVoters(_id) >= validatorsLength) {
             _finalize(_id);

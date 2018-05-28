@@ -10,19 +10,14 @@ contract EmissionFunds is IEmissionFunds {
         address indexed receiver,
         address indexed caller,
         uint256 amount,
-        bool success
+        bool indexed success
     );
     
     event FundsBurnt(
         address indexed burner,
         uint256 amount,
-        bool success
+        bool indexed success
     );
-
-    modifier onlyPayloadSize(uint256 numwords) {
-        assert(msg.data.length >= numwords * 32 + 4);
-        _;
-    }
 
     modifier onlyVotingToManageEmissionFunds() {
         require(msg.sender == votingToManageEmissionFunds);
@@ -39,9 +34,9 @@ contract EmissionFunds is IEmissionFunds {
     function sendFundsTo(address _receiver, uint256 _amount)
         external
         onlyVotingToManageEmissionFunds
-        onlyPayloadSize(2)
         returns(bool)
     {
+        if (msg.data.length < 32*2 + 4) return false;
         // using `send` instead of `transfer` to avoid revert on failure
         bool success = _receiver.send(_amount);
         emit FundsSentTo(_receiver, msg.sender, _amount, success);
