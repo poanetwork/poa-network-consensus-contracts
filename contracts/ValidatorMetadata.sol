@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./libs/SafeMath.sol";
 import "./interfaces/IBallotsStorage.sol";
@@ -131,9 +131,9 @@ contract ValidatorMetadata is EternalStorage {
         if (count >= 3) {
             _setProxyStorage(_newProxyAddress);
             _setPendingProxyStorage(address(0));
-            delete addressArrayStorage[
-                keccak256(PENDING_PROXY_CONFIRMATIONS, _newProxyAddress, VOTERS)
-            ];
+            delete addressArrayStorage[keccak256(abi.encodePacked(
+                PENDING_PROXY_CONFIRMATIONS, _newProxyAddress, VOTERS
+            ))];
             emit ChangeProxyStorage(_newProxyAddress);
         }
         
@@ -268,7 +268,9 @@ contract ValidatorMetadata is EternalStorage {
             getMinThreshold()
         );
         _setMinThreshold(true, _miningKey, _getMinThreshold(false, _miningKey));
-        delete addressArrayStorage[keccak256(CONFIRMATIONS, _miningKey, VOTERS)];
+        delete addressArrayStorage[keccak256(abi.encodePacked(
+            CONFIRMATIONS, _miningKey, VOTERS
+        ))];
         emit ChangeRequestInitiated(_miningKey);
         return true;
     }
@@ -380,7 +382,9 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, FIRST_NAME)];
+        return bytes32Storage[keccak256(abi.encodePacked(
+            _storeName(_pending), _miningKey, FIRST_NAME
+        ))];
     }
 
     function _getLastName(bool _pending, address _miningKey)
@@ -388,7 +392,9 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, LAST_NAME)];
+        return bytes32Storage[keccak256(abi.encodePacked(
+            _storeName(_pending), _miningKey, LAST_NAME
+        ))];
     }
 
     function _getLicenseId(bool _pending, address _miningKey)
@@ -396,7 +402,9 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, LICENSE_ID)];
+        return bytes32Storage[keccak256(abi.encodePacked(
+            _storeName(_pending), _miningKey, LICENSE_ID
+        ))];
     }
 
     function _getFullAddress(bool _pending, address _miningKey)
@@ -404,7 +412,9 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(string)
     {
-        return stringStorage[keccak256(_storeName(_pending), _miningKey, FULL_ADDRESS)];
+        return stringStorage[keccak256(abi.encodePacked(
+            _storeName(_pending), _miningKey, FULL_ADDRESS
+        ))];
     }
 
     function _getState(bool _pending, address _miningKey)
@@ -412,7 +422,9 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, STATE)];
+        return bytes32Storage[keccak256(abi.encodePacked(
+            _storeName(_pending), _miningKey, STATE
+        ))];
     }
 
     function _getZipcode(bool _pending, address _miningKey)
@@ -420,7 +432,9 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(_storeName(_pending), _miningKey, ZIP_CODE)];
+        return bytes32Storage[keccak256(abi.encodePacked(
+            _storeName(_pending), _miningKey, ZIP_CODE
+        ))];
     }
 
     function _getExpirationDate(bool _pending, address _miningKey)
@@ -428,7 +442,9 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(uint256)
     {
-        return uintStorage[keccak256(_storeName(_pending), _miningKey, EXPIRATION_DATE)];
+        return uintStorage[keccak256(abi.encodePacked(
+            _storeName(_pending), _miningKey, EXPIRATION_DATE
+        ))];
     }
 
     function _getCreatedDate(bool _pending, address _miningKey)
@@ -436,7 +452,9 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(uint256)
     {
-        return uintStorage[keccak256(_storeName(_pending), _miningKey, CREATED_DATE)];
+        return uintStorage[keccak256(abi.encodePacked(
+            _storeName(_pending), _miningKey, CREATED_DATE
+        ))];
     }
 
     function _getUpdatedDate(bool _pending, address _miningKey)
@@ -444,7 +462,9 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(uint256)
     {
-        return uintStorage[keccak256(_storeName(_pending), _miningKey, UPDATED_DATE)];
+        return uintStorage[keccak256(abi.encodePacked(
+            _storeName(_pending), _miningKey, UPDATED_DATE
+        ))];
     }
 
     function _getMinThreshold(bool _pending, address _miningKey)
@@ -452,7 +472,9 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(uint256)
     {
-        return uintStorage[keccak256(_storeName(_pending), _miningKey, MIN_THRESHOLD)];
+        return uintStorage[keccak256(abi.encodePacked(
+            _storeName(_pending), _miningKey, MIN_THRESHOLD
+        ))];
     }
 
     function _getConfirmationsVoters(address _miningKey)
@@ -460,7 +482,9 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(address[] voters)
     {
-        voters = addressArrayStorage[keccak256(CONFIRMATIONS, _miningKey, VOTERS)];
+        voters = addressArrayStorage[keccak256(abi.encodePacked(
+            CONFIRMATIONS, _miningKey, VOTERS
+        ))];
     }
 
     function _getPendingProxyConfirmationsVoters(address _newProxyAddress)
@@ -468,55 +492,55 @@ contract ValidatorMetadata is EternalStorage {
         view
         returns(address[] voters)
     {
-        voters = addressArrayStorage[
-            keccak256(PENDING_PROXY_CONFIRMATIONS, _newProxyAddress, VOTERS)
-        ];
+        voters = addressArrayStorage[keccak256(abi.encodePacked(
+            PENDING_PROXY_CONFIRMATIONS, _newProxyAddress, VOTERS
+        ))];
     }
 
     function _deletePendingChange(address _miningKey) private {
         string memory _store = _storeName(true);
-        delete bytes32Storage[keccak256(_store, _miningKey, FIRST_NAME)];
-        delete bytes32Storage[keccak256(_store, _miningKey, LAST_NAME)];
-        delete bytes32Storage[keccak256(_store, _miningKey, LICENSE_ID)];
-        delete bytes32Storage[keccak256(_store, _miningKey, STATE)];
-        delete stringStorage[keccak256(_store, _miningKey, FULL_ADDRESS)];
-        delete bytes32Storage[keccak256(_store, _miningKey, ZIP_CODE)];
-        delete uintStorage[keccak256(_store, _miningKey, EXPIRATION_DATE)];
-        delete uintStorage[keccak256(_store, _miningKey, CREATED_DATE)];
-        delete uintStorage[keccak256(_store, _miningKey, UPDATED_DATE)];
-        delete uintStorage[keccak256(_store, _miningKey, MIN_THRESHOLD)];
+        delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, FIRST_NAME))];
+        delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, LAST_NAME))];
+        delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, LICENSE_ID))];
+        delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, STATE))];
+        delete stringStorage[keccak256(abi.encodePacked(_store, _miningKey, FULL_ADDRESS))];
+        delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, ZIP_CODE))];
+        delete uintStorage[keccak256(abi.encodePacked(_store, _miningKey, EXPIRATION_DATE))];
+        delete uintStorage[keccak256(abi.encodePacked(_store, _miningKey, CREATED_DATE))];
+        delete uintStorage[keccak256(abi.encodePacked(_store, _miningKey, UPDATED_DATE))];
+        delete uintStorage[keccak256(abi.encodePacked(_store, _miningKey, MIN_THRESHOLD))];
     }
 
     function _setFirstName(bool _pending, address _miningKey, bytes32 _firstName) private {
-        bytes32Storage[keccak256(
+        bytes32Storage[keccak256(abi.encodePacked(
             _storeName(_pending),
             _miningKey,
             FIRST_NAME
-        )] = _firstName;
+        ))] = _firstName;
     }
 
     function _setLastName(bool _pending, address _miningKey, bytes32 _lastName) private {
-        bytes32Storage[keccak256(
+        bytes32Storage[keccak256(abi.encodePacked(
             _storeName(_pending),
             _miningKey,
             LAST_NAME
-        )] = _lastName;
+        ))] = _lastName;
     }
 
     function _setLicenseId(bool _pending, address _miningKey, bytes32 _licenseId) private {
-        bytes32Storage[keccak256(
+        bytes32Storage[keccak256(abi.encodePacked(
             _storeName(_pending),
             _miningKey,
             LICENSE_ID
-        )] = _licenseId;
+        ))] = _licenseId;
     }
 
     function _setState(bool _pending, address _miningKey, bytes32 _state) private {
-        bytes32Storage[keccak256(
+        bytes32Storage[keccak256(abi.encodePacked(
             _storeName(_pending),
             _miningKey,
             STATE
-        )] = _state;
+        ))] = _state;
     }
 
     function _setFullAddress(
@@ -524,19 +548,19 @@ contract ValidatorMetadata is EternalStorage {
         address _miningKey,
         string _fullAddress
     ) private {
-        stringStorage[keccak256(
+        stringStorage[keccak256(abi.encodePacked(
             _storeName(_pending),
             _miningKey,
             FULL_ADDRESS
-        )] = _fullAddress;
+        ))] = _fullAddress;
     }
 
     function _setZipcode(bool _pending, address _miningKey, bytes32 _zipcode) private {
-        bytes32Storage[keccak256(
+        bytes32Storage[keccak256(abi.encodePacked(
             _storeName(_pending),
             _miningKey,
             ZIP_CODE
-        )] = _zipcode;
+        ))] = _zipcode;
     }
 
     function _setExpirationDate(
@@ -544,11 +568,11 @@ contract ValidatorMetadata is EternalStorage {
         address _miningKey,
         uint256 _expirationDate
     ) private {
-        uintStorage[keccak256(
+        uintStorage[keccak256(abi.encodePacked(
             _storeName(_pending),
             _miningKey,
             EXPIRATION_DATE
-        )] = _expirationDate;
+        ))] = _expirationDate;
     }
 
     function _setCreatedDate(
@@ -556,11 +580,11 @@ contract ValidatorMetadata is EternalStorage {
         address _miningKey,
         uint256 _createdDate
     ) private {
-        uintStorage[keccak256(
+        uintStorage[keccak256(abi.encodePacked(
             _storeName(_pending),
             _miningKey,
             CREATED_DATE
-        )] = _createdDate;
+        ))] = _createdDate;
     }
 
     function _setUpdatedDate(
@@ -568,11 +592,11 @@ contract ValidatorMetadata is EternalStorage {
         address _miningKey,
         uint256 _updatedDate
     ) private {
-        uintStorage[keccak256(
+        uintStorage[keccak256(abi.encodePacked(
             _storeName(_pending),
             _miningKey,
             UPDATED_DATE
-        )] = _updatedDate;
+        ))] = _updatedDate;
     }
 
     function _setMetadata(
@@ -606,11 +630,11 @@ contract ValidatorMetadata is EternalStorage {
         address _miningKey,
         uint256 _minThreshold
     ) private {
-        uintStorage[keccak256(
+        uintStorage[keccak256(abi.encodePacked(
             _storeName(_pending),
             _miningKey,
             MIN_THRESHOLD
-        )] = _minThreshold;
+        ))] = _minThreshold;
     }
 
     function _setProxyStorage(address _proxyStorage) private {
@@ -622,18 +646,18 @@ contract ValidatorMetadata is EternalStorage {
     }
 
     function _confirmationsVoterAdd(address _miningKey, address _voter) private {
-        addressArrayStorage[
-            keccak256(CONFIRMATIONS, _miningKey, VOTERS)
-        ].push(_voter);
+        addressArrayStorage[keccak256(abi.encodePacked(
+            CONFIRMATIONS, _miningKey, VOTERS
+        ))].push(_voter);
     }
 
     function _pendingProxyConfirmationsVoterAdd(
         address _newProxyAddress,
         address _voter
     ) private {
-        addressArrayStorage[
-            keccak256(PENDING_PROXY_CONFIRMATIONS, _newProxyAddress, VOTERS)
-        ].push(_voter);
+        addressArrayStorage[keccak256(abi.encodePacked(
+            PENDING_PROXY_CONFIRMATIONS, _newProxyAddress, VOTERS
+        ))].push(_voter);
     }
 
     function _validators(bool _pending, address _miningKey) private view returns (

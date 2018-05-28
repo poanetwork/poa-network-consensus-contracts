@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IKeysManager.sol";
@@ -82,7 +82,7 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
     }
 
     function getBallotThreshold(uint8 _ballotType) public view returns(uint256) {
-        return uintStorage[keccak256(BALLOT_THRESHOLDS, _ballotType)];
+        return uintStorage[keccak256(abi.encodePacked(BALLOT_THRESHOLDS, _ballotType))];
     }
 
     function getVotingToChangeThreshold() public view returns(address) {
@@ -129,6 +129,8 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
     }
 
     function _setThreshold(uint256 _newValue, uint8 _thresholdType) private {
-        uintStorage[keccak256(BALLOT_THRESHOLDS, _thresholdType)] = _newValue;
+        uintStorage[
+            keccak256(abi.encodePacked(BALLOT_THRESHOLDS, _thresholdType))
+        ] = _newValue;
     }
 }

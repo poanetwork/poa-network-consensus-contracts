@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./interfaces/IKeysManager.sol";
 import "./interfaces/IVotingToChangeKeys.sol";
@@ -13,7 +13,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
 
     enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}
 
-    // solhint-disable code-complexity
+    // solhint-disable code-complexity, function-max-lines
     function areBallotParamsValid(
         uint256 _ballotType,
         address _affectedKey,
@@ -77,7 +77,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         }
         return true;
     }
-    // solhint-enable code-complexity
+    // solhint-enable code-complexity, function-max-lines
 
     function checkIfMiningExisted(address _currentKey, address _newKey)
         public
@@ -130,19 +130,27 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
     }
 
     function getAffectedKey(uint256 _id) public view returns(address) {
-        return addressStorage[keccak256(VOTING_STATE, _id, AFFECTED_KEY)];
+        return addressStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, AFFECTED_KEY))
+        ];
     }
 
     function getAffectedKeyType(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(VOTING_STATE, _id, AFFECTED_KEY_TYPE)];
+        return uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, AFFECTED_KEY_TYPE))
+        ];
     }
 
     function getBallotType(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(VOTING_STATE, _id, BALLOT_TYPE)];
+        return uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, BALLOT_TYPE))
+        ];
     }
 
     function getMiningKey(uint256 _id) public view returns(address) {
-        return addressStorage[keccak256(VOTING_STATE, _id, MINING_KEY)];
+        return addressStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, MINING_KEY))
+        ];
     }
 
     function migrateBasicOne(
@@ -223,19 +231,27 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
     }
 
     function _setAffectedKey(uint256 _ballotId, address _value) internal {
-        addressStorage[keccak256(VOTING_STATE, _ballotId, AFFECTED_KEY)] = _value;
+        addressStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, AFFECTED_KEY))
+        ] = _value;
     }
 
     function _setAffectedKeyType(uint256 _ballotId, uint256 _value) internal {
-        uintStorage[keccak256(VOTING_STATE, _ballotId, AFFECTED_KEY_TYPE)] = _value;
+        uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, AFFECTED_KEY_TYPE))
+        ] = _value;
     }
 
     function _setBallotType(uint256 _ballotId, uint256 _value) internal {
-        uintStorage[keccak256(VOTING_STATE, _ballotId, BALLOT_TYPE)] = _value;
+        uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, BALLOT_TYPE))
+        ] = _value;
     }
 
     function _setMiningKey(uint256 _ballotId, address _value) internal {
-        addressStorage[keccak256(VOTING_STATE, _ballotId, MINING_KEY)] = _value;
+        addressStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, MINING_KEY))
+        ] = _value;
     }
 
 }
