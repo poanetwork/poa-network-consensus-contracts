@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./interfaces/IBlockReward.sol";
 import "./interfaces/IKeysManager.sol";
@@ -6,7 +6,9 @@ import "./interfaces/IProxyStorage.sol";
 
 
 contract BlockReward is IBlockReward {
+    // solhint-disable var-name-mixedcase
     address internal SYSTEM_ADDRESS = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
+    // solhint-enable var-name-mixedcase
     
     IProxyStorage public proxyStorage;
     address public emissionFunds;
