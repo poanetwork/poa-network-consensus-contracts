@@ -30,7 +30,7 @@ It will show the bytecode of `PoaNetworkConsensus` contract. Copy the bytecode a
 ### Add Contracts to Parity UI.
 
 Start Parity UI. In the contracts section press `Develop` button. 
-Select `0.4.23` Solidity compiler version. Set `Optimize` to `true`.
+Select `0.4.24` Solidity compiler version. Set `Optimize` to `true`.
 
 - In Parity UI `Contracts` tab choose watch custom contract. Paste bytecode and ABI of `PoaNetworkConsensus` contract from Remix.
 

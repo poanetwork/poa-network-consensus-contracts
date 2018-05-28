@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./interfaces/IVotingToChangeMinThreshold.sol";
 import "./abstracts/VotingToChange.sol";
@@ -29,7 +29,7 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
     }
 
     function getProposedValue(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(VOTING_STATE, _id, PROPOSED_VALUE)];
+        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, PROPOSED_VALUE))];
     }
 
     function init(
@@ -75,7 +75,9 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
     }
 
     function _setProposedValue(uint256 _ballotId, uint256 _value) private {
-        uintStorage[keccak256(VOTING_STATE, _ballotId, PROPOSED_VALUE)] = _value;
+        uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, PROPOSED_VALUE))
+        ] = _value;
     }
 
 }

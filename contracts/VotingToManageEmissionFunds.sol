@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./interfaces/IEmissionFunds.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
@@ -91,23 +91,23 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
 
     function getAmount(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(VOTING_STATE, _id, AMOUNT)];
+        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, AMOUNT))];
     }
 
     function getBurnVotes(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(VOTING_STATE, _id, BURN_VOTES)];
+        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, BURN_VOTES))];
     }
 
     function getFreezeVotes(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(VOTING_STATE, _id, FREEZE_VOTES)];
+        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, FREEZE_VOTES))];
     }
 
     function getReceiver(uint256 _id) public view returns(address) {
-        return addressStorage[keccak256(VOTING_STATE, _id, RECEIVER)];
+        return addressStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, RECEIVER))];
     }
 
     function getSendVotes(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(VOTING_STATE, _id, SEND_VOTES)];
+        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, SEND_VOTES))];
     }
 
     function getTotalVoters(uint256 _id) public view returns(uint256) {
@@ -244,11 +244,15 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
 
     function _setAmount(uint256 _ballotId, uint256 _amount) private {
-        uintStorage[keccak256(VOTING_STATE, _ballotId, AMOUNT)] = _amount;
+        uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, AMOUNT))
+        ] = _amount;
     }
 
     function _setBurnVotes(uint256 _ballotId, uint256 _value) private {
-        uintStorage[keccak256(VOTING_STATE, _ballotId, BURN_VOTES)] = _value;
+        uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, BURN_VOTES))
+        ] = _value;
     }
 
     function _setEmissionReleaseTime(uint256 _time) private {
@@ -256,7 +260,9 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
 
     function _setFreezeVotes(uint256 _ballotId, uint256 _value) private {
-        uintStorage[keccak256(VOTING_STATE, _ballotId, FREEZE_VOTES)] = _value;
+        uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, FREEZE_VOTES))
+        ] = _value;
     }
 
     function _setPreviousBallotFinalized(bool _finalized) private {
@@ -264,10 +270,14 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
 
     function _setReceiver(uint256 _ballotId, address _value) private {
-        addressStorage[keccak256(VOTING_STATE, _ballotId, RECEIVER)] = _value;
+        addressStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, RECEIVER))
+        ] = _value;
     }
 
     function _setSendVotes(uint256 _ballotId, uint256 _value) private {
-        uintStorage[keccak256(VOTING_STATE, _ballotId, SEND_VOTES)] = _value;
+        uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, SEND_VOTES))
+        ] = _value;
     }
 }

@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "../interfaces/IBallotsStorage.sol";
 import "../interfaces/IPoaNetworkConsensus.sol";
@@ -53,15 +53,15 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function getIndex(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(VOTING_STATE, _id, INDEX)];
+        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, INDEX))];
     }
 
     function getProgress(uint256 _id) public view returns(int) {
-        return intStorage[keccak256(VOTING_STATE, _id, PROGRESS)];
+        return intStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, PROGRESS))];
     }
 
     function getTotalVoters(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(VOTING_STATE, _id, TOTAL_VOTERS)];
+        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, TOTAL_VOTERS))];
     }
 
     function init(uint256 _minBallotDuration) public {
@@ -113,7 +113,9 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function validatorActiveBallots(address _miningKey) public view returns(uint256) {
-        return uintStorage[keccak256(VALIDATOR_ACTIVE_BALLOTS, _miningKey)];
+        return uintStorage[
+            keccak256(abi.encodePacked(VALIDATOR_ACTIVE_BALLOTS, _miningKey))
+        ];
     }
 
     function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
@@ -255,18 +257,26 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function _setIndex(uint256 _ballotId, uint256 _value) internal {
-        uintStorage[keccak256(VOTING_STATE, _ballotId, INDEX)] = _value;
+        uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, INDEX))
+        ] = _value;
     }
 
     function _setProgress(uint256 _ballotId, int256 _value) internal {
-        intStorage[keccak256(VOTING_STATE, _ballotId, PROGRESS)] = _value;
+        intStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, PROGRESS))
+        ] = _value;
     }
 
     function _setTotalVoters(uint256 _ballotId, uint256 _value) internal {
-        uintStorage[keccak256(VOTING_STATE, _ballotId, TOTAL_VOTERS)] = _value;
+        uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, TOTAL_VOTERS))
+        ] = _value;
     }
 
     function _setValidatorActiveBallots(address _miningKey, uint256 _count) internal {
-        uintStorage[keccak256(VALIDATOR_ACTIVE_BALLOTS, _miningKey)] = _count;
+        uintStorage[
+            keccak256(abi.encodePacked(VALIDATOR_ACTIVE_BALLOTS, _miningKey))
+        ] = _count;
     }
 }

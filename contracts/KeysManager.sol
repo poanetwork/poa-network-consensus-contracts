@@ -1,4 +1,4 @@
-pragma solidity ^0.4.23;
+pragma solidity ^0.4.24;
 
 import "./libs/SafeMath.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
@@ -119,19 +119,27 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function initialKeys(address _initialKey) public view returns(uint8) {
-        return uint8(uintStorage[keccak256(INITIAL_KEYS, _initialKey)]);
+        return uint8(uintStorage[
+            keccak256(abi.encodePacked(INITIAL_KEYS, _initialKey))
+        ]);
     }
 
     function miningKeyByVoting(address _votingKey) public view returns(address) {
-        return addressStorage[keccak256(MINING_KEY_BY_VOTING, _votingKey)];
+        return addressStorage[
+            keccak256(abi.encodePacked(MINING_KEY_BY_VOTING, _votingKey))
+        ];
     }
 
     function miningKeyHistory(address _miningKey) public view returns(address) {
-        return addressStorage[keccak256(MINING_KEY_HISTORY, _miningKey)];
+        return addressStorage[
+            keccak256(abi.encodePacked(MINING_KEY_HISTORY, _miningKey))
+        ];
     }
 
     function successfulValidatorClone(address _miningKey) public view returns(bool) {
-        return boolStorage[keccak256(SUCCESSFUL_VALIDATOR_CLONE, _miningKey)];
+        return boolStorage[
+            keccak256(abi.encodePacked(SUCCESSFUL_VALIDATOR_CLONE, _miningKey))
+        ];
     }
 
     function validatorKeys(address _miningKey) public view returns(
@@ -267,7 +275,9 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function isMiningActive(address _key) public view returns(bool) {
-        return boolStorage[keccak256(VALIDATOR_KEYS, _key, IS_MINING_ACTIVE)];
+        return boolStorage[
+            keccak256(abi.encodePacked(VALIDATOR_KEYS, _key, IS_MINING_ACTIVE))
+        ];
     }
 
     function isVotingActive(address _votingKey) public view returns(bool) {
@@ -276,19 +286,27 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function isVotingActiveByMiningKey(address _miningKey) public view returns(bool) {
-        return boolStorage[keccak256(VALIDATOR_KEYS, _miningKey, IS_VOTING_ACTIVE)];
+        return boolStorage[
+            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, IS_VOTING_ACTIVE))
+        ];
     }
 
     function isPayoutActive(address _miningKey) public view returns(bool) {
-        return boolStorage[keccak256(VALIDATOR_KEYS, _miningKey, IS_PAYOUT_ACTIVE)];
+        return boolStorage[
+            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, IS_PAYOUT_ACTIVE))
+        ];
     }
 
     function getVotingByMining(address _miningKey) public view returns(address) {
-        return addressStorage[keccak256(VALIDATOR_KEYS, _miningKey, VOTING_KEY)];
+        return addressStorage[
+            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, VOTING_KEY))
+        ];
     }
 
     function getPayoutByMining(address _miningKey) public view returns(address) {
-        return addressStorage[keccak256(VALIDATOR_KEYS, _miningKey, PAYOUT_KEY)];
+        return addressStorage[
+            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, PAYOUT_KEY))
+        ];
     }
 
     function getMiningKeyHistory(address _miningKey) public view returns(address) {
@@ -458,47 +476,61 @@ contract KeysManager is EternalStorage, IKeysManager {
         addressStorage[PREVIOUS_KEYS_MANAGER] = _keysManager;
     }
 
-    //function _setPoaNetworkConsensus(address _poa) private {
-    //    addressStorage[POA_NETWORK_CONSENSUS] = _poa;
-    //}
-
     function _setInitialKeysCount(uint256 _count) private {
         uintStorage[INITIAL_KEYS_COUNT] = _count;
     }
 
     function _setInitialKeyStatus(address _initialKey, uint8 _status) private {
-        uintStorage[keccak256(INITIAL_KEYS, _initialKey)] = _status;
+        uintStorage[
+            keccak256(abi.encodePacked(INITIAL_KEYS, _initialKey))
+        ] = _status;
     }
 
     function _setVotingKey(address _key, address _miningKey) private {
-        addressStorage[keccak256(VALIDATOR_KEYS, _miningKey, VOTING_KEY)] = _key;
+        addressStorage[
+            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, VOTING_KEY))
+        ] = _key;
     }
 
     function _setPayoutKey(address _key, address _miningKey) private {
-        addressStorage[keccak256(VALIDATOR_KEYS, _miningKey, PAYOUT_KEY)] = _key;
+        addressStorage[
+            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, PAYOUT_KEY))
+        ] = _key;
     }
 
     function _setIsMiningActive(bool _active, address _miningKey) private {
-        boolStorage[keccak256(VALIDATOR_KEYS, _miningKey, IS_MINING_ACTIVE)] = _active;
+        boolStorage[
+            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, IS_MINING_ACTIVE))
+        ] = _active;
     }
 
     function _setIsVotingActive(bool _active, address _miningKey) private {
-        boolStorage[keccak256(VALIDATOR_KEYS, _miningKey, IS_VOTING_ACTIVE)] = _active;
+        boolStorage[
+            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, IS_VOTING_ACTIVE))
+        ] = _active;
     }
 
     function _setIsPayoutActive(bool _active, address _miningKey) private {
-        boolStorage[keccak256(VALIDATOR_KEYS, _miningKey, IS_PAYOUT_ACTIVE)] = _active;
+        boolStorage[
+            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, IS_PAYOUT_ACTIVE))
+        ] = _active;
     }
 
     function _setMiningKeyByVoting(address _votingKey, address _miningKey) private {
-        addressStorage[keccak256(MINING_KEY_BY_VOTING, _votingKey)] = _miningKey;
+        addressStorage[
+            keccak256(abi.encodePacked(MINING_KEY_BY_VOTING, _votingKey))
+        ] = _miningKey;
     }
 
     function _setMiningKeyHistory(address _key, address _oldMiningKey) private {
-        addressStorage[keccak256(MINING_KEY_HISTORY, _key)] = _oldMiningKey;
+        addressStorage[
+            keccak256(abi.encodePacked(MINING_KEY_HISTORY, _key))
+        ] = _oldMiningKey;
     }
 
     function _setSuccessfulValidatorClone(bool _success, address _miningKey) private {
-        boolStorage[keccak256(SUCCESSFUL_VALIDATOR_CLONE, _miningKey)] = _success;
+        boolStorage[
+            keccak256(abi.encodePacked(SUCCESSFUL_VALIDATOR_CLONE, _miningKey))
+        ] = _success;
     }
 }
