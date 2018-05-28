@@ -6,12 +6,14 @@ import "./interfaces/IProxyStorage.sol";
 
 
 contract BlockReward is IBlockReward {
-    address private constant SYSTEM_ADDRESS = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
+    address internal SYSTEM_ADDRESS = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
     
     IProxyStorage public proxyStorage;
     address public emissionFunds;
     uint256 public blockRewardAmount;
     uint256 public emissionFundsAmount;
+
+    event Rewarded(address[] receivers, uint256[] rewards);
 
     modifier onlySystem {
         require(msg.sender == SYSTEM_ADDRESS);
@@ -42,10 +44,10 @@ contract BlockReward is IBlockReward {
         require(kind[0] == 0);
 
         address miningKey = benefactors[0];
+        
+        require(_isMiningActive(miningKey));
+
         address payoutKey = _getPayoutByMining(miningKey);
-
-        require(payoutKey != address(0));
-
         uint256 receiversLength = 2;
 
         if (emissionFunds == address(0) || emissionFundsAmount == 0) {
@@ -55,13 +57,15 @@ contract BlockReward is IBlockReward {
         address[] memory receivers = new address[](receiversLength);
         uint256[] memory rewards = new uint256[](receiversLength);
 
-        receivers[0] = payoutKey;
+        receivers[0] = (payoutKey != address(0)) ? payoutKey : miningKey;
         rewards[0] = blockRewardAmount;
 
         if (receiversLength == 2) {
             receivers[1] = emissionFunds;
             rewards[1] = emissionFundsAmount;
         }
+
+        emit Rewarded(receivers, rewards);
     
         return (receivers, rewards);
     }
@@ -73,5 +77,14 @@ contract BlockReward is IBlockReward {
     {
         IKeysManager keysManager = IKeysManager(proxyStorage.getKeysManager());
         return keysManager.getPayoutByMining(_miningKey);
+    }
+
+    function _isMiningActive(address _miningKey)
+        private
+        view
+        returns (bool)
+    {
+        IKeysManager keysManager = IKeysManager(proxyStorage.getKeysManager());
+        return keysManager.isMiningActive(_miningKey);
     }
 }
