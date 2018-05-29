@@ -91,7 +91,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
   describe('#createMetadata', async () => {
     it('happy path', async () => {
       const {logs} = await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
-      const validators = await metadata.validators(miningKey);
+      const validators = await metadata.validators.call(miningKey);
       validators.should.be.deep.equal([
         toHex("Djamshut"),
         toHex("Roosvelt"),
@@ -109,7 +109,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
     })
     it('should not let create metadata if called by non-voting key', async () => {
       const {logs} = await metadata.createMetadata(...fakeData, {from: miningKey}).should.be.rejectedWith(ERROR_MSG);
-      const validators = await metadata.validators(miningKey);
+      const validators = await metadata.validators.call(miningKey);
       validators.should.be.deep.equal([
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000000000000000000000000000',
@@ -130,9 +130,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
   })
   describe('#getMiningByVotingKey', async () => {
     it('happy path', async () => {
-      let actual = await metadata.getMiningByVotingKey(votingKey);
+      let actual = await metadata.getMiningByVotingKey.call(votingKey);
       miningKey.should.be.equal(actual);
-      actual = await metadata.getMiningByVotingKey(accounts[4]);
+      actual = await metadata.getMiningByVotingKey.call(accounts[4]);
       '0x0000000000000000000000000000000000000000'.should.be.equal(actual);
     })
   })
@@ -144,7 +144,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
     it('happy path', async () => {
       await metadata.setTime(4444);
       const {logs} = await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
-      const pendingChanges = await metadata.pendingChanges(miningKey);
+      const pendingChanges = await metadata.pendingChanges.call(miningKey);
       pendingChanges.should.be.deep.equal([
         toHex("Feodosiy"),
         toHex("Kennedy"),
@@ -168,13 +168,13 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
       await metadata.confirmPendingChange(miningKey, {from: votingKey2});
       await metadata.confirmPendingChange(miningKey, {from: votingKey3});
-      let confirmations = await metadata.confirmations(miningKey);
+      let confirmations = await metadata.confirmations.call(miningKey);
       confirmations[0].should.be.bignumber.equal(2);
       const {logs} = await metadata.changeRequest(...anotherData, {from: votingKey}).should.be.fulfilled;
-      confirmations = await metadata.confirmations(miningKey);
+      confirmations = await metadata.confirmations.call(miningKey);
       confirmations[0].should.be.bignumber.equal(0);
       await metadata.confirmPendingChange(miningKey, {from: votingKey2});
-      confirmations = await metadata.confirmations(miningKey);
+      confirmations = await metadata.confirmations.call(miningKey);
       confirmations[0].should.be.bignumber.equal(1);
     })
   })
@@ -186,7 +186,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       await metadata.setTime(4444);
       const {logs} = await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
       await metadata.cancelPendingChange({from: votingKey}).should.be.fulfilled;
-      const pendingChanges = await metadata.pendingChanges(miningKey);
+      const pendingChanges = await metadata.pendingChanges.call(miningKey);
       pendingChanges.should.be.deep.equal([
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000000000000000000000000000',
@@ -199,7 +199,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0)
       ]);
-      const validators = await metadata.validators(miningKey);
+      const validators = await metadata.validators.call(miningKey);
       validators.should.be.deep.equal([
         toHex("Djamshut"),
         toHex("Roosvelt"),
@@ -221,7 +221,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       await metadata.setTime(4444);
       const {logs} = await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
       await metadata.cancelPendingChange({from: votingKey2}).should.be.fulfilled;
-      const pendingChanges = await metadata.pendingChanges(miningKey);
+      const pendingChanges = await metadata.pendingChanges.call(miningKey);
       pendingChanges.should.be.deep.equal([
         toHex("Feodosiy"),
         toHex("Kennedy"),
@@ -234,7 +234,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(4444),
         new web3.BigNumber(2)
       ]);
-      const validators = await metadata.validators(miningKey);
+      const validators = await metadata.validators.call(miningKey);
       validators.should.be.deep.equal([
         toHex("Djamshut"),
         toHex("Roosvelt"),
@@ -259,7 +259,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
       await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
       const {logs} = await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.fulfilled;
-      const confirmations = await metadata.confirmations(miningKey);
+      const confirmations = await metadata.confirmations.call(miningKey);
       confirmations[0].should.be.bignumber.equal(1);
       logs[0].event.should.be.equal('Confirmed');
       logs[0].args.miningKey.should.be.equal(miningKey);
@@ -270,7 +270,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
       const {logs} = await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.fulfilled;
       await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.rejectedWith(ERROR_MSG);
-      const confirmations = await metadata.confirmations(miningKey);
+      const confirmations = await metadata.confirmations.call(miningKey);
       confirmations[0].should.be.bignumber.equal(1);
     })
   });
@@ -283,7 +283,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       await metadata.confirmPendingChange(miningKey, {from: votingKey2});
       await metadata.confirmPendingChange(miningKey, {from: votingKey3});
       const {logs} = await metadata.finalize(miningKey, {from: votingKey});
-      const validators = await metadata.validators(miningKey);
+      const validators = await metadata.validators.call(miningKey);
       validators.should.be.deep.equal([
         toHex("Feodosiy"),
         toHex("Kennedy"),
@@ -296,7 +296,7 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(4444),
         new web3.BigNumber(2)
       ]);
-      const pendingChanges = await metadata.pendingChanges(miningKey);
+      const pendingChanges = await metadata.pendingChanges.call(miningKey);
       pendingChanges.should.be.deep.equal([
         '0x0000000000000000000000000000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000000000000000000000000000',
@@ -316,37 +316,32 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
 
   describe('#getMinThreshold', async () => {
     it('returns default value', async () => {
-      (await metadata.getMinThreshold()).should.be.bignumber.equal(2);
+      (await metadata.getMinThreshold.call()).should.be.bignumber.equal(2);
     })
   })
   describe('#setProxyAddress', async () => {
     let newProxy = "0xfb9c7fc2a00dffc53948e3bbeb11f3d4b56c31b8";
     it('can request a new proxy address', async () => {
       "0x0000000000000000000000000000000000000000".should.be.equal
-        (await metadata.pendingProxyStorage());
-      (await metadata.proxyStorage()).should.be.equal(proxyStorageMock.address);
+        (await metadata.pendingProxyStorage.call());
+      (await metadata.proxyStorage.call()).should.be.equal(proxyStorageMock.address);
       await metadata.setProxyAddress(newProxy, {from: miningKey}).should.be.rejectedWith(ERROR_MSG);
       const {logs} = await metadata.setProxyAddress(newProxy, {from: votingKey}).should.be.fulfilled;
-      (await metadata.pendingProxyStorage()).should.be.equal(newProxy);
-      (await metadata.pendingProxyConfirmations(newProxy))[0].should.be.bignumber.deep.equal(1);
+      (await metadata.pendingProxyStorage.call()).should.be.equal(newProxy);
+      (await metadata.pendingProxyConfirmations.call(newProxy))[0].should.be.bignumber.deep.equal(1);
       logs[0].event.should.be.equal("RequestForNewProxy");
       logs[0].args.newProxyAddress.should.be.equal(newProxy);
       await metadata.confirmNewProxyAddress(newProxy, {from :votingKey2}).should.be.fulfilled;
-      (await metadata.pendingProxyConfirmations(newProxy))[0].should.be.bignumber.deep.equal(2);
+      (await metadata.pendingProxyConfirmations.call(newProxy))[0].should.be.bignumber.deep.equal(2);
       let final = await metadata.confirmNewProxyAddress(newProxy, {from: votingKey3}).should.be.fulfilled;
       final.logs[0].event.should.be.equal("ChangeProxyStorage");
       final.logs[0].args.newProxyAddress.should.be.equal(newProxy);
       "0x0000000000000000000000000000000000000000".should.be.equal
-        (await metadata.pendingProxyStorage());
-      (await metadata.proxyStorage()).should.be.equal(newProxy);
+        (await metadata.pendingProxyStorage.call());
+      (await metadata.proxyStorage.call()).should.be.equal(newProxy);
     })
   })
 })
-
-var toUtf8 = function(hex) {
-  var buf = new Buffer(hex.replace('0x',''),'hex');
-  return buf.toString();
-}
 
 function toHex(someString) {
   var hex = '0x' + new Buffer(someString).toString('hex');

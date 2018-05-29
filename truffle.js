@@ -35,6 +35,7 @@ module.exports = {
     }
   },
   mocha: {
-    reporter: 'mochawesome'
+    reporter: 'mochawesome',
+    enableTimeouts: false
   }
 };

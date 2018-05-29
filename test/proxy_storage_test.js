@@ -10,9 +10,9 @@ let VotingToChangeProxy = artifacts.require('./VotingToChangeProxyAddress');
 let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 require('chai')
-    .use(require('chai-as-promised'))
-    .use(require('chai-bignumber')(web3.BigNumber))
-    .should();
+  .use(require('chai-as-promised'))
+  .use(require('chai-bignumber')(web3.BigNumber))
+  .should();
 
 let masterOfCeremony;
 let keysManager, keysManagerEternalStorage;
@@ -31,7 +31,7 @@ contract('ProxyStorage [all features]', function (accounts) {
     proxyStorageEternalStorage = await EternalStorageProxy.new(0, proxyStorage.address);
     proxyStorage = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
     await proxyStorage.init(poaNetworkConsensus.address).should.be.fulfilled;
-    (await proxyStorageEternalStorage.getProxyStorage()).should.be.equal(
+    (await proxyStorageEternalStorage.getProxyStorage.call()).should.be.equal(
       proxyStorageEternalStorage.address
     );
 
@@ -57,10 +57,10 @@ contract('ProxyStorage [all features]', function (accounts) {
   describe('#constructor', async () => {
     it('sets MoC and Poa', async () => {
       poaNetworkConsensus.address.should.be.equal(
-        await proxyStorage.getPoaConsensus()
+        await proxyStorage.getPoaConsensus.call()
       );
       true.should.be.equal(
-        await proxyStorage.isValidator(masterOfCeremony)
+        await proxyStorage.isValidator.call(masterOfCeremony)
       );
     })
   })
@@ -84,22 +84,22 @@ contract('ProxyStorage [all features]', function (accounts) {
         validatorMetadataEternalStorage.address,
       ).should.be.fulfilled;
       keysManagerEternalStorage.address.should.be.equal(
-        await proxyStorage.getKeysManager()
+        await proxyStorage.getKeysManager.call()
       );
       votingToChangeKeysEternalStorage.address.should.be.equal(
-        await proxyStorage.getVotingToChangeKeys()
+        await proxyStorage.getVotingToChangeKeys.call()
       );
       votingToChangeMinThresholdEternalStorage.address.should.be.equal(
-        await proxyStorage.getVotingToChangeMinThreshold()
+        await proxyStorage.getVotingToChangeMinThreshold.call()
       );
       votingToChangeProxyEternalStorage.address.should.be.equal(
-        await proxyStorage.getVotingToChangeProxy()
+        await proxyStorage.getVotingToChangeProxy.call()
       );
       ballotsEternalStorage.address.should.be.equal(
-        await proxyStorage.getBallotsStorage()
+        await proxyStorage.getBallotsStorage.call()
       );
       validatorMetadataEternalStorage.address.should.be.equal(
-        await proxyStorage.getValidatorMetadata()
+        await proxyStorage.getValidatorMetadata.call()
       );
       logs[0].event.should.be.equal('ProxyInitialized');
       logs[0].args.keysManagerEternalStorage.should.be.equal(keysManagerEternalStorage.address);
@@ -110,7 +110,7 @@ contract('ProxyStorage [all features]', function (accounts) {
       logs[0].args.validatorMetadataEternalStorage.should.be.equal(validatorMetadataEternalStorage.address);
     })
     it('prevents Moc to call it more than once', async () => {
-      false.should.be.equal(await proxyStorage.mocInitialized());
+      false.should.be.equal(await proxyStorage.mocInitialized.call());
       const {logs} = await proxyStorage.initializeAddresses(
         keysManagerEternalStorage.address,
         votingToChangeKeysEternalStorage.address,
@@ -119,7 +119,7 @@ contract('ProxyStorage [all features]', function (accounts) {
         ballotsEternalStorage.address,
         validatorMetadataEternalStorage.address
       ).should.be.fulfilled;
-      true.should.be.equal(await proxyStorage.mocInitialized());
+      true.should.be.equal(await proxyStorage.mocInitialized.call());
       await proxyStorage.initializeAddresses(
         keysManagerEternalStorage.address,
         votingToChangeKeysEternalStorage.address,
@@ -160,11 +160,11 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorage.setContractAddress(1, keysManagerNew.address, {from: accounts[4]}).should.be.fulfilled;
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       
-      let eternalProxyAddress = await proxyStorage.getKeysManager();
+      let eternalProxyAddress = await proxyStorage.getKeysManager.call();
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
 
       keysManagerNew.address.should.be.equal(
-        await eternalProxy.implementation()
+        await eternalProxy.implementation.call()
       );
     })
     it('sets votingToChangeKeys', async () => {
@@ -173,11 +173,11 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorage.setContractAddress(2, votingToChangeKeysNew.address, {from: accounts[4]}).should.be.fulfilled;
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       
-      let eternalProxyAddress = await proxyStorage.getVotingToChangeKeys();
+      let eternalProxyAddress = await proxyStorage.getVotingToChangeKeys.call();
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
 
       votingToChangeKeysNew.address.should.be.equal(
-        await eternalProxy.implementation()
+        await eternalProxy.implementation.call()
       )
     })
     it('sets votingToChangeMinThreshold', async () => {
@@ -186,11 +186,11 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorage.setContractAddress(3, votingToChangeMinThresholdNew.address, {from: accounts[4]}).should.be.fulfilled;
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       
-      let eternalProxyAddress = await proxyStorage.getVotingToChangeMinThreshold();
+      let eternalProxyAddress = await proxyStorage.getVotingToChangeMinThreshold.call();
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
 
       votingToChangeMinThresholdNew.address.should.be.equal(
-        await eternalProxy.implementation()
+        await eternalProxy.implementation.call()
       )
     })
     //it('sets votingToChangeProxy', async () => {
@@ -203,11 +203,11 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorage.setContractAddress(5, ballotsStorageNew.address, {from: accounts[4]}).should.be.fulfilled;
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       
-      let eternalProxyAddress = await proxyStorage.getBallotsStorage();
+      let eternalProxyAddress = await proxyStorage.getBallotsStorage.call();
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
 
       ballotsStorageNew.address.should.be.equal(
-        await eternalProxy.implementation()
+        await eternalProxy.implementation.call()
       )
     })
     it('sets poaConsensus', async () => {
@@ -215,7 +215,7 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorage.setContractAddress(6, accounts[5], {from: accounts[4]}).should.be.fulfilled;
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       accounts[5].should.be.equal(
-        await proxyStorage.getPoaConsensus()
+        await proxyStorage.getPoaConsensus.call()
       )
     })
     it('sets validatorMetadata', async () => {
@@ -225,15 +225,15 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorage.setContractAddress(7, validatorMetadataNew.address, {from: accounts[4]}).should.be.fulfilled;
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       
-      let eternalProxyAddress = await proxyStorage.getValidatorMetadata();
+      let eternalProxyAddress = await proxyStorage.getValidatorMetadata.call();
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
 
       validatorMetadataNew.address.should.be.equal(
-        await eternalProxy.implementation()
+        await eternalProxy.implementation.call()
       )
     })
     it('changes proxyStorage (itself) implementation', async () => {
-      const oldVersion = await proxyStorage.version();
+      const oldVersion = await proxyStorage.version.call();
       const newVersion = oldVersion.add(1);
       let proxyStorageNew = await ProxyStorageMock.new();
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
@@ -241,30 +241,30 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       
       proxyStorageNew.address.should.be.equal(
-        await proxyStorageEternalStorage.implementation()
+        await proxyStorageEternalStorage.implementation.call()
       );
       proxyStorageNew.address.should.be.equal(
-        await proxyStorage.implementation()
+        await proxyStorage.implementation.call()
       );
       newVersion.should.be.bignumber.equal(
-        await proxyStorageEternalStorage.version()
+        await proxyStorageEternalStorage.version.call()
       );
       proxyStorageNew = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
       newVersion.should.be.bignumber.equal(
-        await proxyStorageNew.version()
+        await proxyStorageNew.version.call()
       );
     })
   })
   describe('#upgradeTo', async () => {
     it('may be called only by ProxyStorage (itself)', async () => {
       const proxyStorageNew = await ProxyStorageNew.new();
-      (await proxyStorageEternalStorage.getProxyStorage()).should.be.equal(
+      (await proxyStorageEternalStorage.getProxyStorage.call()).should.be.equal(
         proxyStorageEternalStorage.address
       );
       await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
       await proxyStorageEternalStorage.setProxyStorage(accounts[0]);
       await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[0]}).should.be.fulfilled;
-      (await proxyStorageEternalStorage.implementation()).should.be.equal(
+      (await proxyStorageEternalStorage.implementation.call()).should.be.equal(
         proxyStorageNew.address
       );
     });
@@ -273,21 +273,21 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorageEternalStorage.setProxyStorage(accounts[0]);
       await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[0]}).should.be.fulfilled;
       await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
-      (await proxyStorageEternalStorage.implementation()).should.be.equal(
+      (await proxyStorageEternalStorage.implementation.call()).should.be.equal(
         proxyStorageNew.address
       );
     });
     it('should increment implementation version', async () => {
       let proxyStorageNew = await ProxyStorageNew.new();
-      const oldVersion = await proxyStorage.version();
+      const oldVersion = await proxyStorage.version.call();
       const newVersion = oldVersion.add(1);
-      (await proxyStorageEternalStorage.version()).should.be.bignumber.equal(oldVersion);
+      (await proxyStorageEternalStorage.version.call()).should.be.bignumber.equal(oldVersion);
       await proxyStorageEternalStorage.setProxyStorage(accounts[0]);
       await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[0]}).should.be.fulfilled;
       await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
       proxyStorageNew = await ProxyStorageNew.at(proxyStorageEternalStorage.address);
-      (await proxyStorageNew.version()).should.be.bignumber.equal(newVersion);
-      (await proxyStorageEternalStorage.version()).should.be.bignumber.equal(newVersion);
+      (await proxyStorageNew.version.call()).should.be.bignumber.equal(newVersion);
+      (await proxyStorageEternalStorage.version.call()).should.be.bignumber.equal(newVersion);
     });
     it('new implementation should work', async () => {
       let proxyStorageNew = await ProxyStorageNew.new();
@@ -295,9 +295,9 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[0]}).should.be.fulfilled;
       await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
       proxyStorageNew = await ProxyStorageNew.at(proxyStorageEternalStorage.address);
-      (await proxyStorageNew.initialized()).should.be.equal(false);
+      (await proxyStorageNew.initialized.call()).should.be.equal(false);
       await proxyStorageNew.initialize();
-      (await proxyStorageNew.initialized()).should.be.equal(true);
+      (await proxyStorageNew.initialized.call()).should.be.equal(true);
     });
     it('new implementation should use the same storage', async () => {
       let proxyStorageNew = await ProxyStorageNew.new();
@@ -305,7 +305,7 @@ contract('ProxyStorage [all features]', function (accounts) {
       await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[0]}).should.be.fulfilled;
       await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
       proxyStorageNew = await ProxyStorageNew.at(proxyStorageEternalStorage.address);
-      (await proxyStorageNew.getPoaConsensus()).should.be.equal(poaNetworkConsensus.address);
+      (await proxyStorageNew.getPoaConsensus.call()).should.be.equal(poaNetworkConsensus.address);
     });
   });
 })
