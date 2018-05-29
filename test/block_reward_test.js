@@ -92,16 +92,16 @@ contract('BlockReward [all features]', function (accounts) {
   describe('constructor', async () => {
     it('should save parameters', async () => {
       proxyStorage.address.should.be.equal(
-        await blockReward.proxyStorage()
+        await blockReward.proxyStorage.call()
       );
       emissionFunds.address.should.be.equal(
-        await blockReward.emissionFunds()
+        await blockReward.emissionFunds.call()
       );
       blockRewardAmount.should.be.bignumber.equal(
-        await blockReward.blockRewardAmount()
+        await blockReward.blockRewardAmount.call()
       );
       emissionFundsAmount.should.be.bignumber.equal(
-        await blockReward.emissionFundsAmount()
+        await blockReward.emissionFundsAmount.call()
       );
     });
   });

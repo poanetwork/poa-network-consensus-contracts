@@ -34,7 +34,7 @@ contract('EmissionFunds [all features]', function (accounts) {
 
   describe('constructor', async () => {
     it('should save VotingToManageEmissionFunds address', async () => {
-      (await emissionFunds.votingToManageEmissionFunds()).should.be.equal(
+      (await emissionFunds.votingToManageEmissionFunds.call()).should.be.equal(
         votingToManageEmissionFunds
       );
     });
