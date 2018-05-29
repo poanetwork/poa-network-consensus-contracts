@@ -8,7 +8,7 @@ let BallotsStorage = artifacts.require('./BallotsStorage');
 let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
-const {addValidators} = require('./helpers')
+const {addValidators} = require('./utils/helpers')
 
 
 const choice = {
@@ -95,24 +95,24 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
     beforeEach(async () => {
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
-      id = await voting.nextBallotId();
+      id = await voting.nextBallotId.call();
     })
     it('happy path', async () => {
       const {logs} = await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, 4, "memo", {from: votingKey});
-      const startTime = await voting.getStartTime(id.toNumber());
-      const endTime = await voting.getEndTime(id.toNumber());
-      const keysManagerFromContract = await voting.getKeysManager();
+      const startTime = await voting.getStartTime.call(id.toNumber());
+      const endTime = await voting.getEndTime.call(id.toNumber());
+      const keysManagerFromContract = await voting.getKeysManager.call();
       startTime.should.be.bignumber.equal(VOTING_START_DATE);
       endTime.should.be.bignumber.equal(VOTING_END_DATE);
-      (await voting.getTotalVoters(id)).should.be.bignumber.equal(0);
-      (await voting.getProgress(id)).should.be.bignumber.equal(0);
-      (await voting.getIsFinalized(id)).should.be.equal(false);
-      (await voting.getQuorumState(id)).should.be.bignumber.equal(1);
-      (await voting.getIndex(id)).should.be.bignumber.equal(0);
-      (await voting.getMinThresholdOfVoters(id)).should.be.bignumber.equal(3);
-      (await voting.getProposedValue(id)).should.be.bignumber.equal(4);
-      (await voting.getCreator(id)).should.be.equal(miningKeyForVotingKey);
-      (await voting.getMemo(id)).should.be.equal("memo");
+      (await voting.getTotalVoters.call(id)).should.be.bignumber.equal(0);
+      (await voting.getProgress.call(id)).should.be.bignumber.equal(0);
+      (await voting.getIsFinalized.call(id)).should.be.equal(false);
+      (await voting.getQuorumState.call(id)).should.be.bignumber.equal(1);
+      (await voting.getIndex.call(id)).should.be.bignumber.equal(0);
+      (await voting.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(3);
+      (await voting.getProposedValue.call(id)).should.be.bignumber.equal(4);
+      (await voting.getCreator.call(id)).should.be.equal(miningKeyForVotingKey);
+      (await voting.getMemo.call(id)).should.be.equal("memo");
       keysManagerFromContract.should.be.equal(keysManager.address);
       logs[0].event.should.be.equal("BallotCreated");
       logs[0].args.id.should.be.bignumber.equal(0);
@@ -130,9 +130,9 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, 4,"memo", {from: votingKey});
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, 4,"memo", {from: votingKey});
       // we have 6 validators, so 200 limit / 6 = 33.3 ~ 33
-      new web3.BigNumber(33).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
+      new web3.BigNumber(33).should.be.bignumber.equal(await voting.getBallotLimitPerValidator.call());
       await addValidators({proxyStorageMock, keysManager, poaNetworkConsensusMock}); // add 100 validators, so total will be 106 validators
-      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
+      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getBallotLimitPerValidator.call());
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, 4, "memo",{from: votingKey}).should.be.rejectedWith(ERROR_MSG)
     })
   })
@@ -144,17 +144,17 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
 
-      id = await voting.nextBallotId();
-      let validators = await poaNetworkConsensusMock.getValidators();
+      id = await voting.nextBallotId.call();
+      let validators = await poaNetworkConsensusMock.getValidators.call();
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, 4, "memo",{from: votingKey});
     })
 
     it('should let a validator to vote', async () => {
       await voting.setTime(VOTING_START_DATE);
       const {logs} = await voting.vote(id, choice.accept, {from: votingKey}).should.be.fulfilled;
-      let progress = await voting.getProgress(id);
+      let progress = await voting.getProgress.call(id);
       progress.should.be.bignumber.equal(1);
-      let totalVoters = await voting.getTotalVoters(id);
+      let totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(1);
       logs[0].event.should.be.equal('Vote');
       logs[0].args.decision.should.be.bignumber.equal(1);
@@ -165,9 +165,9 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
     it('reject vote should be accepted', async () => {
       await voting.setTime(VOTING_START_DATE);
       const {logs} = await voting.vote(id, choice.reject, {from: votingKey}).should.be.fulfilled;
-      let progress = await voting.getProgress(id);
+      let progress = await voting.getProgress.call(id);
       progress.should.be.bignumber.equal(-1);
-      let totalVoters = await voting.getTotalVoters(id);
+      let totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(1);
       logs[0].event.should.be.equal('Vote');
       logs[0].args.decision.should.be.bignumber.equal(2);
@@ -183,18 +183,18 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       // add new voter
       await voting.vote(id, choice.reject, {from: votingKey2}).should.be.fulfilled;
 
-      let progress = await voting.getProgress(id);
+      let progress = await voting.getProgress.call(id);
       progress.should.be.bignumber.equal(-2);
 
-      let totalVoters = await voting.getTotalVoters(id);
+      let totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(2);
 
       await voting.vote(id, choice.accept, {from: votingKey3}).should.be.fulfilled;
 
-      progress = await voting.getProgress(id);
+      progress = await voting.getProgress.call(id);
       progress.should.be.bignumber.equal(-1);
 
-      totalVoters = await voting.getTotalVoters(id);
+      totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(3);
     })
     it('should not let vote nonVoting key', async () => {
@@ -236,42 +236,42 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
 
     it('does not change if it did not pass minimum threshold', async () => {
       let proposedValue = 4;
-      votingId = await voting.nextBallotId();
+      votingId = await voting.nextBallotId.call();
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, proposedValue, "memo", {from: votingKey});
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(votingId, choice.accept, {from: votingKey}).should.be.fulfilled;
       // await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 1);
       const {logs} = await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
-      activeBallotsLength = await voting.activeBallotsLength();
+      activeBallotsLength = await voting.activeBallotsLength.call();
       activeBallotsLength.should.be.bignumber.equal(0);
-      true.should.be.equal(await voting.getIsFinalized(votingId));
+      true.should.be.equal(await voting.getIsFinalized.call(votingId));
       // Finalized(msg.sender);
       logs[0].event.should.be.equal("BallotFinalized");
       logs[0].args.voter.should.be.equal(votingKey);
-      (await voting.getStartTime(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await voting.getEndTime(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await voting.getTotalVoters(votingId)).should.be.bignumber.equal(1);
-      (await voting.getProgress(votingId)).should.be.bignumber.equal(1);
-      (await voting.getIsFinalized(votingId)).should.be.equal(true);
-      (await voting.getQuorumState(votingId)).should.be.bignumber.equal(3);
-      (await voting.getIndex(votingId)).should.be.bignumber.equal(0);
-      (await voting.getMinThresholdOfVoters(votingId)).should.be.bignumber.equal(3);
-      (await voting.getProposedValue(votingId)).should.be.bignumber.equal(proposedValue);
-      (await voting.getCreator(votingId)).should.be.equal(miningKeyForVotingKey);
-      (await voting.getMemo(votingId)).should.be.equal("memo");
+      (await voting.getStartTime.call(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
+      (await voting.getEndTime.call(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
+      (await voting.getTotalVoters.call(votingId)).should.be.bignumber.equal(1);
+      (await voting.getProgress.call(votingId)).should.be.bignumber.equal(1);
+      (await voting.getIsFinalized.call(votingId)).should.be.equal(true);
+      (await voting.getQuorumState.call(votingId)).should.be.bignumber.equal(3);
+      (await voting.getIndex.call(votingId)).should.be.bignumber.equal(0);
+      (await voting.getMinThresholdOfVoters.call(votingId)).should.be.bignumber.equal(3);
+      (await voting.getProposedValue.call(votingId)).should.be.bignumber.equal(proposedValue);
+      (await voting.getCreator.call(votingId)).should.be.equal(miningKeyForVotingKey);
+      (await voting.getMemo.call(votingId)).should.be.equal("memo");
 
       true.should.be.equal(
-        await voting.hasAlreadyVoted(votingId, votingKey)
+        await voting.hasAlreadyVoted.call(votingId, votingKey)
       );
 
-      const minThresholdOfVoters = await ballotsStorage.getBallotThreshold(1);
+      const minThresholdOfVoters = await ballotsStorage.getBallotThreshold.call(1);
       minThresholdOfVoters.should.be.bignumber.equal(3);
     });
 
     it('should change to proposedValue when quorum is reached', async () => {
       let proposedValue = 4;
-      votingId = await voting.nextBallotId();
+      votingId = await voting.nextBallotId.call();
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, proposedValue, "memo", {from: votingKey});
 
       await voting.setTime(VOTING_START_DATE);
@@ -282,36 +282,36 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       await voting.setTime(VOTING_END_DATE + 1);
       const {logs} = await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
 
-      activeBallotsLength = await voting.activeBallotsLength();
+      activeBallotsLength = await voting.activeBallotsLength.call();
       activeBallotsLength.should.be.bignumber.equal(0);
-      true.should.be.equal(await voting.getIsFinalized(votingId));
+      true.should.be.equal(await voting.getIsFinalized.call(votingId));
       // Finalized(msg.sender);
       logs[0].event.should.be.equal("BallotFinalized");
       logs[0].args.voter.should.be.equal(votingKey);
 
-      (await voting.getStartTime(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await voting.getEndTime(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await voting.getTotalVoters(votingId)).should.be.bignumber.equal(3);
-      (await voting.getProgress(votingId)).should.be.bignumber.equal(1);
-      (await voting.getIsFinalized(votingId)).should.be.equal(true);
-      (await voting.getQuorumState(votingId)).should.be.bignumber.equal(2);
-      (await voting.getIndex(votingId)).should.be.bignumber.equal(0);
-      (await voting.getMinThresholdOfVoters(votingId)).should.be.bignumber.equal(3);
-      (await voting.getProposedValue(votingId)).should.be.bignumber.equal(proposedValue);
-      (await voting.getCreator(votingId)).should.be.equal(miningKeyForVotingKey);
-      (await voting.getMemo(votingId)).should.be.equal("memo");
+      (await voting.getStartTime.call(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
+      (await voting.getEndTime.call(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
+      (await voting.getTotalVoters.call(votingId)).should.be.bignumber.equal(3);
+      (await voting.getProgress.call(votingId)).should.be.bignumber.equal(1);
+      (await voting.getIsFinalized.call(votingId)).should.be.equal(true);
+      (await voting.getQuorumState.call(votingId)).should.be.bignumber.equal(2);
+      (await voting.getIndex.call(votingId)).should.be.bignumber.equal(0);
+      (await voting.getMinThresholdOfVoters.call(votingId)).should.be.bignumber.equal(3);
+      (await voting.getProposedValue.call(votingId)).should.be.bignumber.equal(proposedValue);
+      (await voting.getCreator.call(votingId)).should.be.equal(miningKeyForVotingKey);
+      (await voting.getMemo.call(votingId)).should.be.equal("memo");
 
       true.should.be.equal(
-        await voting.hasAlreadyVoted(votingId, votingKey)
+        await voting.hasAlreadyVoted.call(votingId, votingKey)
       );
       true.should.be.equal(
-        await voting.hasAlreadyVoted(votingId, votingKey2)
+        await voting.hasAlreadyVoted.call(votingId, votingKey2)
       );
       true.should.be.equal(
-        await voting.hasAlreadyVoted(votingId, votingKey3)
+        await voting.hasAlreadyVoted.call(votingId, votingKey3)
       );
 
-      const minThresholdOfVoters = await ballotsStorage.getBallotThreshold(1);
+      const minThresholdOfVoters = await ballotsStorage.getBallotThreshold.call(1);
       minThresholdOfVoters.should.be.bignumber.equal(proposedValue);
 
       let votingForKeys = await VotingForKeys.new();
@@ -319,9 +319,9 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       votingForKeys = await VotingForKeys.at(votingForKeysEternalStorage.address);
       await votingForKeys.init(172800);
 
-      const nextId = await votingForKeys.nextBallotId();
+      const nextId = await votingForKeys.nextBallotId.call();
       await votingForKeys.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 3, accounts[1], 1, "memo", {from: votingKey});
-      const minThresholdVotingForKeys = await votingForKeys.getMinThresholdOfVoters(nextId);
+      const minThresholdVotingForKeys = await votingForKeys.getMinThresholdOfVoters.call(nextId);
       minThresholdVotingForKeys.should.be.bignumber.equal(proposedValue);
     })
 
@@ -338,30 +338,30 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
 
       await voting.createBallot(VOTING_START_DATE+2, VOTING_END_DATE+2, proposedValue2, "memo",{from: votingKey});
       await voting.finalize(votingId, { from: votingKey }).should.be.rejectedWith(ERROR_MSG);
-      const activeBallotsLength = await voting.activeBallotsLength();
-      votingId = await voting.activeBallots(activeBallotsLength.toNumber() - 2);
+      const activeBallotsLength = await voting.activeBallotsLength.call();
+      votingId = await voting.activeBallots.call(activeBallotsLength.toNumber() - 2);
       let votingIdForSecond = votingId.add(1);
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(votingId, choice.reject, {from: votingKey}).should.be.fulfilled;
-      false.should.be.equal(await voting.hasAlreadyVoted(votingId, votingKey2));
+      false.should.be.equal(await voting.hasAlreadyVoted.call(votingId, votingKey2));
       await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(votingId, choice.accept, {from: votingKey3}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 1);
-      false.should.be.equal(await voting.getIsFinalized(votingId));
+      false.should.be.equal(await voting.getIsFinalized.call(votingId));
       await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
       await voting.vote(votingId, choice.accept, { from: votingKey }).should.be.rejectedWith(ERROR_MSG);
-      new web3.BigNumber(4).should.be.bignumber.equal(await voting.getProposedValue(votingId));
-      true.should.be.equal(await voting.getIsFinalized(votingId));
+      new web3.BigNumber(4).should.be.bignumber.equal(await voting.getProposedValue.call(votingId));
+      true.should.be.equal(await voting.getIsFinalized.call(votingId));
       await voting.finalize(votingId, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
       await voting.finalize(votingIdForSecond, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
-      new web3.BigNumber(5).should.be.bignumber.equal(await voting.getProposedValue(votingIdForSecond));
-      false.should.be.equal(await voting.getIsFinalized(votingIdForSecond));
+      new web3.BigNumber(5).should.be.bignumber.equal(await voting.getProposedValue.call(votingIdForSecond));
+      false.should.be.equal(await voting.getIsFinalized.call(votingIdForSecond));
       await voting.vote(votingIdForSecond, choice.reject, {from: votingKey}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 3);
       await voting.finalize(votingIdForSecond, {from: votingKey}).should.be.fulfilled;
 
-      new web3.BigNumber(-1).should.be.bignumber.equal(await voting.getProgress(votingIdForSecond))
-      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getProgress(votingId))
+      new web3.BigNumber(-1).should.be.bignumber.equal(await voting.getProgress.call(votingIdForSecond))
+      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getProgress.call(votingId))
     })
   });
 })

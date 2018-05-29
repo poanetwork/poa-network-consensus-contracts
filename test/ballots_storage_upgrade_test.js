@@ -72,10 +72,10 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     })
     it('thresholds are correct', async () => {
       new web3.BigNumber(3).should.be.bignumber.equal(
-        await ballotsStorage.getBallotThreshold(1)
+        await ballotsStorage.getBallotThreshold.call(1)
       );
       new web3.BigNumber(2).should.be.bignumber.equal(
-        await ballotsStorage.getBallotThreshold(2)
+        await ballotsStorage.getBallotThreshold.call(2)
       );
     })
   })
@@ -98,11 +98,11 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     })
     it('sets new value for Keys threshold', async () => {
       await ballotsStorage.setThreshold(5, 1, {from: accounts[3]}).should.be.fulfilled; 
-      new web3.BigNumber(5).should.be.bignumber.equal(await ballotsStorage.getBallotThreshold(1));
+      new web3.BigNumber(5).should.be.bignumber.equal(await ballotsStorage.getBallotThreshold.call(1));
     })
     it('sets new value for MetadataChange threshold', async () => {
       await ballotsStorage.setThreshold(6, 2, {from: accounts[3]}).should.be.fulfilled;
-      new web3.BigNumber(6).should.be.bignumber.equal(await ballotsStorage.getBallotThreshold(2));
+      new web3.BigNumber(6).should.be.bignumber.equal(await ballotsStorage.getBallotThreshold.call(2));
     })
   })
   describe('#getTotalNumberOfValidators', async () => {
@@ -111,14 +111,14 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       await poaNetworkConsensus.addValidator(accounts[1], true);
       await poaNetworkConsensus.setSystemAddress(masterOfCeremony);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      const getValidators = await poaNetworkConsensus.getValidators();
+      const getValidators = await poaNetworkConsensus.getValidators.call();
       new web3.BigNumber(2).should.be.bignumber.equal(getValidators.length);
-      new web3.BigNumber(2).should.be.bignumber.equal(await ballotsStorage.getTotalNumberOfValidators())
+      new web3.BigNumber(2).should.be.bignumber.equal(await ballotsStorage.getTotalNumberOfValidators.call())
     })
   })
   describe('#getProxyThreshold', async () => {
     it('return value is correct', async () => {
-      new web3.BigNumber(1).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold())
+      new web3.BigNumber(1).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold.call())
       await proxyStorage.setKeysManagerMock(masterOfCeremony);
       await poaNetworkConsensus.addValidator(accounts[1], true);
       await poaNetworkConsensus.addValidator(accounts[2], true);
@@ -128,13 +128,13 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       await proxyStorage.setKeysManagerMock(keysManager.address);
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      const getValidators = await poaNetworkConsensus.getValidators();
+      const getValidators = await poaNetworkConsensus.getValidators.call();
       new web3.BigNumber(6).should.be.bignumber.equal(getValidators.length);
-      (await keysManager.isMasterOfCeremonyRemoved()).should.be.equal(false);
-      new web3.BigNumber(3).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold())
+      (await keysManager.isMasterOfCeremonyRemoved.call()).should.be.equal(false);
+      new web3.BigNumber(3).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold.call())
     });
     it('return value is correct if MoC is removed', async () => {
-      new web3.BigNumber(1).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold())
+      new web3.BigNumber(1).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold.call())
       await proxyStorage.setKeysManagerMock(masterOfCeremony);
       await poaNetworkConsensus.addValidator(accounts[1], true);
       await poaNetworkConsensus.addValidator(accounts[2], true);
@@ -145,9 +145,9 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       await proxyStorage.setKeysManagerMock(keysManager.address);
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      const getValidators = await poaNetworkConsensus.getValidators();
+      const getValidators = await poaNetworkConsensus.getValidators.call();
       new web3.BigNumber(7).should.be.bignumber.equal(getValidators.length);
-      new web3.BigNumber(4).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold());
+      new web3.BigNumber(4).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold.call());
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000001', {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000002', {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000003', {from: masterOfCeremony}).should.be.fulfilled;
@@ -162,39 +162,39 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000012', {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.removeMiningKey(masterOfCeremony, {from: votingToChangeKeys});
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      (await keysManager.isMasterOfCeremonyRemoved()).should.be.equal(true);
-      (await poaNetworkConsensus.getCurrentValidatorsLength()).should.be.bignumber.equal(6);
-      new web3.BigNumber(4).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold());
+      (await keysManager.isMasterOfCeremonyRemoved.call()).should.be.equal(true);
+      (await poaNetworkConsensus.getCurrentValidatorsLength.call()).should.be.bignumber.equal(6);
+      new web3.BigNumber(4).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold.call());
     });
   })
   describe('#getVotingToChangeThreshold', async () => {
     it('returns voting to change min threshold address', async () => {
-      votingToChangeMinThreshold.should.be.equal(await ballotsStorage.getVotingToChangeThreshold())
+      votingToChangeMinThreshold.should.be.equal(await ballotsStorage.getVotingToChangeThreshold.call())
       await proxyStorage.setVotingToChangeMinThresholdMock(accounts[4]);
-      accounts[4].should.be.equal(await ballotsStorage.getVotingToChangeThreshold())
+      accounts[4].should.be.equal(await ballotsStorage.getVotingToChangeThreshold.call())
     })
   })
   describe('#getBallotLimitPerValidator', async () => {
     it('returns correct limit', async () => {
-      let limit = await ballotsStorage.getBallotLimitPerValidator();
+      let limit = await ballotsStorage.getBallotLimitPerValidator.call();
       limit.should.be.bignumber.equal(200);
 
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      limit = await ballotsStorage.getBallotLimitPerValidator();
+      limit = await ballotsStorage.getBallotLimitPerValidator.call();
       limit.should.be.bignumber.equal(100);
     });
     it('returns correct limit if MoC is removed', async () => {
-      let limit = await ballotsStorage.getBallotLimitPerValidator();
+      let limit = await ballotsStorage.getBallotLimitPerValidator.call();
       limit.should.be.bignumber.equal(200);
 
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      (await poaNetworkConsensus.getCurrentValidatorsLength()).should.be.bignumber.equal(3);
+      (await poaNetworkConsensus.getCurrentValidatorsLength.call()).should.be.bignumber.equal(3);
 
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000001', {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000002', {from: masterOfCeremony}).should.be.fulfilled;
@@ -210,10 +210,10 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000012', {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.removeMiningKey(masterOfCeremony, {from: votingToChangeKeys});
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      (await keysManager.isMasterOfCeremonyRemoved()).should.be.equal(true);
-      (await poaNetworkConsensus.getCurrentValidatorsLength()).should.be.bignumber.equal(2);
+      (await keysManager.isMasterOfCeremonyRemoved.call()).should.be.equal(true);
+      (await poaNetworkConsensus.getCurrentValidatorsLength.call()).should.be.bignumber.equal(2);
 
-      limit = await ballotsStorage.getBallotLimitPerValidator();
+      limit = await ballotsStorage.getBallotLimitPerValidator.call();
       limit.should.be.bignumber.equal(100);
     });
   })

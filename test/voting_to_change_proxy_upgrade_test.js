@@ -10,7 +10,7 @@ let ValidatorMetadata = artifacts.require('./ValidatorMetadata');
 let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
-const {addValidators} = require('./helpers')
+const {addValidators} = require('./utils/helpers')
 
 const choice = {
   accept: 1,
@@ -96,7 +96,7 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
       proxyStorageMock.setVotingContractMock(votingForKeysEternalStorage.address);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
-      id = await voting.nextBallotId();
+      id = await voting.nextBallotId.call();
     })
     it('happy path', async () => {
       // uint256 _startTime,
@@ -106,24 +106,24 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
       const {logs} = await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], 1, "memo", { from: votingKey }
       );
-      const keysManagerFromContract = await voting.getKeysManager();
-      (await voting.getStartTime(id)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await voting.getEndTime(id)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await voting.getTotalVoters(id)).should.be.bignumber.equal(0);
-      (await voting.getProgress(id)).should.be.bignumber.equal(0);
-      (await voting.getIsFinalized(id)).should.be.equal(false);
-      (await voting.getQuorumState(id)).should.be.bignumber.equal(1);
-      (await voting.getIndex(id)).should.be.bignumber.equal(0);
-      (await voting.getMinThresholdOfVoters(id)).should.be.bignumber.equal(1);
-      (await voting.getProposedValue(id)).should.be.equal(accounts[5]);
-      (await voting.getContractType(id)).should.be.bignumber.equal(1);
-      (await voting.getCreator(id)).should.be.equal(miningKeyForVotingKey);
-      (await voting.getMemo(id)).should.be.equal("memo");
+      const keysManagerFromContract = await voting.getKeysManager.call();
+      (await voting.getStartTime.call(id)).should.be.bignumber.equal(VOTING_START_DATE);
+      (await voting.getEndTime.call(id)).should.be.bignumber.equal(VOTING_END_DATE);
+      (await voting.getTotalVoters.call(id)).should.be.bignumber.equal(0);
+      (await voting.getProgress.call(id)).should.be.bignumber.equal(0);
+      (await voting.getIsFinalized.call(id)).should.be.equal(false);
+      (await voting.getQuorumState.call(id)).should.be.bignumber.equal(1);
+      (await voting.getIndex.call(id)).should.be.bignumber.equal(0);
+      (await voting.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(1);
+      (await voting.getProposedValue.call(id)).should.be.equal(accounts[5]);
+      (await voting.getContractType.call(id)).should.be.bignumber.equal(1);
+      (await voting.getCreator.call(id)).should.be.equal(miningKeyForVotingKey);
+      (await voting.getMemo.call(id)).should.be.equal("memo");
       
-      let activeBallotsLength = await voting.activeBallotsLength();
+      let activeBallotsLength = await voting.activeBallotsLength.call();
       activeBallotsLength.should.be.bignumber.equal(1);
 
-      let nextBallotId = await voting.nextBallotId();
+      let nextBallotId = await voting.nextBallotId.call();
       nextBallotId.should.be.bignumber.equal(1);
 
       keysManagerFromContract.should.be.equal(keysManager.address);
@@ -137,29 +137,29 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
     it('can create multiple ballots', async () => {
       const { logs } = await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], 1, "memo",{ from: votingKey });
-      const keysManagerFromContract = await voting.getKeysManager();
+      const keysManagerFromContract = await voting.getKeysManager.call();
 
-      let activeBallotsLength = await voting.activeBallotsLength();
+      let activeBallotsLength = await voting.activeBallotsLength.call();
       activeBallotsLength.should.be.bignumber.equal(1);
 
-      let nextBallotId = await voting.nextBallotId();
+      let nextBallotId = await voting.nextBallotId.call();
       nextBallotId.should.be.bignumber.equal(1);
 
       await voting.createBallot(
         VOTING_START_DATE + 1, VOTING_END_DATE + 1, accounts[5], 2, "memo",{ from: votingKey }
       );
-      (await voting.getStartTime(nextBallotId)).should.be.bignumber.equal(VOTING_START_DATE+1);
-      (await voting.getEndTime(nextBallotId)).should.be.bignumber.equal(VOTING_END_DATE+1);
-      (await voting.getTotalVoters(nextBallotId)).should.be.bignumber.equal(0);
-      (await voting.getProgress(nextBallotId)).should.be.bignumber.equal(0);
-      (await voting.getIsFinalized(nextBallotId)).should.be.equal(false);
-      (await voting.getQuorumState(nextBallotId)).should.be.bignumber.equal(1);
-      (await voting.getIndex(nextBallotId)).should.be.bignumber.equal(1);
-      (await voting.getMinThresholdOfVoters(nextBallotId)).should.be.bignumber.equal(1);
-      (await voting.getProposedValue(nextBallotId)).should.be.equal(accounts[5]);
-      (await voting.getContractType(nextBallotId)).should.be.bignumber.equal(2);
-      (await voting.getCreator(nextBallotId)).should.be.equal(miningKeyForVotingKey);
-      (await voting.getMemo(nextBallotId)).should.be.equal("memo");
+      (await voting.getStartTime.call(nextBallotId)).should.be.bignumber.equal(VOTING_START_DATE+1);
+      (await voting.getEndTime.call(nextBallotId)).should.be.bignumber.equal(VOTING_END_DATE+1);
+      (await voting.getTotalVoters.call(nextBallotId)).should.be.bignumber.equal(0);
+      (await voting.getProgress.call(nextBallotId)).should.be.bignumber.equal(0);
+      (await voting.getIsFinalized.call(nextBallotId)).should.be.equal(false);
+      (await voting.getQuorumState.call(nextBallotId)).should.be.bignumber.equal(1);
+      (await voting.getIndex.call(nextBallotId)).should.be.bignumber.equal(1);
+      (await voting.getMinThresholdOfVoters.call(nextBallotId)).should.be.bignumber.equal(1);
+      (await voting.getProposedValue.call(nextBallotId)).should.be.equal(accounts[5]);
+      (await voting.getContractType.call(nextBallotId)).should.be.bignumber.equal(2);
+      (await voting.getCreator.call(nextBallotId)).should.be.equal(miningKeyForVotingKey);
+      (await voting.getMemo.call(nextBallotId)).should.be.equal("memo");
     })
     it('should not let create more ballots than the limit', async () => {
       const VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
@@ -167,9 +167,9 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, "memo",{from: votingKey});
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, "memo",{from: votingKey});
       // we have 1 validator, so 200 limit / 1 = 200
-      new web3.BigNumber(200).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
+      new web3.BigNumber(200).should.be.bignumber.equal(await voting.getBallotLimitPerValidator.call());
       await addValidators({proxyStorageMock, keysManager, poaNetworkConsensusMock}); // add 100 validators, so total will be 101 validator
-      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getBallotLimitPerValidator());
+      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getBallotLimitPerValidator.call());
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, "memo",{from: votingKey}).should.be.rejectedWith(ERROR_MSG)
     })
   })
@@ -183,7 +183,7 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
       await proxyStorageMock.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
-      id = await voting.nextBallotId();
+      id = await voting.nextBallotId.call();
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], 1, "memo", { from: votingKey }
       );
@@ -192,9 +192,9 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
     it('should let a validator to vote', async () => {
       await voting.setTime(VOTING_START_DATE);
       const { logs } = await voting.vote(id, choice.accept, { from: votingKey }).should.be.fulfilled;
-      let progress = await voting.getProgress(id);
+      let progress = await voting.getProgress.call(id);
       progress.should.be.bignumber.equal(1);
-      let totalVoters = await voting.getTotalVoters(id);
+      let totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(1);
       logs[0].event.should.be.equal('Vote');
       logs[0].args.decision.should.be.bignumber.equal(1);
@@ -204,9 +204,9 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
     it('reject vote should be accepted', async () => {
       await voting.setTime(VOTING_START_DATE);
       const { logs } = await voting.vote(id, choice.reject, { from: votingKey }).should.be.fulfilled;
-      let progress = await voting.getProgress(id);
+      let progress = await voting.getProgress.call(id);
       progress.should.be.bignumber.equal(-1);
-      let totalVoters = await voting.getTotalVoters(id);
+      let totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(1);
       logs[0].event.should.be.equal('Vote');
       logs[0].args.decision.should.be.bignumber.equal(2);
@@ -225,20 +225,20 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
       await keysManager.addVotingKey(accounts[4], accounts[2]).should.be.fulfilled;
       await voting.vote(id, choice.reject, { from: accounts[4] }).should.be.fulfilled;
 
-      let progress = await voting.getProgress(id);
+      let progress = await voting.getProgress.call(id);
       progress.should.be.bignumber.equal(-2);
 
-      let totalVoters = await voting.getTotalVoters(id);
+      let totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(2);
 
       await keysManager.addMiningKey(accounts[3]).should.be.fulfilled;
       await keysManager.addVotingKey(accounts[5], accounts[3]).should.be.fulfilled;
       await voting.vote(id, choice.accept, { from: accounts[5] }).should.be.fulfilled;
 
-      progress = await voting.getProgress(id);
+      progress = await voting.getProgress.call(id);
       progress.should.be.bignumber.equal(-1);
 
-      totalVoters = await voting.getTotalVoters(id);
+      totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(3);
     })
     it('should not let vote nonVoting key', async () => {
@@ -295,7 +295,7 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
     it('does not change if it did not pass minimum threshold', async () => {
       let proposedValue = 5;
       let contractType = 1; //keysManager
-      votingId = await voting.nextBallotId();
+      votingId = await voting.nextBallotId.call();
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], contractType, "memo", { from: votingKey }
       );
@@ -306,28 +306,28 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
       await voting.setTime(VOTING_END_DATE + 1);
       const { logs } = await voting.finalize(votingId, { from: votingKey }).should.be.fulfilled;
       await voting.vote(votingId, choice.accept, { from: votingKey }).should.be.rejectedWith(ERROR_MSG);
-      activeBallotsLength = await voting.activeBallotsLength();
+      activeBallotsLength = await voting.activeBallotsLength.call();
       activeBallotsLength.should.be.bignumber.equal(0);
-      true.should.be.equal(await voting.getIsFinalized(votingId));
+      true.should.be.equal(await voting.getIsFinalized.call(votingId));
       // Finalized(msg.sender);
       logs[0].event.should.be.equal("BallotFinalized");
       logs[0].args.voter.should.be.equal(votingKey);
-      (await voting.getStartTime(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await voting.getEndTime(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await voting.getTotalVoters(votingId)).should.be.bignumber.equal(1);
-      (await voting.getProgress(votingId)).should.be.bignumber.equal(1);
-      (await voting.getIsFinalized(votingId)).should.be.equal(true);
-      (await voting.getQuorumState(votingId)).should.be.bignumber.equal(3);
-      (await voting.getIndex(votingId)).should.be.bignumber.equal(0);
-      (await voting.getMinThresholdOfVoters(votingId)).should.be.bignumber.equal(2);
-      (await voting.getProposedValue(votingId)).should.be.equal(accounts[5]);
-      (await voting.getContractType(votingId)).should.be.bignumber.equal(contractType);
-      (await voting.getCreator(votingId)).should.be.equal(miningKeyForVotingKey);
-      (await voting.getMemo(votingId)).should.be.equal("memo");
+      (await voting.getStartTime.call(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
+      (await voting.getEndTime.call(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
+      (await voting.getTotalVoters.call(votingId)).should.be.bignumber.equal(1);
+      (await voting.getProgress.call(votingId)).should.be.bignumber.equal(1);
+      (await voting.getIsFinalized.call(votingId)).should.be.equal(true);
+      (await voting.getQuorumState.call(votingId)).should.be.bignumber.equal(3);
+      (await voting.getIndex.call(votingId)).should.be.bignumber.equal(0);
+      (await voting.getMinThresholdOfVoters.call(votingId)).should.be.bignumber.equal(2);
+      (await voting.getProposedValue.call(votingId)).should.be.equal(accounts[5]);
+      (await voting.getContractType.call(votingId)).should.be.bignumber.equal(contractType);
+      (await voting.getCreator.call(votingId)).should.be.equal(miningKeyForVotingKey);
+      (await voting.getMemo.call(votingId)).should.be.equal("memo");
       true.should.be.equal(
-        await voting.hasAlreadyVoted(votingId, votingKey)
+        await voting.hasAlreadyVoted.call(votingId, votingKey)
       );
-      const minThresholdOfVoters = await ballotsStorage.getBallotThreshold(1);
+      const minThresholdOfVoters = await ballotsStorage.getBallotThreshold.call(1);
       minThresholdOfVoters.should.be.bignumber.equal(3);
     });
 
@@ -336,61 +336,61 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
       let keysManagerNew = await KeysManagerMock.new();
       let newAddress = keysManagerNew.address;
       await deployAndTest({contractType, newAddress})
-      let eternalProxyAddress = await proxyStorageMock.getKeysManager();
+      let eternalProxyAddress = await proxyStorageMock.getKeysManager.call();
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
-      newAddress.should.be.equal(await eternalProxy.implementation());
+      newAddress.should.be.equal(await eternalProxy.implementation.call());
     })
     it('should change VotingToChangeKeys implementation', async () => {
       let contractType = 2;
       let votingToChangeKeysNew = await VotingForKeys.new();
       let newAddress = votingToChangeKeysNew.address;
       await deployAndTest({contractType, newAddress})
-      let eternalProxyAddress = await proxyStorageMock.getVotingToChangeKeys();
+      let eternalProxyAddress = await proxyStorageMock.getVotingToChangeKeys.call();
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
-      newAddress.should.be.equal(await eternalProxy.implementation());
+      newAddress.should.be.equal(await eternalProxy.implementation.call());
     })
     it('should change VotingToChangeMinThreshold implementation', async () => {
       let contractType = 3;
       let votingToChangeMinThresholdNew = await VotingForMinThreshold.new();
       let newAddress = votingToChangeMinThresholdNew.address;
       await deployAndTest({contractType, newAddress})
-      let eternalProxyAddress = await proxyStorageMock.getVotingToChangeMinThreshold();
+      let eternalProxyAddress = await proxyStorageMock.getVotingToChangeMinThreshold.call();
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
-      newAddress.should.be.equal(await eternalProxy.implementation());
+      newAddress.should.be.equal(await eternalProxy.implementation.call());
     })
     it('should change VotingToChangeProxy implementation', async () => {
       let contractType = 4;
       let votingToChangeProxyNew = await VotingToChangeProxyAddress.new();
       let newAddress = votingToChangeProxyNew.address;
       await deployAndTest({contractType, newAddress})
-      let eternalProxyAddress = await proxyStorageMock.getVotingToChangeProxy();
+      let eternalProxyAddress = await proxyStorageMock.getVotingToChangeProxy.call();
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
-      newAddress.should.be.equal(await eternalProxy.implementation());
+      newAddress.should.be.equal(await eternalProxy.implementation.call());
     })
     it('should change BallotsStorage implementation', async () => {
       let contractType = 5;
       let ballotsStorageNew = await BallotsStorage.new();
       let newAddress = ballotsStorageNew.address;
       await deployAndTest({contractType, newAddress})
-      let eternalProxyAddress = await proxyStorageMock.getBallotsStorage();
+      let eternalProxyAddress = await proxyStorageMock.getBallotsStorage.call();
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
-      newAddress.should.be.equal(await eternalProxy.implementation());
+      newAddress.should.be.equal(await eternalProxy.implementation.call());
     })
     it('should change ValidatorMetadata implementation', async () => {
       let contractType = 7;
       let validatorMetadataNew = await ValidatorMetadata.new();
       let newAddress = validatorMetadataNew.address;
       await deployAndTest({contractType, newAddress})
-      let eternalProxyAddress = await proxyStorageMock.getValidatorMetadata();
+      let eternalProxyAddress = await proxyStorageMock.getValidatorMetadata.call();
       let eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
-      newAddress.should.be.equal(await eternalProxy.implementation());
+      newAddress.should.be.equal(await eternalProxy.implementation.call());
     })
     it('should change ProxyStorage implementation', async () => {
       const contractType = 8;
       const proxyStorageNew = await ProxyStorageMock.new();
       const newAddress = proxyStorageNew.address;
       await deployAndTest({contractType, newAddress})
-      newAddress.should.be.equal(await proxyStorageMock.implementation());
+      newAddress.should.be.equal(await proxyStorageMock.implementation.call());
     })
     it('prevents double finalize', async () => {
       let newAddress1 = accounts[4];
@@ -404,58 +404,58 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
         VOTING_START_DATE+2, VOTING_END_DATE+2, newAddress2, contractType2, "memo", { from: votingKey }
       );
 
-      const activeBallotsLength = await voting.activeBallotsLength();
-      votingId = await voting.activeBallots(activeBallotsLength.toNumber() - 2);
+      const activeBallotsLength = await voting.activeBallotsLength.call();
+      votingId = await voting.activeBallots.call(activeBallotsLength.toNumber() - 2);
       let votingIdForSecond = votingId.add(1);
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(votingId, choice.reject, {from: votingKey}).should.be.fulfilled;
-      false.should.be.equal(await voting.hasAlreadyVoted(votingId, votingKey2));
+      false.should.be.equal(await voting.hasAlreadyVoted.call(votingId, votingKey2));
       await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(votingId, choice.accept, {from: votingKey3}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 1);
-      false.should.be.equal(await voting.getIsFinalized(votingId));
+      false.should.be.equal(await voting.getIsFinalized.call(votingId));
       await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
-      true.should.be.equal(await voting.getIsFinalized(votingId));
+      true.should.be.equal(await voting.getIsFinalized.call(votingId));
       await voting.finalize(votingId, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
       
       await voting.finalize(votingIdForSecond, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
-      false.should.be.equal(await voting.getIsFinalized(votingIdForSecond));
+      false.should.be.equal(await voting.getIsFinalized.call(votingIdForSecond));
       await voting.vote(votingIdForSecond, choice.reject, {from: votingKey}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 3);
       await voting.finalize(votingIdForSecond, {from: votingKey}).should.be.fulfilled;
 
-      new web3.BigNumber(-1).should.be.bignumber.equal(await voting.getProgress(votingIdForSecond))
-      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getProgress(votingId))
+      new web3.BigNumber(-1).should.be.bignumber.equal(await voting.getProgress.call(votingIdForSecond))
+      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getProgress.call(votingId))
 
-      let startTime = await voting.getStartTime(votingId);
-      let endTime = await voting.getEndTime(votingId);
+      let startTime = await voting.getStartTime.call(votingId);
+      let endTime = await voting.getEndTime.call(votingId);
       startTime.should.be.bignumber.equal(VOTING_START_DATE);
       endTime.should.be.bignumber.equal(VOTING_END_DATE);
-      (await voting.getTotalVoters(votingId)).should.be.bignumber.equal(3);
-      (await voting.getProgress(votingId)).should.be.bignumber.equal(1);
-      (await voting.getIsFinalized(votingId)).should.be.equal(true);
-      (await voting.getQuorumState(votingId)).should.be.bignumber.equal(2);
-      (await voting.getIndex(votingId)).should.be.bignumber.equal(0);
-      (await voting.getMinThresholdOfVoters(votingId)).should.be.bignumber.equal(2);
-      (await voting.getProposedValue(votingId)).should.be.equal(newAddress1);
-      (await voting.getContractType(votingId)).should.be.bignumber.equal(contractType1);
-      (await voting.getCreator(votingId)).should.be.equal(miningKeyForVotingKey);
-      (await voting.getMemo(votingId)).should.be.equal("memo");
+      (await voting.getTotalVoters.call(votingId)).should.be.bignumber.equal(3);
+      (await voting.getProgress.call(votingId)).should.be.bignumber.equal(1);
+      (await voting.getIsFinalized.call(votingId)).should.be.equal(true);
+      (await voting.getQuorumState.call(votingId)).should.be.bignumber.equal(2);
+      (await voting.getIndex.call(votingId)).should.be.bignumber.equal(0);
+      (await voting.getMinThresholdOfVoters.call(votingId)).should.be.bignumber.equal(2);
+      (await voting.getProposedValue.call(votingId)).should.be.equal(newAddress1);
+      (await voting.getContractType.call(votingId)).should.be.bignumber.equal(contractType1);
+      (await voting.getCreator.call(votingId)).should.be.equal(miningKeyForVotingKey);
+      (await voting.getMemo.call(votingId)).should.be.equal("memo");
 
-      startTime = await voting.getStartTime(votingIdForSecond);
-      endTime = await voting.getEndTime(votingIdForSecond);
+      startTime = await voting.getStartTime.call(votingIdForSecond);
+      endTime = await voting.getEndTime.call(votingIdForSecond);
       startTime.should.be.bignumber.equal(VOTING_START_DATE+2);
       endTime.should.be.bignumber.equal(VOTING_END_DATE+2);
-      (await voting.getTotalVoters(votingIdForSecond)).should.be.bignumber.equal(1);
-      (await voting.getProgress(votingIdForSecond)).should.be.bignumber.equal(-1);
-      (await voting.getIsFinalized(votingIdForSecond)).should.be.equal(true);
-      (await voting.getQuorumState(votingIdForSecond)).should.be.bignumber.equal(3);
-      (await voting.getIndex(votingIdForSecond)).should.be.bignumber.equal(0);
-      (await voting.getMinThresholdOfVoters(votingIdForSecond)).should.be.bignumber.equal(2);
-      (await voting.getProposedValue(votingIdForSecond)).should.be.equal(newAddress2);
-      (await voting.getContractType(votingIdForSecond)).should.be.bignumber.equal(contractType2);
-      (await voting.getCreator(votingIdForSecond)).should.be.equal(miningKeyForVotingKey);
-      (await voting.getMemo(votingIdForSecond)).should.be.equal("memo");
+      (await voting.getTotalVoters.call(votingIdForSecond)).should.be.bignumber.equal(1);
+      (await voting.getProgress.call(votingIdForSecond)).should.be.bignumber.equal(-1);
+      (await voting.getIsFinalized.call(votingIdForSecond)).should.be.equal(true);
+      (await voting.getQuorumState.call(votingIdForSecond)).should.be.bignumber.equal(3);
+      (await voting.getIndex.call(votingIdForSecond)).should.be.bignumber.equal(0);
+      (await voting.getMinThresholdOfVoters.call(votingIdForSecond)).should.be.bignumber.equal(2);
+      (await voting.getProposedValue.call(votingIdForSecond)).should.be.equal(newAddress2);
+      (await voting.getContractType.call(votingIdForSecond)).should.be.bignumber.equal(contractType2);
+      (await voting.getCreator.call(votingIdForSecond)).should.be.equal(miningKeyForVotingKey);
+      (await voting.getMemo.call(votingIdForSecond)).should.be.equal("memo");
     })
   });
 })
@@ -464,7 +464,7 @@ async function deployAndTest({
   contractType,
   newAddress
 }) {
-  votingId = await voting.nextBallotId();
+  votingId = await voting.nextBallotId.call();
   await voting.createBallot(
     VOTING_START_DATE, VOTING_END_DATE, newAddress, contractType, "memo", { from: votingKey }
   );
@@ -476,35 +476,35 @@ async function deployAndTest({
   await voting.setTime(VOTING_END_DATE + 1);
   const { logs } = await voting.finalize(votingId, { from: votingKey }).should.be.fulfilled;
 
-  activeBallotsLength = await voting.activeBallotsLength();
+  activeBallotsLength = await voting.activeBallotsLength.call();
   activeBallotsLength.should.be.bignumber.equal(0);
-  true.should.be.equal(await voting.getIsFinalized(votingId));
+  true.should.be.equal(await voting.getIsFinalized.call(votingId));
   // Finalized(msg.sender);
   logs[0].event.should.be.equal("BallotFinalized");
   logs[0].args.voter.should.be.equal(votingKey);
 
-  (await voting.getStartTime(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
-  (await voting.getEndTime(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
-  (await voting.getTotalVoters(votingId)).should.be.bignumber.equal(3);
-  (await voting.getProgress(votingId)).should.be.bignumber.equal(1);
-  (await voting.getIsFinalized(votingId)).should.be.equal(true);
-  (await voting.getQuorumState(votingId)).should.be.bignumber.equal(2);
-  (await voting.getIndex(votingId)).should.be.bignumber.equal(0);
-  (await voting.getMinThresholdOfVoters(votingId)).should.be.bignumber.equal(2);
-  (await voting.getProposedValue(votingId)).should.be.equal(newAddress);
-  (await voting.getContractType(votingId)).should.be.bignumber.equal(contractType);
-  (await voting.getCreator(votingId)).should.be.equal(miningKeyForVotingKey);
-  (await voting.getMemo(votingId)).should.be.equal("memo");
+  (await voting.getStartTime.call(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
+  (await voting.getEndTime.call(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
+  (await voting.getTotalVoters.call(votingId)).should.be.bignumber.equal(3);
+  (await voting.getProgress.call(votingId)).should.be.bignumber.equal(1);
+  (await voting.getIsFinalized.call(votingId)).should.be.equal(true);
+  (await voting.getQuorumState.call(votingId)).should.be.bignumber.equal(2);
+  (await voting.getIndex.call(votingId)).should.be.bignumber.equal(0);
+  (await voting.getMinThresholdOfVoters.call(votingId)).should.be.bignumber.equal(2);
+  (await voting.getProposedValue.call(votingId)).should.be.equal(newAddress);
+  (await voting.getContractType.call(votingId)).should.be.bignumber.equal(contractType);
+  (await voting.getCreator.call(votingId)).should.be.equal(miningKeyForVotingKey);
+  (await voting.getMemo.call(votingId)).should.be.equal("memo");
   
   if (contractType !== 1) {
     true.should.be.equal(
-      await voting.hasAlreadyVoted(votingId, votingKey)
+      await voting.hasAlreadyVoted.call(votingId, votingKey)
     );
     true.should.be.equal(
-      await voting.hasAlreadyVoted(votingId, votingKey2)
+      await voting.hasAlreadyVoted.call(votingId, votingKey2)
     );
     true.should.be.equal(
-      await voting.hasAlreadyVoted(votingId, votingKey3)
+      await voting.hasAlreadyVoted.call(votingId, votingKey3)
     );
   }
 

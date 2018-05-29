@@ -139,15 +139,15 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
 
   describe('#init', async () => {
     it('should change state correctly', async () => {
-      (await voting.distributionThreshold()).should.be.bignumber.equal(distributionThreshold);
-      (await voting.emissionFunds()).should.be.equal(emissionFunds.address);
-      (await voting.emissionReleaseThreshold()).should.be.bignumber.equal(emissionReleaseThreshold);
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(emissionReleaseTime);
-      (await voting.previousBallotFinalized()).should.be.equal(true);
-      (await voting.initDisabled()).should.be.equal(true);
-      (await voting.proxyStorage()).should.be.equal(proxyStorage.address);
-      (await voting.getBallotsStorage()).should.be.equal(ballotsStorage.address);
-      (await voting.getKeysManager()).should.be.equal(keysManager.address);
+      (await voting.distributionThreshold.call()).should.be.bignumber.equal(distributionThreshold);
+      (await voting.emissionFunds.call()).should.be.equal(emissionFunds.address);
+      (await voting.emissionReleaseThreshold.call()).should.be.bignumber.equal(emissionReleaseThreshold);
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(emissionReleaseTime);
+      (await voting.previousBallotFinalized.call()).should.be.equal(true);
+      (await voting.initDisabled.call()).should.be.equal(true);
+      (await voting.proxyStorage.call()).should.be.equal(proxyStorage.address);
+      (await voting.getBallotsStorage.call()).should.be.equal(ballotsStorage.address);
+      (await voting.getKeysManager.call()).should.be.equal(keysManager.address);
     });
     it('cannot be called more than once', async () => {
       await voting.init(
@@ -165,7 +165,7 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await addValidator(votingKey, miningKey);
       VOTING_START_DATE = moment.utc().add(20, 'minutes').unix();
       VOTING_END_DATE = moment.utc().add(7, 'days').unix();
-      id = await voting.nextBallotId();
+      id = await voting.nextBallotId.call();
       voting.setTime(moment.utc().add(15, 'minutes').unix());
     });
     it('happy path', async () => {
@@ -173,21 +173,21 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       const {logs} = await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
       ).should.be.fulfilled;
-      (await voting.getStartTime(id)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await voting.getEndTime(id)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await voting.getSendVotes(id)).should.be.bignumber.equal(0);
-      (await voting.getBurnVotes(id)).should.be.bignumber.equal(0);
-      (await voting.getFreezeVotes(id)).should.be.bignumber.equal(0);
-      (await voting.getTotalVoters(id)).should.be.bignumber.equal(0);
-      (await voting.getIsFinalized(id)).should.be.equal(false);
-      (await voting.getQuorumState(id)).should.be.bignumber.equal(1);
-      (await voting.getReceiver(id)).should.be.equal(accounts[5]);
-      (await voting.getMinThresholdOfVoters(id)).should.be.bignumber.equal(3);
-      (await voting.getCreator(id)).should.be.equal(miningKey);
-      (await voting.getMemo(id)).should.be.equal("memo");
-      (await voting.getAmount(id)).should.be.bignumber.equal(emissionFundsAmount);
-      (await voting.previousBallotFinalized()).should.be.equal(false);
-      (await voting.nextBallotId()).should.be.bignumber.equal(1);
+      (await voting.getStartTime.call(id)).should.be.bignumber.equal(VOTING_START_DATE);
+      (await voting.getEndTime.call(id)).should.be.bignumber.equal(VOTING_END_DATE);
+      (await voting.getSendVotes.call(id)).should.be.bignumber.equal(0);
+      (await voting.getBurnVotes.call(id)).should.be.bignumber.equal(0);
+      (await voting.getFreezeVotes.call(id)).should.be.bignumber.equal(0);
+      (await voting.getTotalVoters.call(id)).should.be.bignumber.equal(0);
+      (await voting.getIsFinalized.call(id)).should.be.equal(false);
+      (await voting.getQuorumState.call(id)).should.be.bignumber.equal(1);
+      (await voting.getReceiver.call(id)).should.be.equal(accounts[5]);
+      (await voting.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(3);
+      (await voting.getCreator.call(id)).should.be.equal(miningKey);
+      (await voting.getMemo.call(id)).should.be.equal("memo");
+      (await voting.getAmount.call(id)).should.be.bignumber.equal(emissionFundsAmount);
+      (await voting.previousBallotFinalized.call()).should.be.equal(false);
+      (await voting.nextBallotId.call()).should.be.bignumber.equal(1);
       logs[0].event.should.be.equal("BallotCreated");
       logs[0].args.id.should.be.bignumber.equal(0);
       logs[0].args.ballotType.should.be.bignumber.equal(6);
@@ -229,17 +229,17 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, '0x0000000000000000000000000000000000000000', "memo", {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG);
-      (await voting.nextBallotId()).should.be.bignumber.equal(0);
+      (await voting.nextBallotId.call()).should.be.bignumber.equal(0);
     });
     it('cannot create multiple ballots during the same distribution period', async () => {
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
       ).should.be.fulfilled;
-      (await voting.nextBallotId()).should.be.bignumber.equal(1);
+      (await voting.nextBallotId.call()).should.be.bignumber.equal(1);
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[6], "memo", {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG);
-      (await voting.nextBallotId()).should.be.bignumber.equal(1);
+      (await voting.nextBallotId.call()).should.be.bignumber.equal(1);
 
       voting.setTime(VOTING_END_DATE + 1);
       const {logs} = await voting.finalize(0, {from: votingKey}).should.be.fulfilled;
@@ -255,7 +255,7 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
       ).should.be.fulfilled;
-      (await voting.nextBallotId()).should.be.bignumber.equal(2);
+      (await voting.nextBallotId.call()).should.be.bignumber.equal(2);
     });
     it('should allow to create new ballot after the next emission release threshold', async () => {
       voting.setTime(
@@ -266,7 +266,7 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
       ).should.be.fulfilled;
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime + emissionReleaseThreshold
       );
 
@@ -286,7 +286,7 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
       ).should.be.fulfilled;
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime + emissionReleaseThreshold*5
       );
     });
@@ -294,37 +294,37 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
 
   describe('#refreshEmissionReleaseTime', async () => {
     it('should not update until the next threshold', async () => {
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime
       );
       voting.setTime(moment.utc().add(15, 'minutes').unix());
       await voting.refreshEmissionReleaseTime();
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime
       );
       voting.setTime(moment.utc().add(2, 'months').unix());
       await voting.refreshEmissionReleaseTime();
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime
       );
     });
     it('should update to the next threshold', async () => {
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime
       );
       voting.setTime(moment.utc().add(4, 'months').unix());
       await voting.refreshEmissionReleaseTime();
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime + emissionReleaseThreshold
       );
     });
     it('should update to the future threshold', async () => {
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime
       );
       voting.setTime(moment.utc().add(7, 'months').unix());
       await voting.refreshEmissionReleaseTime();
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime + emissionReleaseThreshold*2
       );
     });
@@ -337,7 +337,7 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await addValidator(votingKey, miningKey);
       VOTING_START_DATE = moment.utc().add(20, 'minutes').unix();
       VOTING_END_DATE = moment.utc().add(7, 'days').unix();
-      id = await voting.nextBallotId();
+      id = await voting.nextBallotId.call();
       await voting.setTime(moment.utc().add(15, 'minutes').unix());
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, receiver, "memo", {from: votingKey}
@@ -351,14 +351,14 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.setTime(VOTING_START_DATE);
       const {logs} = await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
 
-      (await voting.getSendVotes(id)).should.be.bignumber.equal(1);
-      (await voting.getBurnVotes(id)).should.be.bignumber.equal(0);
-      (await voting.getFreezeVotes(id)).should.be.bignumber.equal(0);
-      (await voting.getTotalVoters(id)).should.be.bignumber.equal(1);
-      (await voting.hasMiningKeyAlreadyVoted(id, miningKey)).should.be.equal(true);
-      (await voting.getIsFinalized(id)).should.be.equal(true);
-      (await voting.previousBallotFinalized()).should.be.equal(true);
-      (await voting.getQuorumState(id)).should.be.bignumber.equal(4);
+      (await voting.getSendVotes.call(id)).should.be.bignumber.equal(1);
+      (await voting.getBurnVotes.call(id)).should.be.bignumber.equal(0);
+      (await voting.getFreezeVotes.call(id)).should.be.bignumber.equal(0);
+      (await voting.getTotalVoters.call(id)).should.be.bignumber.equal(1);
+      (await voting.hasMiningKeyAlreadyVoted.call(id, miningKey)).should.be.equal(true);
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
+      (await voting.previousBallotFinalized.call()).should.be.equal(true);
+      (await voting.getQuorumState.call(id)).should.be.bignumber.equal(4);
 
       logs[0].event.should.be.equal('Vote');
       logs[0].args.id.should.be.bignumber.equal(0);
@@ -384,24 +384,24 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.setTime(VOTING_START_DATE+2);
       await voting.vote(id, choice.burn, {from: votingKey2}).should.be.fulfilled;
 
-      (await voting.getAmount(id)).should.be.bignumber.equal(
+      (await voting.getAmount.call(id)).should.be.bignumber.equal(
         await web3.eth.getBalance(emissionFunds.address)
       );
-      (await voting.getAmount(id)).should.be.bignumber.above(0);
+      (await voting.getAmount.call(id)).should.be.bignumber.above(0);
 
       await voting.setTime(VOTING_START_DATE+3);
       await voting.vote(id, choice.burn, {from: votingKey3}).should.be.fulfilled;
 
-      (await voting.getSendVotes(id)).should.be.bignumber.equal(0);
-      (await voting.getBurnVotes(id)).should.be.bignumber.equal(3);
-      (await voting.getFreezeVotes(id)).should.be.bignumber.equal(0);
-      (await voting.getTotalVoters(id)).should.be.bignumber.equal(3);
-      (await voting.hasMiningKeyAlreadyVoted(id, miningKey)).should.be.equal(true);
-      (await voting.hasMiningKeyAlreadyVoted(id, miningKey2)).should.be.equal(true);
-      (await voting.hasMiningKeyAlreadyVoted(id, miningKey3)).should.be.equal(true);
-      (await voting.getIsFinalized(id)).should.be.equal(true);
-      (await voting.previousBallotFinalized()).should.be.equal(true);
-      (await voting.getQuorumState(id)).should.be.bignumber.equal(3);
+      (await voting.getSendVotes.call(id)).should.be.bignumber.equal(0);
+      (await voting.getBurnVotes.call(id)).should.be.bignumber.equal(3);
+      (await voting.getFreezeVotes.call(id)).should.be.bignumber.equal(0);
+      (await voting.getTotalVoters.call(id)).should.be.bignumber.equal(3);
+      (await voting.hasMiningKeyAlreadyVoted.call(id, miningKey)).should.be.equal(true);
+      (await voting.hasMiningKeyAlreadyVoted.call(id, miningKey2)).should.be.equal(true);
+      (await voting.hasMiningKeyAlreadyVoted.call(id, miningKey3)).should.be.equal(true);
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
+      (await voting.previousBallotFinalized.call()).should.be.equal(true);
+      (await voting.getQuorumState.call(id)).should.be.bignumber.equal(3);
       (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(0);
     });
 
@@ -445,17 +445,17 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
 
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
-      (await voting.getIsFinalized(id)).should.be.equal(false);
+      (await voting.getIsFinalized.call(id)).should.be.equal(false);
 
       await voting.setTime(VOTING_END_DATE + 1);
       await voting.finalize(id, {from: votingKey}).should.be.fulfilled;
-      (await voting.getIsFinalized(id)).should.be.equal(true);
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
 
       await voting.vote(id, choice.send, {from: votingKey2}).should.be.rejectedWith(ERROR_MSG);
       await voting.setTime(VOTING_START_DATE + 1);
       await voting.vote(id, choice.send, {from: votingKey2}).should.be.rejectedWith(ERROR_MSG);
 
-      id = await voting.nextBallotId();
+      id = await voting.nextBallotId.call();
       VOTING_START_DATE += emissionReleaseThreshold;
       VOTING_END_DATE += emissionReleaseThreshold;
       await voting.setTime(VOTING_START_DATE - 5*60);
@@ -466,7 +466,7 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
       await voting.vote(id, choice.send, {from: votingKey2}).should.be.fulfilled;
-      (await voting.getIsFinalized(id)).should.be.equal(true);
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
 
       await addValidator(votingKey3, miningKey3);
       await voting.vote(id, choice.send, {from: votingKey3}).should.be.rejectedWith(ERROR_MSG);
@@ -477,7 +477,7 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
 
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
-      (await voting.getIsFinalized(id)).should.be.equal(false);
+      (await voting.getIsFinalized.call(id)).should.be.equal(false);
 
       proxyStorage.setVotingContractMock(coinbase);
       await keysManager.swapMiningKey(miningKey3, miningKey).should.be.fulfilled;
@@ -493,9 +493,9 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.vote(id, choice.send, {from: votingKey3}).should.be.rejectedWith(ERROR_MSG);
 
       await voting.vote(id, choice.send, {from: votingKey2}).should.be.fulfilled;
-      (await voting.getIsFinalized(id)).should.be.equal(true);
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
 
-      id = await voting.nextBallotId();
+      id = await voting.nextBallotId.call();
       VOTING_START_DATE += emissionReleaseThreshold;
       VOTING_END_DATE += emissionReleaseThreshold;
       await voting.setTime(VOTING_START_DATE - 5*60);
@@ -505,7 +505,7 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
 
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(id, choice.send, {from: votingKey3}).should.be.fulfilled;
-      (await voting.getIsFinalized(id)).should.be.equal(false);
+      (await voting.getIsFinalized.call(id)).should.be.equal(false);
 
       proxyStorage.setVotingContractMock(coinbase);
       await keysManager.swapMiningKey(miningKey, miningKey3).should.be.fulfilled;
@@ -517,7 +517,7 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.vote(id, choice.send, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
 
       await voting.vote(id, choice.send, {from: votingKey2}).should.be.fulfilled;
-      (await voting.getIsFinalized(id)).should.be.equal(true);
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
     });
   });
 
@@ -528,7 +528,7 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await addValidator(votingKey, miningKey);
       VOTING_START_DATE = moment.utc().add(20, 'minutes').unix();
       VOTING_END_DATE = moment.utc().add(7, 'days').unix();
-      id = await voting.nextBallotId();
+      id = await voting.nextBallotId.call();
       await voting.setTime(moment.utc().add(15, 'minutes').unix());
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, receiver, "memo", {from: votingKey}
@@ -536,16 +536,16 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
     });
 
     it('happy path', async () => {
-      (await voting.getIsFinalized(id)).should.be.equal(false);
-      (await voting.previousBallotFinalized()).should.be.equal(false);
+      (await voting.getIsFinalized.call(id)).should.be.equal(false);
+      (await voting.previousBallotFinalized.call()).should.be.equal(false);
 
       await addValidator(votingKey2, miningKey2);
       await voting.setTime(VOTING_END_DATE + 1);
       const {logs} = await voting.finalize(id, {from: votingKey2}).should.be.fulfilled;
 
-      (await voting.getIsFinalized(id)).should.be.equal(true);
-      (await voting.previousBallotFinalized()).should.be.equal(true);
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
+      (await voting.previousBallotFinalized.call()).should.be.equal(true);
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime + emissionReleaseThreshold
       );
 
@@ -558,14 +558,14 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await addValidator(votingKey2, miningKey2);
       await addValidator(votingKey3, miningKey3);
 
-      (await voting.getMinThresholdOfVoters(id)).should.be.bignumber.equal(3);
+      (await voting.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(3);
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(id, choice.burn, {from: votingKey}).should.be.fulfilled;
       await voting.vote(id, choice.burn, {from: votingKey2}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 1);
       await voting.finalize(id, {from: votingKey3}).should.be.fulfilled;
 
-      (await voting.getQuorumState(id)).should.be.bignumber.equal(4);
+      (await voting.getQuorumState.call(id)).should.be.bignumber.equal(4);
       (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(emissionFundsInitBalance);
       emissionFundsInitBalance.should.be.bignumber.above(0);
     });
@@ -579,8 +579,8 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.vote(id, choice.burn, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(id, choice.freeze, {from: votingKey3}).should.be.fulfilled;
 
-      (await voting.getIsFinalized(id)).should.be.equal(true);
-      (await voting.getQuorumState(id)).should.be.bignumber.equal(4);
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
+      (await voting.getQuorumState.call(id)).should.be.bignumber.equal(4);
       (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(emissionFundsInitBalance);
       emissionFundsInitBalance.should.be.bignumber.above(0);
     });
@@ -596,9 +596,9 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.vote(id, choice.send, {from: votingKey3}).should.be.fulfilled;
       await voting.vote(id, choice.burn, {from: votingKey4}).should.be.fulfilled;
 
-      (await voting.getIsFinalized(id)).should.be.equal(true);
-      (await voting.getQuorumState(id)).should.be.bignumber.equal(4);
-      (await voting.getTotalVoters(id)).should.be.bignumber.equal(4);
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
+      (await voting.getQuorumState.call(id)).should.be.bignumber.equal(4);
+      (await voting.getTotalVoters.call(id)).should.be.bignumber.equal(4);
       (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(emissionFundsInitBalance);
       emissionFundsInitBalance.should.be.bignumber.above(0);
     });
@@ -618,9 +618,9 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.vote(id, choice.burn, {from: votingKey3}).should.be.fulfilled;
       await voting.vote(id, choice.freeze, {from: votingKey4}).should.be.fulfilled;
 
-      (await voting.getIsFinalized(id)).should.be.equal(true);
-      (await voting.getQuorumState(id)).should.be.bignumber.equal(2);
-      (await voting.getTotalVoters(id)).should.be.bignumber.equal(4);
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
+      (await voting.getQuorumState.call(id)).should.be.bignumber.equal(2);
+      (await voting.getTotalVoters.call(id)).should.be.bignumber.equal(4);
       (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(0);
       (await web3.eth.getBalance(receiver)).should.be.bignumber.equal(
         receiverInitBalance.add(emissionFundsInitBalance)
@@ -640,9 +640,9 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.vote(id, choice.burn, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(id, choice.burn, {from: votingKey3}).should.be.fulfilled;
 
-      (await voting.getIsFinalized(id)).should.be.equal(true);
-      (await voting.getQuorumState(id)).should.be.bignumber.equal(3);
-      (await voting.getTotalVoters(id)).should.be.bignumber.equal(3);
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
+      (await voting.getQuorumState.call(id)).should.be.bignumber.equal(3);
+      (await voting.getTotalVoters.call(id)).should.be.bignumber.equal(3);
       (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(0);
       (await web3.eth.getBalance(receiver)).should.be.bignumber.equal(receiverInitBalance);
     });
@@ -666,8 +666,8 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.vote(id, choice.burn, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(id, choice.burn, {from: votingKey3}).should.be.fulfilled;
 
-      (await voting.getIsFinalized(id)).should.be.equal(true);
-      (await voting.previousBallotFinalized()).should.be.equal(true);
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
+      (await voting.previousBallotFinalized.call()).should.be.equal(true);
     });
 
     it('prevents double finalize', async () => {
@@ -677,12 +677,12 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
     });
 
     it('should refresh emission release time', async () => {
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime
       );
       await voting.setTime(VOTING_END_DATE + 1);
       await voting.finalize(0, {from: votingKey}).should.be.fulfilled;
-      (await voting.emissionReleaseTime()).should.be.bignumber.equal(
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime + emissionReleaseThreshold
       );
     });
