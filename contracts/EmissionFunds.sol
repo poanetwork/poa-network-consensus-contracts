@@ -8,15 +8,23 @@ contract EmissionFunds is IEmissionFunds {
 
     event FundsSentTo(
         address indexed receiver,
-        address indexed caller,
+        address caller,
+        address indexed callerOrigin,
         uint256 amount,
         bool indexed success
     );
     
     event FundsBurnt(
-        address indexed burner,
+        address caller,
+        address indexed callerOrigin,
         uint256 amount,
         bool indexed success
+    );
+
+    event FundsFrozen(
+        address caller,
+        address indexed callerOrigin,
+        uint256 amount
     );
 
     modifier onlyVotingToManageEmissionFunds() {
@@ -39,7 +47,9 @@ contract EmissionFunds is IEmissionFunds {
         if (msg.data.length < 32*2 + 4) return false;
         // using `send` instead of `transfer` to avoid revert on failure
         bool success = _receiver.send(_amount);
-        emit FundsSentTo(_receiver, msg.sender, _amount, success);
+        // solhint-disable avoid-tx-origin
+        emit FundsSentTo(_receiver, msg.sender, tx.origin, _amount, success);
+        // solhint-enable avoid-tx-origin
         return success;
     }
 
@@ -50,7 +60,18 @@ contract EmissionFunds is IEmissionFunds {
     {
         // using `send` instead of `transfer` to avoid revert on failure
         bool success = address(0).send(_amount);
-        emit FundsBurnt(msg.sender, _amount, success);
+        // solhint-disable avoid-tx-origin
+        emit FundsBurnt(msg.sender, tx.origin, _amount, success);
+        // solhint-enable avoid-tx-origin
         return success;
+    }
+
+    function freezeFunds(uint256 _amount)
+        external
+        onlyVotingToManageEmissionFunds
+    {
+        // solhint-disable avoid-tx-origin
+        emit FundsFrozen(msg.sender, tx.origin, _amount);
+        // solhint-enable avoid-tx-origin
     }
 }

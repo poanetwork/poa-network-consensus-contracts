@@ -236,7 +236,7 @@ contract('EmissionFunds [all features]', function (accounts) {
       );
 
       logs[0].event.should.be.equal("FundsBurnt");
-      logs[0].args.burner.should.be.equal(votingToManageEmissionFunds);
+      logs[0].args.caller.should.be.equal(votingToManageEmissionFunds);
       logs[0].args.amount.should.be.bignumber.equal(amountToBurn);
       logs[0].args.success.should.be.equal(true);
     });
@@ -250,7 +250,7 @@ contract('EmissionFunds [all features]', function (accounts) {
       (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(0);
       
       logs[0].event.should.be.equal("FundsBurnt");
-      logs[0].args.burner.should.be.equal(votingToManageEmissionFunds);
+      logs[0].args.caller.should.be.equal(votingToManageEmissionFunds);
       logs[0].args.amount.should.be.bignumber.equal(amount);
       logs[0].args.success.should.be.equal(true);
     });
@@ -268,7 +268,7 @@ contract('EmissionFunds [all features]', function (accounts) {
       );
 
       logs[0].event.should.be.equal("FundsBurnt");
-      logs[0].args.burner.should.be.equal(votingToManageEmissionFunds);
+      logs[0].args.caller.should.be.equal(votingToManageEmissionFunds);
       logs[0].args.amount.should.be.bignumber.equal(amountToBurn);
       logs[0].args.success.should.be.equal(false);
     });
@@ -286,7 +286,7 @@ contract('EmissionFunds [all features]', function (accounts) {
       );
 
       logs[0].event.should.be.equal("FundsBurnt");
-      logs[0].args.burner.should.be.equal(votingToManageEmissionFunds);
+      logs[0].args.caller.should.be.equal(votingToManageEmissionFunds);
       logs[0].args.amount.should.be.bignumber.equal(amountToBurn);
       logs[0].args.success.should.be.equal(false);
     });
@@ -304,9 +304,57 @@ contract('EmissionFunds [all features]', function (accounts) {
       );
 
       logs[0].event.should.be.equal("FundsBurnt");
-      logs[0].args.burner.should.be.equal(votingToManageEmissionFunds);
+      logs[0].args.caller.should.be.equal(votingToManageEmissionFunds);
       logs[0].args.amount.should.be.bignumber.equal(0);
       logs[0].args.success.should.be.equal(true);
+    });
+  });
+
+  describe('#freezeFunds', async () => {
+    it('may be called only by VotingToManageEmissionFunds', async () => {
+      const amountToFreeze = web3.toWei(5, 'ether');
+      await emissionFunds.freezeFunds(
+        amountToFreeze,
+        {from: accounts[3]}
+      ).should.be.rejectedWith(ERROR_MSG);
+      await emissionFunds.freezeFunds(
+        amountToFreeze,
+        {from: votingToManageEmissionFunds}
+      ).should.be.fulfilled;
+    });
+
+    it('should freeze funds', async () => {
+      const amountToFreeze = web3.toWei(4, 'ether');
+
+      const {logs} = await emissionFunds.freezeFunds(
+        amountToFreeze,
+        {from: votingToManageEmissionFunds}
+      ).should.be.fulfilled;
+      
+      amount.should.be.bignumber.equal(
+        await web3.eth.getBalance(emissionFunds.address)
+      );
+
+      logs[0].event.should.be.equal("FundsFrozen");
+      logs[0].args.caller.should.be.equal(votingToManageEmissionFunds);
+      logs[0].args.amount.should.be.bignumber.equal(amountToFreeze);
+    });
+
+    it('should be fulfilled if amount is zero', async () => {
+      const amountToFreeze = 0;
+
+      const {logs} = await emissionFunds.freezeFunds(
+        amountToFreeze,
+        {from: votingToManageEmissionFunds}
+      ).should.be.fulfilled;
+
+      amount.should.be.bignumber.equal(
+        await web3.eth.getBalance(emissionFunds.address)
+      );
+
+      logs[0].event.should.be.equal("FundsFrozen");
+      logs[0].args.caller.should.be.equal(votingToManageEmissionFunds);
+      logs[0].args.amount.should.be.bignumber.equal(0);
     });
   });
 });

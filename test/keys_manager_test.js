@@ -26,7 +26,6 @@ contract('KeysManager [all features]', function (accounts) {
     const keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, keysManager.address);
     keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);
     await keysManager.init(
-      masterOfCeremony,
       "0x0000000000000000000000000000000000000000"
     ).should.be.fulfilled;
     
@@ -346,7 +345,7 @@ contract('KeysManager [all features]', function (accounts) {
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000011', {from: masterOfCeremony}).should.be.fulfilled;
       
       await keysManager.removeMiningKey(masterOfCeremony).should.be.rejectedWith(ERROR_MSG);
-      (await keysManager.isMasterOfCeremonyRemoved.call()).should.be.equal(false);
+      (await poaNetworkConsensusMock.isMasterOfCeremonyRemoved.call()).should.be.equal(false);
       (await keysManager.masterOfCeremony.call()).should.be.equal(masterOfCeremony);
       (await poaNetworkConsensusMock.isValidator.call(masterOfCeremony)).should.be.equal(true);
       (await poaNetworkConsensusMock.getCurrentValidatorsLength.call()).should.be.bignumber.equal(1);
@@ -354,10 +353,14 @@ contract('KeysManager [all features]', function (accounts) {
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000012', {from: masterOfCeremony}).should.be.fulfilled;
       
       await keysManager.removeMiningKey(masterOfCeremony).should.be.fulfilled;
-      (await keysManager.isMasterOfCeremonyRemoved.call()).should.be.equal(true);
+      (await poaNetworkConsensusMock.isMasterOfCeremonyRemovedPending.call()).should.be.equal(true);
       (await keysManager.masterOfCeremony.call()).should.be.equal(masterOfCeremony);
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
+      
+      (await poaNetworkConsensusMock.isMasterOfCeremonyRemovedPending.call()).should.be.equal(false);
+      (await poaNetworkConsensusMock.isMasterOfCeremonyRemoved.call()).should.be.equal(true);
+      (await keysManager.masterOfCeremony.call()).should.be.equal(masterOfCeremony);
       (await poaNetworkConsensusMock.isValidator.call(masterOfCeremony)).should.be.equal(false);
       (await poaNetworkConsensusMock.getCurrentValidatorsLength.call()).should.be.bignumber.equal(0);
     });
@@ -531,7 +534,7 @@ contract('KeysManager [all features]', function (accounts) {
       let newKeysManager = await KeysManagerMock.new();
       const newKeysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, newKeysManager.address);
       newKeysManager = await KeysManagerMock.at(newKeysManagerEternalStorage.address);
-      await newKeysManager.init(masterOfCeremony, keysManager.address).should.be.fulfilled;
+      await newKeysManager.init(keysManager.address).should.be.fulfilled;
       
       keysManager.address.should.be.equal(
         await newKeysManager.previousKeysManager.call()
@@ -573,7 +576,7 @@ contract('KeysManager [all features]', function (accounts) {
       let newKeysManager = await KeysManagerMock.new();
       const newKeysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, newKeysManager.address);
       newKeysManager = await KeysManagerMock.at(newKeysManagerEternalStorage.address);
-      await newKeysManager.init(masterOfCeremony, keysManager.address).should.be.fulfilled;
+      await newKeysManager.init(keysManager.address).should.be.fulfilled;
       
       // mining #1
       let {logs} = await newKeysManager.migrateMiningKey(miningKey);
@@ -631,7 +634,7 @@ contract('KeysManager [all features]', function (accounts) {
       let newKeysManager = await KeysManagerMock.new();
       const newKeysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, newKeysManager.address);
       newKeysManager = await KeysManagerMock.at(newKeysManagerEternalStorage.address);
-      await newKeysManager.init(masterOfCeremony, keysManager.address).should.be.fulfilled;
+      await newKeysManager.init(keysManager.address).should.be.fulfilled;
       
       true.should.be.equal(
         await newKeysManager.successfulValidatorClone.call(masterOfCeremony)
@@ -648,7 +651,6 @@ contract('KeysManager [all features]', function (accounts) {
       keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, keysManager.address);
       keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);
       await keysManager.init(
-        masterOfCeremony,
         "0x0000000000000000000000000000000000000000"
       ).should.be.fulfilled;
       await keysManager.setProxyStorage(proxyStorageStubAddress);
@@ -701,9 +703,9 @@ contract('KeysManager [all features]', function (accounts) {
         false,
         false
       ]);
+      await keysManager.setProxyStorage(proxyStorageMock.address);
       await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
       await proxyStorageMock.setKeysManagerMock(keysManager.address);
-      await keysManager.setProxyStorage(proxyStorageMock.address);
       await keysManager.createKeys(accounts[2], accounts[3], accounts[4], {from: accounts[1]}).should.be.fulfilled;
       let keysManagerNew = await KeysManagerNew.new();
       await keysManager.setProxyStorage(proxyStorageStubAddress);

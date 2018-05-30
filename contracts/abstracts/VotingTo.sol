@@ -200,6 +200,27 @@ contract VotingTo is EternalStorage {
         return addressStorage[PROXY_STORAGE];
     }
 
+    function _createBallot(
+        uint256 _ballotType,
+        uint256 _startTime,
+        uint256 _endTime,
+        string _memo,
+        uint8 _quorumState,
+        address _creatorMiningKey
+    ) internal returns(uint256) {
+        uint256 ballotId = nextBallotId();
+        _setStartTime(ballotId, _startTime);
+        _setEndTime(ballotId, _endTime);
+        _setIsFinalized(ballotId, false);
+        _setQuorumState(ballotId, _quorumState);
+        _setMinThresholdOfVoters(ballotId, getGlobalMinThresholdOfVoters());
+        _setCreator(ballotId, _creatorMiningKey);
+        _setMemo(ballotId, _memo);
+        _setNextBallotId(ballotId.add(1));
+        emit BallotCreated(ballotId, _ballotType, msg.sender);
+        return ballotId;
+    }
+
     function _setCreator(uint256 _ballotId, address _value) internal {
         addressStorage[
             keccak256(abi.encodePacked(VOTING_STATE, _ballotId, CREATOR))

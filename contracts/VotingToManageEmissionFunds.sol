@@ -46,22 +46,20 @@ contract VotingToManageEmissionFunds is VotingTo {
         require(_endTime.sub(releaseTime) <= distributionThreshold());
         require(_receiver != address(0));
         require(previousBallotFinalized());
-        uint256 ballotId = nextBallotId();
-        _setStartTime(ballotId, _startTime);
-        _setEndTime(ballotId, _endTime);
+        uint256 ballotId = _createBallot(
+            uint256(BallotTypes.ManageEmissionFunds),
+            _startTime,
+            _endTime,
+            _memo,
+            uint8(QuorumStates.InProgress),
+            getMiningByVotingKey(msg.sender)
+        );
         _setSendVotes(ballotId, 0);
         _setBurnVotes(ballotId, 0);
         _setFreezeVotes(ballotId, 0);
-        _setIsFinalized(ballotId, false);
-        _setQuorumState(ballotId, uint8(QuorumStates.InProgress));
         _setReceiver(ballotId, _receiver);
-        _setMinThresholdOfVoters(ballotId, getGlobalMinThresholdOfVoters());
-        _setCreator(ballotId, getMiningByVotingKey(msg.sender));
-        _setMemo(ballotId, _memo);
         _setAmount(ballotId, emissionFunds().balance);
         _setPreviousBallotFinalized(false);
-        _setNextBallotId(ballotId.add(1));
-        emit BallotCreated(ballotId, uint256(BallotTypes.ManageEmissionFunds), msg.sender);
     }
 
     function distributionThreshold() public view returns(uint256) {
@@ -169,13 +167,12 @@ contract VotingToManageEmissionFunds is VotingTo {
         _votersAdd(_id, miningKey);
         emit Vote(_id, _choice, msg.sender, getTime(), miningKey);
 
-        IProxyStorage proxy = IProxyStorage(proxyStorage());
-        IKeysManager keysManager = IKeysManager(proxy.getKeysManager());
-        uint256 validatorsLength =
-            IPoaNetworkConsensus(proxy.getPoaConsensus())
-                .getCurrentValidatorsLength();
+        IPoaNetworkConsensus poa = IPoaNetworkConsensus(
+            IProxyStorage(proxyStorage()).getPoaConsensus()
+        );
+        uint256 validatorsLength = poa.getCurrentValidatorsLength();
         if (validatorsLength > 0) {
-            if (!keysManager.isMasterOfCeremonyRemoved()) {
+            if (!poa.isMasterOfCeremonyRemoved()) {
                 validatorsLength--; // exclude MoC
             }
         }
@@ -184,8 +181,11 @@ contract VotingToManageEmissionFunds is VotingTo {
         }
     }
 
-    // solhint-disable code-complexity
+    // solhint-disable code-complexity, function-max-lines
     function _finalize(uint256 _id) private {
+        IEmissionFunds _emissionFunds = IEmissionFunds(emissionFunds());
+        uint256 amount = getAmount(_id);
+
         _setIsFinalized(_id, true);
         _setPreviousBallotFinalized(true);
         _setEmissionReleaseTime(
@@ -196,6 +196,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         
         if (getTotalVoters(_id) < getMinThresholdOfVoters(_id)) {
             _setQuorumState(_id, uint8(QuorumStates.Frozen));
+            _emissionFunds.freezeFunds(amount);
             return;
         }
 
@@ -229,17 +230,23 @@ contract VotingToManageEmissionFunds is VotingTo {
         _setQuorumState(_id, uint8(quorumState));
 
         if (quorumState == QuorumStates.Sent) {
-            IEmissionFunds(emissionFunds()).sendFundsTo(getReceiver(_id), getAmount(_id));
+            _emissionFunds.sendFundsTo(getReceiver(_id), amount);
         } else if (quorumState == QuorumStates.Burnt) {
-            IEmissionFunds(emissionFunds()).burnFunds(getAmount(_id));
+            _emissionFunds.burnFunds(amount);
+        } else {
+            _emissionFunds.freezeFunds(amount);
         }
     }
-    // solhint-enable code-complexity
+    // solhint-enable code-complexity, function-max-lines
 
     function _max(uint256 a, uint256 b, uint256 c) private pure returns(uint256) {
         uint256 max = a;
-        (max < b) && ((max = b) != 0);
-        (max < c) && ((max = c) != 0);
+        if (b > max) {
+            max = b;
+        }
+        if (c > max) {
+            max = c;
+        }
         return max;
     }
 

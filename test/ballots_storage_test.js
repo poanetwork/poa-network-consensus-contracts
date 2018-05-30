@@ -45,7 +45,6 @@ contract('BallotsStorage [all features]', function (accounts) {
     const keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorage.address, keysManager.address);
     keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);
     await keysManager.init(
-      masterOfCeremony,
       "0x0000000000000000000000000000000000000000"
     ).should.be.fulfilled;
     
@@ -124,7 +123,7 @@ contract('BallotsStorage [all features]', function (accounts) {
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       const getValidators = await poaNetworkConsensus.getValidators.call();
       new web3.BigNumber(6).should.be.bignumber.equal(getValidators.length);
-      (await keysManager.isMasterOfCeremonyRemoved.call()).should.be.equal(false);
+      (await poaNetworkConsensus.isMasterOfCeremonyRemoved.call()).should.be.equal(false);
       new web3.BigNumber(3).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold.call())
     });
     it('return value is correct if MoC is removed', async () => {
@@ -156,7 +155,7 @@ contract('BallotsStorage [all features]', function (accounts) {
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000012', {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.removeMiningKey(masterOfCeremony, {from: votingToChangeKeys});
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      (await keysManager.isMasterOfCeremonyRemoved.call()).should.be.equal(true);
+      (await poaNetworkConsensus.isMasterOfCeremonyRemoved.call()).should.be.equal(true);
       (await poaNetworkConsensus.getCurrentValidatorsLength.call()).should.be.bignumber.equal(6);
       new web3.BigNumber(4).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold.call());
     });
@@ -204,7 +203,7 @@ contract('BallotsStorage [all features]', function (accounts) {
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000012', {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.removeMiningKey(masterOfCeremony, {from: votingToChangeKeys});
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      (await keysManager.isMasterOfCeremonyRemoved.call()).should.be.equal(true);
+      (await poaNetworkConsensus.isMasterOfCeremonyRemoved.call()).should.be.equal(true);
       (await poaNetworkConsensus.getCurrentValidatorsLength.call()).should.be.bignumber.equal(2);
 
       limit = await ballotsStorage.getBallotLimitPerValidator.call();

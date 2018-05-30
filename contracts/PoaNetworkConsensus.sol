@@ -26,16 +26,24 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         uint256 index;
     }
 
-    bool public finalized = false;
-    bool public isMasterOfCeremonyInitialized = false;
-    address public masterOfCeremony;
+    uint256 public currentValidatorsLength;
+    
+    IProxyStorage public proxyStorage;
     address public systemAddress = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
+    
     address[] public currentValidators;
     address[] public pendingList;
-    uint256 public currentValidatorsLength;
     mapping(address => ValidatorState) public validatorsState;
-    IProxyStorage public proxyStorage;
-    address private owner;
+    
+    address internal _moc;
+    address internal _mocPending;
+    address internal _owner;
+
+    bool internal _isMoCRemoved = false;
+    bool internal _isMoCRemovedPending = false;
+
+    bool public finalized = false;
+    bool public isMasterOfCeremonyInitialized = false;
 
     modifier onlySystemAndNotFinalized() {
         require(msg.sender == systemAddress && !finalized);
@@ -61,8 +69,8 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         // TODO: When you deploy this contract, make sure you hardcode items below
         // Make sure you have those addresses defined in spec.json
         require(_masterOfCeremony != address(0));
-        masterOfCeremony = _masterOfCeremony;
-        currentValidators = [masterOfCeremony];
+        _moc = _masterOfCeremony;
+        currentValidators = [_masterOfCeremony];
         for (uint256 y = 0; y < validators.length; y++) {
             currentValidators.push(validators[y]);
         }
@@ -74,7 +82,23 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         }
         currentValidatorsLength = currentValidators.length;
         pendingList = currentValidators;
-        owner = msg.sender;
+        _owner = msg.sender;
+    }
+
+    function isMasterOfCeremonyRemoved() external view returns(bool) {
+        return _isMoCRemoved;
+    }
+
+    function isMasterOfCeremonyRemovedPending() external view returns(bool) {
+        return _isMoCRemovedPending;
+    }
+
+    function masterOfCeremony() external view returns(address) {
+        return _moc;
+    }
+
+    function masterOfCeremonyPending() external view returns(address) {
+        return _mocPending;
     }
 
     /// Get current validator set (last enacted or initial if no changes ever made)
@@ -95,6 +119,14 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         finalized = true;
         currentValidators = pendingList;
         currentValidatorsLength = currentValidators.length;
+        if (_mocPending != address(0)) {
+            _moc = _mocPending;
+            _mocPending = address(0);
+        }
+        if (_isMoCRemovedPending) {
+            _isMoCRemoved = true;
+            _isMoCRemovedPending = false;
+        }
         emit ChangeFinalized(getValidators());
     }
 
@@ -134,6 +166,9 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         validatorsState[_validator].isValidator = false;
         finalized = false;
         if (_shouldFireEvent) {
+            if (_validator == _moc) {
+                _isMoCRemovedPending = true;
+            }
             emit InitiateChange(blockhash(block.number - 1), pendingList);
         }
     }
@@ -142,15 +177,15 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         require(isValidator(_oldKey));
         removeValidator(_oldKey, false);
         addValidator(_newKey, false);
-        if (_oldKey == masterOfCeremony) {
-            masterOfCeremony = _newKey;
+        if (_oldKey == _moc) {
+            _mocPending = _newKey;
         }
         emit InitiateChange(blockhash(block.number - 1), pendingList);
     }
 
     function setProxyStorage(address _newAddress) public {
         // any miner can change the address
-        require(isValidator(msg.sender) || msg.sender == owner);
+        require(isValidator(msg.sender) || msg.sender == _owner);
         require(!isMasterOfCeremonyInitialized);
         require(_newAddress != address(0));
         proxyStorage = IProxyStorage(_newAddress);

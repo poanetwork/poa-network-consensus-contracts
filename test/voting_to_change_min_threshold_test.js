@@ -40,7 +40,6 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     const keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, keysManager.address);
     keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);
     await keysManager.init(
-      masterOfCeremony,
       "0x0000000000000000000000000000000000000000"
     ).should.be.fulfilled;
     

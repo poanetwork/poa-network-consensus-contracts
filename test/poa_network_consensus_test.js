@@ -200,14 +200,20 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
       (await poaNetworkConsensus.isValidator.call(masterOfCeremony)).should.be.equal(true);
       (await poaNetworkConsensus.isValidator.call(accounts[1])).should.be.equal(false);
       (await poaNetworkConsensus.masterOfCeremony.call()).should.be.equal(masterOfCeremony);
+      (await poaNetworkConsensus.masterOfCeremonyPending.call()).should.be.equal('0x0000000000000000000000000000000000000000');
       
       await poaNetworkConsensus.swapValidatorKey(accounts[1], masterOfCeremony).should.be.fulfilled;
+      (await poaNetworkConsensus.masterOfCeremonyPending.call()).should.be.equal(accounts[1]);
+      (await poaNetworkConsensus.isMasterOfCeremonyRemovedPending.call()).should.be.equal(false);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
 
       (await poaNetworkConsensus.getCurrentValidatorsLength.call()).should.be.bignumber.equal(1);
       (await poaNetworkConsensus.isValidator.call(masterOfCeremony)).should.be.equal(false);
       (await poaNetworkConsensus.isValidator.call(accounts[1])).should.be.equal(true);
       (await poaNetworkConsensus.masterOfCeremony.call()).should.be.equal(accounts[1]);
+      (await poaNetworkConsensus.masterOfCeremonyPending.call()).should.be.equal('0x0000000000000000000000000000000000000000');
+      (await poaNetworkConsensus.isMasterOfCeremonyRemoved.call()).should.be.equal(false);
+      (await poaNetworkConsensus.isMasterOfCeremonyRemovedPending.call()).should.be.equal(false);
     });
   });
 
@@ -222,12 +228,18 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
       await proxyStorageMock.setKeysManagerMock(accounts[0]);
       (await poaNetworkConsensus.isValidator.call(masterOfCeremony)).should.be.equal(true);
       (await poaNetworkConsensus.masterOfCeremony.call()).should.be.equal(masterOfCeremony);
+      (await poaNetworkConsensus.isMasterOfCeremonyRemoved.call()).should.be.equal(false);
+      (await poaNetworkConsensus.isMasterOfCeremonyRemovedPending.call()).should.be.equal(false);
       await poaNetworkConsensus.removeValidator(masterOfCeremony, true).should.be.fulfilled;
+      (await poaNetworkConsensus.isMasterOfCeremonyRemoved.call()).should.be.equal(false);
+      (await poaNetworkConsensus.isMasterOfCeremonyRemovedPending.call()).should.be.equal(true);
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       (await poaNetworkConsensus.getCurrentValidatorsLength.call()).should.be.bignumber.equal(0);
       (await poaNetworkConsensus.isValidator.call(masterOfCeremony)).should.be.equal(false);
       (await poaNetworkConsensus.masterOfCeremony.call()).should.be.equal(masterOfCeremony);
+      (await poaNetworkConsensus.isMasterOfCeremonyRemoved.call()).should.be.equal(true);
+      (await poaNetworkConsensus.isMasterOfCeremonyRemovedPending.call()).should.be.equal(false);
     })
 
     it('should be called only from keys manager', async () => {
