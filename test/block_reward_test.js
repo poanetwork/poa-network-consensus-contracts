@@ -40,7 +40,6 @@ contract('BlockReward [all features]', function (accounts) {
     const keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorage.address, keysManager.address);
     keysManager = await KeysManager.at(keysManagerEternalStorage.address);
     await keysManager.init(
-      masterOfCeremony,
       "0x0000000000000000000000000000000000000000"
     ).should.be.fulfilled;
 

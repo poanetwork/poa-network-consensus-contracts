@@ -6,14 +6,15 @@ import "./interfaces/IProxyStorage.sol";
 
 
 contract BlockReward is IBlockReward {
+    uint256 public blockRewardAmount;
+    uint256 public emissionFundsAmount;
+
     // solhint-disable var-name-mixedcase
     address internal SYSTEM_ADDRESS = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
     // solhint-enable var-name-mixedcase
     
-    IProxyStorage public proxyStorage;
     address public emissionFunds;
-    uint256 public blockRewardAmount;
-    uint256 public emissionFundsAmount;
+    IProxyStorage public proxyStorage;
 
     event Rewarded(address[] receivers, uint256[] rewards);
 
