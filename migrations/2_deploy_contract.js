@@ -40,7 +40,7 @@ module.exports = async function(deployer, network, accounts) {
       await deployer.deploy(EternalStorageProxy, proxyStorage.address, KeysManager.address);
       const keysManagerEternalStorageAddress = EternalStorageProxy.address;
       const keysManager = await KeysManager.at(keysManagerEternalStorageAddress);
-      await keysManager.init(masterOfCeremony, previousKeysManager);
+      await keysManager.init(previousKeysManager);
       
       await deployer.deploy(BallotsStorage);
       await deployer.deploy(EternalStorageProxy, proxyStorage.address, BallotsStorage.address);

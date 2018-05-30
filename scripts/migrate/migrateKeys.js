@@ -109,7 +109,6 @@ async function migrateAndCheck(privateKey) {
 		if (!ONLY_CHECK) {
 			console.log('  Call init method...');
 			const init = keysManagerNewInstance.methods.init(
-				MOC_ADDRESS,
 				KEYS_MANAGER_OLD_ADDRESS
 			);
 			await utils.call(init, sender, contractNewAddress, key, chainId);

@@ -160,7 +160,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
         uint256 _ballotType,
         uint256 _startTime,
         uint256 _endTime,
-        string memo
+        string _memo
     )
         internal
         onlyValidVotingKey(msg.sender)
@@ -170,21 +170,19 @@ contract VotingToChange is IVotingToChange, VotingTo {
         require(initDisabled());
         address creatorMiningKey = getMiningByVotingKey(msg.sender);
         require(withinLimit(creatorMiningKey));
-        uint256 ballotId = nextBallotId();
-        _setStartTime(ballotId, _startTime);
-        _setEndTime(ballotId, _endTime);
+        uint256 ballotId = super._createBallot(
+            _ballotType,
+            _startTime,
+            _endTime,
+            _memo,
+            uint8(QuorumStates.InProgress),
+            creatorMiningKey
+        );
         _setTotalVoters(ballotId, 0);
         _setProgress(ballotId, 0);
-        _setIsFinalized(ballotId, false);
-        _setQuorumState(ballotId, uint8(QuorumStates.InProgress));
         _setIndex(ballotId, activeBallotsLength());
-        _setMinThresholdOfVoters(ballotId, getGlobalMinThresholdOfVoters());
-        _setCreator(ballotId, creatorMiningKey);
-        _setMemo(ballotId, memo);
         _activeBallotsAdd(ballotId);
         _increaseValidatorLimit(creatorMiningKey);
-        _setNextBallotId(ballotId.add(1));
-        emit BallotCreated(ballotId, _ballotType, msg.sender);
         return ballotId;
     }
 

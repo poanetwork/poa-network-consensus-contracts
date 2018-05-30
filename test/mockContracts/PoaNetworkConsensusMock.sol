@@ -23,7 +23,7 @@ contract PoaNetworkConsensusMock is PoaNetworkConsensus {
     }
 
     function setMoCMock(address _newAddress) public {
-        masterOfCeremony = _newAddress;
+        _moc = _newAddress;
     }
 
     function setIsMasterOfCeremonyInitializedMock(bool _status) public {

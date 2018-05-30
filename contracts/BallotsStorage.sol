@@ -97,10 +97,10 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
 
     function getProxyThreshold() public view returns(uint256) {
         uint256 validatorsCount = getTotalNumberOfValidators();
-        IKeysManager keysManager = IKeysManager(
-            IProxyStorage(proxyStorage()).getKeysManager()
+        IPoaNetworkConsensus poa = IPoaNetworkConsensus(
+            IProxyStorage(proxyStorage()).getPoaConsensus()
         );
-        if (!keysManager.isMasterOfCeremonyRemoved()) {
+        if (!poa.isMasterOfCeremonyRemoved()) {
             validatorsCount = validatorsCount.sub(1); // exclude MoC
         }
         return validatorsCount.div(2).add(1);
@@ -108,10 +108,10 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
 
     function getBallotLimitPerValidator() public view returns(uint256) {
         uint256 validatorsCount = getTotalNumberOfValidators();
-        IKeysManager keysManager = IKeysManager(
-            IProxyStorage(proxyStorage()).getKeysManager()
+        IPoaNetworkConsensus poa = IPoaNetworkConsensus(
+            IProxyStorage(proxyStorage()).getPoaConsensus()
         );
-        if (!keysManager.isMasterOfCeremonyRemoved()) {
+        if (!poa.isMasterOfCeremonyRemoved()) {
             validatorsCount = validatorsCount.sub(1); // exclude MoC
         }
         if (validatorsCount == 0) {
