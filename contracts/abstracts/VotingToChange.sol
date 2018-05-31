@@ -36,15 +36,38 @@ contract VotingToChange is IVotingToChange, VotingTo {
         return uintArrayStorage[ACTIVE_BALLOTS].length;
     }
 
+    function canBeFinalizedNow(uint256 _id) public view returns(bool) {
+        uint256 currentTime = getTime();
+        uint256 startTime = getStartTime(_id);
+
+        if (_id >= nextBallotId()) return false;
+        if (startTime > currentTime) return false;
+        if (getIsFinalized(_id)) return false;
+        
+        IPoaNetworkConsensus poa = IPoaNetworkConsensus(
+            IProxyStorage(proxyStorage()).getPoaConsensus()
+        );
+        uint256 validatorsLength = poa.getCurrentValidatorsLength();
+        
+        if (validatorsLength > 0) {
+            if (!poa.isMasterOfCeremonyRemoved()) {
+                validatorsLength--; // exclude MoC
+            }
+        } else {
+            return false;
+        }
+        
+        if (getTotalVoters(_id) < validatorsLength) {
+            return !isActive(_id);
+        }
+
+        uint256 diffTime = currentTime.sub(startTime);
+        return diffTime > minBallotDuration();
+    }
+
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
-        require(_id < nextBallotId());
-        require(getStartTime(_id) <= getTime());
-        require(!isActive(_id));
-        require(!getIsFinalized(_id));
+        require(canBeFinalizedNow(_id));
         _finalizeBallot(_id);
-        _decreaseValidatorLimit(_id);
-        _setIsFinalized(_id, true);
-        emit BallotFinalized(_id, msg.sender);
     }
 
     function getBallotLimitPerValidator() public view returns(uint256) {
@@ -211,6 +234,9 @@ contract VotingToChange is IVotingToChange, VotingTo {
             _setQuorumState(_id, uint8(QuorumStates.Rejected));
         }
         _deactiveBallot(_id);
+        _decreaseValidatorLimit(_id);
+        _setIsFinalized(_id, true);
+        emit BallotFinalized(_id, msg.sender);
     }
 
     function _finalizeBallotInner(uint256 _id) internal;

@@ -13,7 +13,7 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
         uint256 _startTime,
         uint256 _endTime,
         uint256 _proposedValue,
-        string memo
+        string _memo
     ) public {
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
         require(_proposedValue >= minPossibleThreshold());
@@ -23,7 +23,7 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
             uint256(BallotTypes.MinThreshold),
             _startTime,
             _endTime,
-            memo
+            _memo
         );
         _setProposedValue(ballotId, _proposedValue);
     }
