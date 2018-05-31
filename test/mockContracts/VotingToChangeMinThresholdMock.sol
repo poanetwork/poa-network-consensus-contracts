@@ -17,4 +17,8 @@ contract VotingToChangeMinThresholdMock is VotingToChangeMinThreshold {
           return time;
         }
     }
+
+    function setMinPossibleThreshold(uint256 _minPossibleThreshold) public {
+        uintStorage[MIN_POSSIBLE_THRESHOLD] = _minPossibleThreshold;
+    }
 }

@@ -15,14 +15,14 @@ contract VotingToChangeProxyAddress is IVotingToChangeProxyAddress, VotingToChan
         uint256 _endTime,
         address _proposedValue,
         uint8 _contractType,
-        string memo
+        string _memo
     ) public {
         require(_proposedValue != address(0));
         uint256 ballotId = _createBallot(
             uint256(BallotTypes.ProxyAddress),
             _startTime,
             _endTime,
-            memo
+            _memo
         );
         _setProposedValue(ballotId, _proposedValue);
         _setContractType(ballotId, _contractType);
