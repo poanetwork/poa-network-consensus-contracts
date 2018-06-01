@@ -29,6 +29,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     string internal constant IS_MINING_ACTIVE = "isMiningActive";
     string internal constant IS_PAYOUT_ACTIVE = "isPayoutActive";
     string internal constant IS_VOTING_ACTIVE = "isVotingActive";
+    string internal constant MINING_KEY_BY_PAYOUT = "miningKeyByPayout";
     string internal constant MINING_KEY_BY_VOTING = "miningKeyByVoting";
     string internal constant MINING_KEY_HISTORY = "miningKeyHistory";
     string internal constant PAYOUT_KEY = "payoutKey";
@@ -111,6 +112,12 @@ contract KeysManager is EternalStorage, IKeysManager {
         ]);
     }
 
+    function miningKeyByPayout(address _payoutKey) public view returns(address) {
+        return addressStorage[
+            keccak256(abi.encodePacked(MINING_KEY_BY_PAYOUT, _payoutKey))
+        ];
+    }
+
     function miningKeyByVoting(address _votingKey) public view returns(address) {
         return addressStorage[
             keccak256(abi.encodePacked(MINING_KEY_BY_VOTING, _votingKey))
@@ -177,12 +184,14 @@ contract KeysManager is EternalStorage, IKeysManager {
         require(!isMiningActive(_miningKey));
         require(!successfulValidatorClone(_miningKey));
         address votingKey = previous.getVotingByMining(_miningKey);
+        address payoutKey = previous.getPayoutByMining(_miningKey);
         _setVotingKey(votingKey, _miningKey);
-        _setPayoutKey(previous.getPayoutByMining(_miningKey), _miningKey);
+        _setPayoutKey(payoutKey, _miningKey);
         _setIsMiningActive(previous.isMiningActive(_miningKey), _miningKey);
         _setIsVotingActive(previous.isVotingActive(votingKey), _miningKey);
         _setIsPayoutActive(previous.isPayoutActive(_miningKey), _miningKey);
-        _setMiningKeyByVoting(previous.getVotingByMining(_miningKey), _miningKey);
+        _setMiningKeyByVoting(votingKey, _miningKey);
+        _setMiningKeyByPayout(payoutKey, _miningKey);
         _setSuccessfulValidatorClone(true, _miningKey);
         address currentMiningKey = _miningKey;
         for (uint8 i = 0; i < 25; i++) {
@@ -246,6 +255,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsVotingActive(true, _miningKey);
         _setIsPayoutActive(true, _miningKey);
         _setMiningKeyByVoting(_votingKey, _miningKey);
+        _setMiningKeyByPayout(_payoutKey, _miningKey);
         _setInitialKeyStatus(msg.sender, uint8(InitialKeyState.Deactivated));
         IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_miningKey, true);
         emit ValidatorInitialized(_miningKey, _votingKey, _payoutKey);
@@ -334,11 +344,12 @@ contract KeysManager is EternalStorage, IKeysManager {
         public
         onlyVotingToChangeKeys
     {
+        require(isMiningActive(_oldMiningKey));
         _setMiningKeyHistory(_key, _oldMiningKey);
         address votingKey = getVotingByMining(_oldMiningKey);
-        require(isMiningActive(_oldMiningKey));
+        address payoutKey = getPayoutByMining(_oldMiningKey);
         _setVotingKey(votingKey, _key);
-        _setPayoutKey(getPayoutByMining(_oldMiningKey), _key);
+        _setPayoutKey(payoutKey, _key);
         _setIsMiningActive(true, _key);
         _setIsVotingActive(isVotingActive(votingKey), _key);
         _setIsPayoutActive(isPayoutActive(_oldMiningKey), _key);
@@ -349,6 +360,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsVotingActive(false, _oldMiningKey);
         _setIsPayoutActive(false, _oldMiningKey);
         _setMiningKeyByVoting(votingKey, _key);
+        _setMiningKeyByPayout(payoutKey, _key);
         emit MiningKeyChanged(_key, "swapped");
     }
 
@@ -406,6 +418,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         } else {
             _setPayoutKey(_key, _miningKey);
             _setIsPayoutActive(true, _miningKey);
+            _setMiningKeyByPayout(_key, _miningKey);
             emit PayoutKeyChanged(_key, _miningKey, "added");
         }
     }
@@ -414,6 +427,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         require(initDisabled());
         require(isMiningActive(_key));
         _setMiningKeyByVoting(getVotingByMining(_key), address(0));
+        _setMiningKeyByPayout(getPayoutByMining(_key), address(0));
         _setVotingKey(address(0), _key);
         _setPayoutKey(address(0), _key);
         _setIsMiningActive(false, _key);
@@ -442,6 +456,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         address oldPayout = getPayoutByMining(_miningKey);
         _setPayoutKey(address(0), _miningKey);
         _setIsPayoutActive(false, _miningKey);
+        _setMiningKeyByPayout(oldPayout, address(0));
         emit PayoutKeyChanged(oldPayout, _miningKey, "removed");
     }
 
@@ -489,7 +504,15 @@ contract KeysManager is EternalStorage, IKeysManager {
         ] = _active;
     }
 
+    function _setMiningKeyByPayout(address _payoutKey, address _miningKey) private {
+        if (_payoutKey == address(0)) return;
+        addressStorage[
+            keccak256(abi.encodePacked(MINING_KEY_BY_PAYOUT, _payoutKey))
+        ] = _miningKey;
+    }
+
     function _setMiningKeyByVoting(address _votingKey, address _miningKey) private {
+        if (_votingKey == address(0)) return;
         addressStorage[
             keccak256(abi.encodePacked(MINING_KEY_BY_VOTING, _votingKey))
         ] = _miningKey;

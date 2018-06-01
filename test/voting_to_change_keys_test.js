@@ -64,7 +64,7 @@ contract('Voting to change keys [all features]', function (accounts) {
     await voting.init(172800).should.be.fulfilled;
   })
 
-  describe('#constructor', async () => {
+  describe('#createBallot', async () => {
     it('happy path', async () => {
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
@@ -139,6 +139,215 @@ contract('Voting to change keys [all features]', function (accounts) {
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[3], 1, accounts[2], 1, "memo", {from: votingKey}).should.be.rejectedWith(ERROR_MSG)
     })
   })
+
+  describe('#createBallotToAddNewValidator', async () => {
+    let id;
+    beforeEach(async ()=> {
+      await proxyStorageMock.setVotingContractMock(accounts[0]);
+      await keysManager.addMiningKey(miningKeyForVotingKey).should.be.fulfilled;
+      await keysManager.addVotingKey(votingKey, miningKeyForVotingKey).should.be.fulfilled;
+      await keysManager.addPayoutKey(accounts[6], miningKeyForVotingKey).should.be.fulfilled;
+      await proxyStorageMock.setVotingContractMock(voting.address);
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(10, 'days').unix();
+      id = await voting.nextBallotId.call();
+    });
+
+    it('happy path', async () => {
+      await voting.createBallotToAddNewValidator(
+        VOTING_START_DATE, // _startTime
+        VOTING_END_DATE,   // _endTime
+        accounts[3],       // _newMiningKey
+        accounts[4],       // _newVotingKey
+        accounts[5],       // _newPayoutKey
+        "memo",            // _memo
+        {from: miningKeyForVotingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
+      const {logs} = await voting.createBallotToAddNewValidator(
+        VOTING_START_DATE, // _startTime
+        VOTING_END_DATE,   // _endTime
+        accounts[3],       // _newMiningKey
+        accounts[4],       // _newVotingKey
+        accounts[5],       // _newPayoutKey
+        "memo",            // _memo
+        {from: votingKey}
+      ).should.be.fulfilled;
+      
+      (await voting.getKeysManager.call()).should.be.equal(keysManager.address);
+      (await voting.getStartTime.call(id)).should.be.bignumber.equal(VOTING_START_DATE);
+      (await voting.getEndTime.call(id)).should.be.bignumber.equal(VOTING_END_DATE);
+      (await voting.getAffectedKey.call(id)).should.be.equal(accounts[3]);
+      (await voting.getAffectedKeyType.call(id)).should.be.bignumber.equal(1);
+      (await voting.getMiningKey.call(id)).should.be.equal('0x0000000000000000000000000000000000000000');
+      (await voting.getMemo.call(id)).should.be.equal('memo');
+      (await voting.getNewVotingKey.call(id)).should.be.equal(accounts[4]);
+      (await voting.getNewPayoutKey.call(id)).should.be.equal(accounts[5]);
+      (await voting.getBallotType.call(id)).should.be.bignumber.equal(1);
+      
+      logs[0].event.should.be.equal("BallotCreated");
+      logs[0].args.id.should.be.bignumber.equal(0);
+      logs[0].args.ballotType.should.be.bignumber.equal(1);
+      logs[0].args.creator.should.be.equal(votingKey);
+    });
+
+    it('deny adding already existed voting key', async () => {
+      await voting.createBallotToAddNewValidator(
+        VOTING_START_DATE, // _startTime
+        VOTING_END_DATE,   // _endTime
+        accounts[3],       // _newMiningKey
+        votingKey,         // _newVotingKey
+        accounts[5],       // _newPayoutKey
+        "memo",            // _memo
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
+    });
+
+    it('deny adding already existed payout key', async () => {
+      await voting.createBallotToAddNewValidator(
+        VOTING_START_DATE, // _startTime
+        VOTING_END_DATE,   // _endTime
+        accounts[3],       // _newMiningKey
+        accounts[4],       // _newVotingKey
+        accounts[6],       // _newPayoutKey
+        "memo",            // _memo
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
+      await voting.createBallotToAddNewValidator(
+        VOTING_START_DATE, // _startTime
+        VOTING_END_DATE,   // _endTime
+        accounts[3],       // _newMiningKey
+        accounts[4],       // _newVotingKey
+        accounts[5],       // _newPayoutKey
+        "memo",            // _memo
+        {from: votingKey}
+      ).should.be.fulfilled;
+    });
+
+    it('should create validator with all keys after finalization', async () => {
+      await proxyStorageMock.setVotingContractMock(accounts[0]);
+      await keysManager.removePayoutKey(miningKeyForVotingKey).should.be.fulfilled;
+      await keysManager.addMiningKey(accounts[3]).should.be.fulfilled;
+      await keysManager.addVotingKey(accounts[4], accounts[3]).should.be.fulfilled;
+      await keysManager.addMiningKey(accounts[5]).should.be.fulfilled;
+      await keysManager.addVotingKey(accounts[6], accounts[5]).should.be.fulfilled;
+      await proxyStorageMock.setVotingContractMock(voting.address);
+      await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
+      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
+
+      await voting.createBallotToAddNewValidator(
+        VOTING_START_DATE, // _startTime
+        VOTING_END_DATE,   // _endTime
+        accounts[7],       // _newMiningKey
+        accounts[8],       // _newVotingKey
+        accounts[9],       // _newPayoutKey
+        "memo",            // _memo
+        {from: votingKey}
+      ).should.be.fulfilled;
+
+      await voting.setTime(VOTING_START_DATE);
+      await voting.vote(id, choice.accept, {from: votingKey}).should.be.fulfilled;
+      await voting.vote(id, choice.accept, {from: accounts[4]}).should.be.fulfilled;
+      await voting.vote(id, choice.accept, {from: accounts[6]}).should.be.fulfilled;
+
+      (await poaNetworkConsensusMock.isValidator.call(accounts[7])).should.be.equal(false);
+      (await keysManager.isMiningActive.call(accounts[7])).should.be.equal(false);
+      (await keysManager.isVotingActive.call(accounts[8])).should.be.equal(false);
+      (await keysManager.miningKeyByVoting.call(accounts[8])).should.be.equal('0x0000000000000000000000000000000000000000');
+      (await keysManager.miningKeyByPayout.call(accounts[9])).should.be.equal('0x0000000000000000000000000000000000000000');
+
+      await voting.setTime(VOTING_END_DATE+1);
+      await voting.finalize(id, {from: votingKey}).should.be.fulfilled;
+
+      (await poaNetworkConsensusMock.isValidator.call(accounts[7])).should.be.equal(true);
+      (await keysManager.isMiningActive.call(accounts[7])).should.be.equal(true);
+      (await keysManager.isVotingActive.call(accounts[8])).should.be.equal(true);
+      (await keysManager.miningKeyByVoting.call(accounts[8])).should.be.equal(accounts[7]);
+      (await keysManager.miningKeyByPayout.call(accounts[9])).should.be.equal(accounts[7]);
+
+      (await poaNetworkConsensusMock.currentValidatorsLength.call()).should.be.bignumber.equal(4);
+      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
+      (await poaNetworkConsensusMock.currentValidatorsLength.call()).should.be.bignumber.equal(5);
+    });
+
+    it('should allow removing new validator if finalizeChange did not happen', async () => {
+      await proxyStorageMock.setVotingContractMock(accounts[0]);
+      await keysManager.removePayoutKey(miningKeyForVotingKey).should.be.fulfilled;
+      await keysManager.addMiningKey(accounts[3]).should.be.fulfilled;
+      await keysManager.addVotingKey(accounts[4], accounts[3]).should.be.fulfilled;
+      await keysManager.addMiningKey(accounts[5]).should.be.fulfilled;
+      await keysManager.addVotingKey(accounts[6], accounts[5]).should.be.fulfilled;
+      await proxyStorageMock.setVotingContractMock(voting.address);
+      await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
+      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
+
+      await voting.createBallotToAddNewValidator(
+        VOTING_START_DATE, // _startTime
+        VOTING_END_DATE,   // _endTime
+        accounts[7],       // _newMiningKey
+        accounts[8],       // _newVotingKey
+        accounts[9],       // _newPayoutKey
+        "memo",            // _memo
+        {from: votingKey}
+      ).should.be.fulfilled;
+
+      await voting.setTime(VOTING_START_DATE);
+      await voting.vote(id, choice.accept, {from: votingKey}).should.be.fulfilled;
+      await voting.vote(id, choice.accept, {from: accounts[4]}).should.be.fulfilled;
+      await voting.vote(id, choice.accept, {from: accounts[6]}).should.be.fulfilled;
+
+      (await poaNetworkConsensusMock.isValidator.call(accounts[7])).should.be.equal(false);
+      (await keysManager.isMiningActive.call(accounts[7])).should.be.equal(false);
+      (await keysManager.isVotingActive.call(accounts[8])).should.be.equal(false);
+      (await keysManager.miningKeyByVoting.call(accounts[8])).should.be.equal('0x0000000000000000000000000000000000000000');
+      (await keysManager.miningKeyByPayout.call(accounts[9])).should.be.equal('0x0000000000000000000000000000000000000000');
+
+      await voting.setTime(VOTING_END_DATE+1);
+      await voting.finalize(id, {from: votingKey}).should.be.fulfilled;
+
+      (await poaNetworkConsensusMock.isValidator.call(accounts[7])).should.be.equal(true);
+      (await keysManager.isMiningActive.call(accounts[7])).should.be.equal(true);
+      (await keysManager.isVotingActive.call(accounts[8])).should.be.equal(true);
+      (await keysManager.miningKeyByVoting.call(accounts[8])).should.be.equal(accounts[7]);
+      (await keysManager.miningKeyByPayout.call(accounts[9])).should.be.equal(accounts[7]);
+      (await poaNetworkConsensusMock.currentValidatorsLength.call()).should.be.bignumber.equal(4);
+
+      VOTING_START_DATE = moment.utc().add(20, 'days').unix();
+      VOTING_END_DATE = moment.utc().add(30, 'days').unix();
+      id = await voting.nextBallotId.call();
+
+      await voting.createBallot(
+        VOTING_START_DATE, // _startTime
+        VOTING_END_DATE,   // _endTime
+        accounts[7],       // _affectedKey
+        1,                 // _affectedKeyType (MiningKey)
+        accounts[7],       // _miningKey
+        2,                 // _ballotType (KeyRemoval)
+        "memo",            // _memo
+        {from: votingKey}
+      ).should.be.fulfilled;
+
+      await voting.setTime(VOTING_START_DATE);
+      await voting.vote(id, choice.accept, {from: votingKey}).should.be.fulfilled;
+      await voting.vote(id, choice.accept, {from: accounts[4]}).should.be.fulfilled;
+      await voting.vote(id, choice.accept, {from: accounts[6]}).should.be.fulfilled;
+
+      await voting.setTime(VOTING_END_DATE+1);
+      await voting.finalize(id, {from: votingKey}).should.be.fulfilled;
+
+      (await poaNetworkConsensusMock.isValidator.call(accounts[7])).should.be.equal(false);
+      (await keysManager.isMiningActive.call(accounts[7])).should.be.equal(false);
+      (await keysManager.isVotingActive.call(accounts[8])).should.be.equal(false);
+      (await keysManager.isPayoutActive.call(accounts[7])).should.be.equal(false);
+      (await keysManager.miningKeyByVoting.call(accounts[8])).should.be.equal('0x0000000000000000000000000000000000000000');
+      (await keysManager.miningKeyByPayout.call(accounts[9])).should.be.equal('0x0000000000000000000000000000000000000000');
+      (await keysManager.getVotingByMining.call(accounts[7])).should.be.equal('0x0000000000000000000000000000000000000000');
+      (await keysManager.getPayoutByMining.call(accounts[7])).should.be.equal('0x0000000000000000000000000000000000000000');
+      
+      (await poaNetworkConsensusMock.currentValidatorsLength.call()).should.be.bignumber.equal(4);
+      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
+      (await poaNetworkConsensusMock.currentValidatorsLength.call()).should.be.bignumber.equal(4);
+    });
+  });
   
   describe('#vote', async() => {
     let id;

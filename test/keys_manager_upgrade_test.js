@@ -165,12 +165,17 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       logs[0].args.payoutKey.should.be.equal(accounts[2]);
     });
 
-    it('should assigns voting <-> mining key relationship', async () => {
+    it('should assign voting <-> mining key and payout <-> mining key relationships', async () => {
       await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.createKeys(accounts[4], accounts[3], accounts[2], {from: accounts[1]});
-      const miningKey = await keysManager.getMiningKeyByVoting.call(accounts[3]);
-      miningKey.should.be.equal(accounts[4]);
+      accounts[4].should.be.equal(
+        await keysManager.getMiningKeyByVoting.call(accounts[3])
+      );
+      accounts[4].should.be.equal(
+        await keysManager.miningKeyByPayout.call(accounts[2])
+      );
     });
+
     it('adds validator to poaConsensus contract', async () => {
       let miningKey = accounts[4];
       await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
@@ -266,14 +271,18 @@ contract('KeysManager upgraded [all features]', function (accounts) {
 
   describe('#addPayoutKey', async () => {
     it('should add PayoutKey', async () => {
-      await keysManager.addPayoutKey(accounts[2],accounts[1]).should.be.rejectedWith(ERROR_MSG);
+      await keysManager.addPayoutKey(accounts[2], accounts[1]).should.be.rejectedWith(ERROR_MSG);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       const {logs} = await keysManager.addPayoutKey(accounts[2], accounts[1]).should.be.fulfilled;
       logs[0].event.should.be.equal('PayoutKeyChanged');
       logs[0].args.key.should.be.equal(accounts[2]);
       logs[0].args.miningKey.should.be.equal(accounts[1]);
       logs[0].args.action.should.be.equal('added');
+      (await keysManager.miningKeyByPayout(accounts[2])).should.be.equal(
+        accounts[1]
+      );
     })
+
     it('should only be called if mining is active', async () => {
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
@@ -292,8 +301,14 @@ contract('KeysManager upgraded [all features]', function (accounts) {
         true,
         false,
         true]
-      )
-    })
+      );
+      (await keysManager.miningKeyByPayout(accounts[3])).should.be.equal(
+        accounts[1]
+      );
+      (await keysManager.miningKeyByPayout(accounts[2])).should.be.equal(
+        '0x0000000000000000000000000000000000000000'
+      );
+    });
   })
 
   describe('#removeMiningKey', async () => {
@@ -313,8 +328,12 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       logs[0].event.should.be.equal('MiningKeyChanged');
       logs[0].args.key.should.be.equal(accounts[1]);
       logs[0].args.action.should.be.equal('removed');
-      const miningKey = await keysManager.getMiningKeyByVoting.call(validator[0]);
-      miningKey.should.be.equal('0x0000000000000000000000000000000000000000');
+      (await keysManager.getMiningKeyByVoting.call(validator[0])).should.be.equal(
+        '0x0000000000000000000000000000000000000000'
+      );
+      (await keysManager.miningKeyByPayout.call(validator[1])).should.be.equal(
+        '0x0000000000000000000000000000000000000000'
+      );
     })
     
     it('removes validator from poaConsensus', async () => {
@@ -371,14 +390,18 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       (await poaNetworkConsensusMock.getCurrentValidatorsLength.call()).should.be.bignumber.equal(0);
     });
 
-    it('should still enforce removal of votingKey to 0x0 even if voting key didnot exist', async () => {
+    it('should still enforce removal of votingKey to 0x0 even if voting key did not exist', async () => {
       await keysManager.removeMiningKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       const {logs} = await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
       const validator = await keysManager.validatorKeys.call(accounts[1]);
-      const miningKey = await keysManager.getMiningKeyByVoting.call(validator[0]);
-      miningKey.should.be.equal('0x0000000000000000000000000000000000000000');
+      (await keysManager.getMiningKeyByVoting.call(validator[0])).should.be.equal(
+        '0x0000000000000000000000000000000000000000'
+      );
+      (await keysManager.miningKeyByPayout.call(validator[1])).should.be.equal(
+        '0x0000000000000000000000000000000000000000'
+      );
     })
   })
 
@@ -401,7 +424,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       logs[0].event.should.be.equal('VotingKeyChanged');
       logs[0].args.key.should.be.equal(voting);
       logs[0].args.action.should.be.equal('removed');
-      const miningKey = await keysManager.getMiningKeyByVoting.call(accounts[1]);
+      const miningKey = await keysManager.getMiningKeyByVoting.call(voting);
       miningKey.should.be.equal('0x0000000000000000000000000000000000000000');
     })
   })
@@ -424,6 +447,8 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       logs[0].event.should.be.equal('PayoutKeyChanged');
       logs[0].args.key.should.be.equal(accounts[2]);
       logs[0].args.action.should.be.equal('removed');
+      const miningKey = await keysManager.miningKeyByPayout.call(accounts[2]);
+      miningKey.should.be.equal('0x0000000000000000000000000000000000000000');
     })
   })
 
@@ -469,11 +494,11 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       await keysManager.addVotingKey(voting, oldMining).should.be.fulfilled;
       await keysManager.addPayoutKey(payout, oldMining).should.be.fulfilled;
       const {logs} = await keysManager.swapMiningKey(newMining, oldMining).should.be.fulfilled;
-      const mining = await keysManager.getMiningKeyByVoting.call(voting);
+      //const mining = await keysManager.getMiningKeyByVoting.call(voting);
       const validator = await keysManager.validatorKeys.call(oldMining);
 
-      const miningCheck = await keysManager.getMiningKeyByVoting.call(voting);
-      miningCheck.should.be.equal(newMining);
+      newMining.should.be.equal(await keysManager.getMiningKeyByVoting.call(voting));
+      newMining.should.be.equal(await keysManager.miningKeyByPayout.call(payout));
 
       validator.should.be.deep.equal(
         [ '0x0000000000000000000000000000000000000000',
@@ -517,7 +542,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
   })
 
   describe('#swapPayoutKey', async () => {
-    it ('should swap payout key', async () => {
+    it('should swap payout key', async () => {
       await keysManager.swapPayoutKey(accounts[1], accounts[2], {from: accounts[4]}).should.be.rejectedWith(ERROR_MSG);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addPayoutKey(accounts[2], accounts[1]).should.be.fulfilled;
@@ -529,9 +554,15 @@ contract('KeysManager upgraded [all features]', function (accounts) {
         true,
         false,
         true]
-      )
-    })
-  })
+      );
+      (await keysManager.miningKeyByPayout(accounts[2])).should.be.equal(
+        '0x0000000000000000000000000000000000000000'
+      );
+      (await keysManager.miningKeyByPayout(accounts[3])).should.be.equal(
+        accounts[1]
+      );
+    });
+  });
 
   describe('#migrateInitialKey', async () => {
     it('can copy initial keys', async () => {
@@ -606,6 +637,10 @@ contract('KeysManager upgraded [all features]', function (accounts) {
 
       miningKey.should.be.equal(
         await newKeysManager.getMiningKeyByVoting.call(votingKey)
+      );
+
+      miningKey.should.be.equal(
+        await newKeysManager.miningKeyByPayout.call(payoutKey)
       );
 
       true.should.be.equal(
