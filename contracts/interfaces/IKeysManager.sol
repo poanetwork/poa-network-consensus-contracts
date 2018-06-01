@@ -26,4 +26,6 @@ interface IKeysManager {
     function getMiningKeyByVoting(address) external view returns(address);
     function getInitialKey(address) external view returns(uint8);
     function masterOfCeremony() external view returns(address);
+    function miningKeyByPayout(address) external view returns(address);
+    function miningKeyByVoting(address) external view returns(address);
 }
