@@ -44,16 +44,11 @@ contract VotingToChange is IVotingToChange, VotingTo {
         if (startTime > currentTime) return false;
         if (getIsFinalized(_id)) return false;
         
-        IPoaNetworkConsensus poa = IPoaNetworkConsensus(
+        uint256 validatorsLength = IPoaNetworkConsensus(
             IProxyStorage(proxyStorage()).getPoaConsensus()
-        );
-        uint256 validatorsLength = poa.getCurrentValidatorsLength();
-        
-        if (validatorsLength > 0) {
-            if (!poa.isMasterOfCeremonyRemoved()) {
-                validatorsLength--; // exclude MoC
-            }
-        } else {
+        ).getCurrentValidatorsLengthWithoutMoC();
+
+        if (validatorsLength == 0) {
             return false;
         }
         

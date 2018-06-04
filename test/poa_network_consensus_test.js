@@ -53,7 +53,6 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
         masterOfCeremony,
         ...validatorsList
       ]);
-
     })
   })
 
@@ -148,7 +147,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
       let state = await poaNetworkConsensus.validatorsState.call(accounts[1]);
       let pendingList = await poaNetworkConsensus.getPendingList.call();
       state[0].should.be.true;
-      state[1].should.be.bignumber.equal(pendingList.length - 1)
+      state[2].should.be.bignumber.equal(pendingList.length - 1)
     })
 
     it('should set finalized to false', async () => {
@@ -284,7 +283,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
       await poaNetworkConsensus.removeValidator(accounts[1],true).should.be.fulfilled;
       const state = await poaNetworkConsensus.validatorsState.call(accounts[1]);
       state[0].should.be.false;
-      state[1].should.be.bignumber.equal(0);
+      state[2].should.be.bignumber.equal(0);
     })
 
     it('should set finalized to false', async () => {
@@ -340,10 +339,124 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
       (await poaNetworkConsensus.getKeysManager.call()).should.be.equal(newKeysManager);
     })
   })
+
   describe('#isValidator', async () => {
-    it('returns address of miner', async () => {
+    it('returns true for validator', async () => {
       (await poaNetworkConsensus.isValidator.call(masterOfCeremony)).should.be.equal(true);
       (await poaNetworkConsensus.isValidator.call(accounts[2])).should.be.equal(false);
-    })
-  })
+    });
+  });
+
+  describe('#isValidatorFinalized', async () => {
+    it('returns true for finalized validator', async () => {
+      (await poaNetworkConsensus.isValidatorFinalized.call(masterOfCeremony)).should.be.equal(true);
+      (await poaNetworkConsensus.validatorsState.call(masterOfCeremony))[1].should.be.equal(true);
+      for (let i = 1; i <= 4; i++) {
+        (await poaNetworkConsensus.isValidatorFinalized.call(accounts[i])).should.be.equal(false);
+        (await poaNetworkConsensus.validatorsState.call(accounts[i]))[1].should.be.equal(false);
+      }
+
+      await poaNetworkConsensus.setSystemAddress(accounts[0]);
+      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+      (await poaNetworkConsensus.finalized.call()).should.be.true;
+
+      (await poaNetworkConsensus.isValidatorFinalized.call(masterOfCeremony)).should.be.equal(true);
+      (await poaNetworkConsensus.validatorsState.call(masterOfCeremony))[1].should.be.equal(true);
+      for (let i = 1; i <= 4; i++) {
+        (await poaNetworkConsensus.isValidatorFinalized.call(accounts[i])).should.be.equal(false);
+        (await poaNetworkConsensus.validatorsState.call(accounts[i]))[1].should.be.equal(false);
+      }
+
+      for (let i = 1; i <= 4; i++) {
+        await poaNetworkConsensus.addValidator(accounts[i], true).should.be.fulfilled;
+      }
+
+      for (let i = 1; i <= 4; i++) {
+        (await poaNetworkConsensus.isValidatorFinalized.call(accounts[i])).should.be.equal(false);
+        (await poaNetworkConsensus.validatorsState.call(accounts[i]))[1].should.be.equal(false);
+      }
+
+      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+      
+      for (let i = 1; i <= 4; i++) {
+        (await poaNetworkConsensus.isValidatorFinalized.call(accounts[i])).should.be.equal(true);
+        (await poaNetworkConsensus.validatorsState.call(accounts[i]))[1].should.be.equal(true);
+      }
+
+      (await poaNetworkConsensus.getValidators.call()).should.be.deep.equal(
+        await poaNetworkConsensus.getPendingList.call()
+      );
+
+      (await poaNetworkConsensus.getValidators.call()).should.be.deep.equal([
+        masterOfCeremony, accounts[1], accounts[2], accounts[3], accounts[4]
+      ]);
+
+      await poaNetworkConsensus.swapValidatorKey(accounts[5], accounts[1]).should.be.fulfilled;
+
+      (await poaNetworkConsensus.getValidators.call()).should.not.be.deep.equal(
+        await poaNetworkConsensus.getPendingList.call()
+      );
+
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[1])).should.be.equal(false);
+      (await poaNetworkConsensus.validatorsState.call(accounts[1]))[1].should.be.equal(false);
+      for (let i = 2; i <= 4; i++) {
+        (await poaNetworkConsensus.isValidatorFinalized.call(accounts[i])).should.be.equal(true);
+        (await poaNetworkConsensus.validatorsState.call(accounts[i]))[1].should.be.equal(true);
+      }
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[5])).should.be.equal(false);
+      (await poaNetworkConsensus.validatorsState.call(accounts[5]))[1].should.be.equal(false);
+
+      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+
+      (await poaNetworkConsensus.getValidators.call()).should.be.deep.equal(
+        await poaNetworkConsensus.getPendingList.call()
+      );
+
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[1])).should.be.equal(false);
+      (await poaNetworkConsensus.validatorsState.call(accounts[1]))[1].should.be.equal(false);
+      for (let i = 2; i <= 5; i++) {
+        (await poaNetworkConsensus.isValidatorFinalized.call(accounts[i])).should.be.equal(true);
+        (await poaNetworkConsensus.validatorsState.call(accounts[i]))[1].should.be.equal(true);
+      }
+
+      await poaNetworkConsensus.removeValidator(accounts[1], true).should.be.rejectedWith(ERROR_MSG);
+      await poaNetworkConsensus.removeValidator(accounts[3], true).should.be.fulfilled;
+
+      (await poaNetworkConsensus.isValidatorFinalized.call(masterOfCeremony)).should.be.equal(true);
+      (await poaNetworkConsensus.validatorsState.call(masterOfCeremony))[1].should.be.equal(true);
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[1])).should.be.equal(false);
+      (await poaNetworkConsensus.validatorsState.call(accounts[1]))[1].should.be.equal(false);
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[2])).should.be.equal(true);
+      (await poaNetworkConsensus.validatorsState.call(accounts[2]))[1].should.be.equal(true);
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[3])).should.be.equal(false);
+      (await poaNetworkConsensus.validatorsState.call(accounts[3]))[1].should.be.equal(false);
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[4])).should.be.equal(true);
+      (await poaNetworkConsensus.validatorsState.call(accounts[4]))[1].should.be.equal(true);
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[5])).should.be.equal(true);
+      (await poaNetworkConsensus.validatorsState.call(accounts[5]))[1].should.be.equal(true);
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[6])).should.be.equal(false);
+      (await poaNetworkConsensus.validatorsState.call(accounts[6]))[1].should.be.equal(false);
+
+      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
+
+      (await poaNetworkConsensus.isValidatorFinalized.call(masterOfCeremony)).should.be.equal(true);
+      (await poaNetworkConsensus.validatorsState.call(masterOfCeremony))[1].should.be.equal(true);
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[1])).should.be.equal(false);
+      (await poaNetworkConsensus.validatorsState.call(accounts[1]))[1].should.be.equal(false);
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[2])).should.be.equal(true);
+      (await poaNetworkConsensus.validatorsState.call(accounts[2]))[1].should.be.equal(true);
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[3])).should.be.equal(false);
+      (await poaNetworkConsensus.validatorsState.call(accounts[3]))[1].should.be.equal(false);
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[4])).should.be.equal(true);
+      (await poaNetworkConsensus.validatorsState.call(accounts[4]))[1].should.be.equal(true);
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[5])).should.be.equal(true);
+      (await poaNetworkConsensus.validatorsState.call(accounts[5]))[1].should.be.equal(true);
+      (await poaNetworkConsensus.isValidatorFinalized.call(accounts[6])).should.be.equal(false);
+      (await poaNetworkConsensus.validatorsState.call(accounts[6]))[1].should.be.equal(false);
+
+      (await poaNetworkConsensus.getValidators.call()).should.be.deep.equal([
+        masterOfCeremony, accounts[4], accounts[2], accounts[5]
+      ]);
+    });
+  });
 });

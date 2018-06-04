@@ -616,7 +616,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       await newKeysManager.init(keysManager.address).should.be.fulfilled;
       
       // mining #1
-      let {logs} = await newKeysManager.migrateMiningKey(miningKey);
+      let {logs} = await newKeysManager.migrateMiningKey(miningKey, 25);
       logs[0].event.should.equal("Migrated");
       logs[0].args.key.should.be.equal(miningKey);
       logs[0].args.name.should.be.equal("miningKey");
@@ -654,7 +654,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       )
 
       // mining#2
-      await newKeysManager.migrateMiningKey(mining2);
+      await newKeysManager.migrateMiningKey(mining2, 25);
       const validatorKey2 = await newKeysManager.validatorKeys.call(mining2);
       validatorKey2.should.be.deep.equal([
         "0x0000000000000000000000000000000000000000",
@@ -680,7 +680,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       true.should.be.equal(
         await newKeysManager.successfulValidatorClone.call(masterOfCeremony)
       );
-      await newKeysManager.migrateMiningKey(masterOfCeremony).should.be.rejectedWith(ERROR_MSG);
+      await newKeysManager.migrateMiningKey(masterOfCeremony, 25).should.be.rejectedWith(ERROR_MSG);
     })
   });
 });

@@ -460,6 +460,9 @@ contract('Voting to change keys [all features]', function (accounts) {
       await keysManager.addMiningKey(accounts[4]).should.be.fulfilled;
       await keysManager.addVotingKey(votingKey3, accounts[4]).should.be.fulfilled;
       await proxyStorageMock.setVotingContractMock(voting.address);
+
+      await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
+      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
     })
     
     it('happy path - no action since it did not meet minimum number of totalVoters', async () => {
@@ -831,10 +834,8 @@ contract('Voting to change keys [all features]', function (accounts) {
       new web3.BigNumber(-1).should.be.bignumber.equal(await voting.getProgress.call(votingIdForSecond))
       new web3.BigNumber(1).should.be.bignumber.equal(await voting.getProgress.call(votingId))
     })
-    it('allowed at once after all validators gave their votes', async () => {
-      await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
-      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
 
+    it('allowed at once after all validators gave their votes', async () => {
       const miningKey = accounts[4];
       const affectedKey = accounts[6];
       await voting.createBallot(
@@ -955,6 +956,8 @@ contract('Voting to change keys [all features]', function (accounts) {
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
       await proxyStorageMock.setVotingContractMock(voting.address);
+      await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
+      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
 
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();

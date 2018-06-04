@@ -104,17 +104,6 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       new web3.BigNumber(6).should.be.bignumber.equal(await ballotsStorage.getBallotThreshold.call(2));
     })
   })
-  describe('#getTotalNumberOfValidators', async () => {
-    it('returns total number of validators', async () => {
-      await proxyStorage.setKeysManagerMock(masterOfCeremony);
-      await poaNetworkConsensus.addValidator(accounts[1], true);
-      await poaNetworkConsensus.setSystemAddress(masterOfCeremony);
-      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      const getValidators = await poaNetworkConsensus.getValidators.call();
-      new web3.BigNumber(2).should.be.bignumber.equal(getValidators.length);
-      new web3.BigNumber(2).should.be.bignumber.equal(await ballotsStorage.getTotalNumberOfValidators.call())
-    })
-  })
   describe('#getProxyThreshold', async () => {
     it('return value is correct', async () => {
       new web3.BigNumber(1).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold.call())

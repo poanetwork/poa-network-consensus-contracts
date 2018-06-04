@@ -176,7 +176,10 @@ contract KeysManager is EternalStorage, IKeysManager {
         boolStorage[INIT_DISABLED] = true;
     }
 
-    function migrateMiningKey(address _miningKey) public {
+    function migrateMiningKey(
+        address _miningKey,
+        uint8 _maxMiningKeyHistoryDeep
+    ) public onlyOwner {
         require(previousKeysManager() != address(0));
         IKeysManager previous = IKeysManager(previousKeysManager());
         require(_miningKey != address(0));
@@ -194,7 +197,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setMiningKeyByPayout(payoutKey, _miningKey);
         _setSuccessfulValidatorClone(true, _miningKey);
         address currentMiningKey = _miningKey;
-        for (uint8 i = 0; i < 25; i++) {
+        for (uint8 i = 0; i < _maxMiningKeyHistoryDeep; i++) {
             address oldMiningKey = previous.getMiningKeyHistory(currentMiningKey);
             if (oldMiningKey == 0) {
                 break;
@@ -205,7 +208,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         emit Migrated("miningKey", _miningKey);
     }
 
-    function migrateInitialKey(address _initialKey) public {
+    function migrateInitialKey(address _initialKey) public onlyOwner {
         require(initialKeys(_initialKey) == uint8(InitialKeyState.Invalid));
         require(_initialKey != address(0));
         require(previousKeysManager() != address(0));

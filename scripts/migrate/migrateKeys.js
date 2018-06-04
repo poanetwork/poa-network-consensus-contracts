@@ -18,9 +18,11 @@ require('chai')
 
 let KEYS_MANAGER_OLD_ADDRESS;
 let POA_CONSENSUS_OLD_ADDRESS;
+let VOTING_TO_CHANGE_KEYS_OLD_ADDRESS;
 let MOC_ADDRESS;
 let KEYS_MANAGER_OLD_ABI;
 let POA_CONSENSUS_OLD_ABI;
+let VOTING_TO_CHANGE_KEYS_OLD_ABI;
 
 main();
 
@@ -39,9 +41,11 @@ async function main() {
 		let contracts = await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/contracts.json');
 		KEYS_MANAGER_OLD_ADDRESS = contracts.data.KEYS_MANAGER_ADDRESS;
 		POA_CONSENSUS_OLD_ADDRESS = contracts.data.POA_ADDRESS;
+		VOTING_TO_CHANGE_KEYS_OLD_ADDRESS = contracts.data.VOTING_TO_CHANGE_KEYS_ADDRESS;
 		MOC_ADDRESS = contracts.data.MOC;
 		KEYS_MANAGER_OLD_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/KeysManager.abi.json')).data;
 		POA_CONSENSUS_OLD_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/PoaNetworkConsensus.abi.json')).data;
+		VOTING_TO_CHANGE_KEYS_OLD_ABI = (await axios.get('https://raw.githubusercontent.com/poanetwork/poa-chain-spec/' + commit + '/abis/VotingToChangeKeys.abi.json')).data;
 		console.log('');
 	} catch (err) {
 		console.log('Cannot read contracts.json');
@@ -121,6 +125,10 @@ async function migrateAndCheck(privateKey) {
 				await utils.call(migrateInitialKey, sender, contractNewAddress, key, chainId);
 			}
 
+			const votingForKeysOldInstance = new web3.eth.Contract(VOTING_TO_CHANGE_KEYS_OLD_ABI, VOTING_TO_CHANGE_KEYS_OLD_ADDRESS);
+			const maxOldMiningKeysDeepCheck = await votingForKeysOldInstance.methods.maxOldMiningKeysDeepCheck().call();
+			maxOldMiningKeysDeepCheck.should.be.bignumber.equal(25);
+
 			console.log(`  Migrate each of ${miningKeys.length} mining key(s)...`);
 			for (let i = 0; i < miningKeys.length; i++) {
 				const miningKey = miningKeys[i];
@@ -129,7 +137,8 @@ async function migrateAndCheck(privateKey) {
 					continue;
 				}
 				const migrateMiningKey = keysManagerNewInstance.methods.migrateMiningKey(
-					miningKey
+					miningKey,
+					maxOldMiningKeysDeepCheck
 				);
 				await utils.call(migrateMiningKey, sender, contractNewAddress, key, chainId);
 			}

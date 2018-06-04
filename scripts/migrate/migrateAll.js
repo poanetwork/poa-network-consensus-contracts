@@ -77,7 +77,8 @@ async function main() {
 		for (let i = 0; i < miningKeys.length; i++) {
 			const validatorStateOld = await poaOldInstance.methods.validatorsState(miningKeys[i]).call();
 			const validatorStateNew = await poaNewInstance.methods.validatorsState(miningKeys[i]).call();
-			validatorStateOld.should.be.deep.equal(validatorStateNew);
+			validatorStateOld[0].should.be.equal(validatorStateNew[0]);
+			validatorStateOld[1].should.be.bignumber.equal(validatorStateNew[2]);
 		}
 
 		console.log('Success');
