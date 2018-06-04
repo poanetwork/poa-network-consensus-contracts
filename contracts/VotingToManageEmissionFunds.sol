@@ -167,15 +167,10 @@ contract VotingToManageEmissionFunds is VotingTo {
         _votersAdd(_id, miningKey);
         emit Vote(_id, _choice, msg.sender, getTime(), miningKey);
 
-        IPoaNetworkConsensus poa = IPoaNetworkConsensus(
+        uint256 validatorsLength = IPoaNetworkConsensus(
             IProxyStorage(proxyStorage()).getPoaConsensus()
-        );
-        uint256 validatorsLength = poa.getCurrentValidatorsLength();
-        if (validatorsLength > 0) {
-            if (!poa.isMasterOfCeremonyRemoved()) {
-                validatorsLength--; // exclude MoC
-            }
-        }
+        ).getCurrentValidatorsLengthWithoutMoC();
+        
         if (getTotalVoters(_id) >= validatorsLength) {
             _finalize(_id);
         }

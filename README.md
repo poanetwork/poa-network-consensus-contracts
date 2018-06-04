@@ -87,8 +87,6 @@ Compile and deploy contracts in the next sequence:
       ✓ new value cannot be equal to 0 (156ms)
       ✓ sets new value for Keys threshold (57ms)
       ✓ sets new value for MetadataChange threshold (59ms)
-    #getTotalNumberOfValidators
-      ✓ returns total number of validators (190ms)
     #getProxyThreshold
       ✓ returns total number of validators (406ms)
     #getVotingToChangeThreshold
@@ -112,8 +110,6 @@ Compile and deploy contracts in the next sequence:
       ✓ new value cannot be equal to 0 (112ms)
       ✓ sets new value for Keys threshold (66ms)
       ✓ sets new value for MetadataChange threshold (48ms)
-    #getTotalNumberOfValidators
-      ✓ returns total number of validators (191ms)
     #getProxyThreshold
       ✓ returns total number of validators (374ms)
     #getVotingToChangeThreshold

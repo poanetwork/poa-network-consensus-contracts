@@ -22,6 +22,8 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     struct ValidatorState {
         // Is this a validator.
         bool isValidator;
+        // Is a validator finalized.
+        bool isValidatorFinalized;
         // Index in the currentValidators.
         uint256 index;
     }
@@ -77,6 +79,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         for (uint256 i = 0; i < currentValidators.length; i++) {
             validatorsState[currentValidators[i]] = ValidatorState({
                 isValidator: true,
+                isValidatorFinalized: true,
                 index: i
             });
         }
@@ -85,19 +88,19 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         _owner = msg.sender;
     }
 
-    function isMasterOfCeremonyRemoved() external view returns(bool) {
+    function isMasterOfCeremonyRemoved() public view returns(bool) {
         return _isMoCRemoved;
     }
 
-    function isMasterOfCeremonyRemovedPending() external view returns(bool) {
+    function isMasterOfCeremonyRemovedPending() public view returns(bool) {
         return _isMoCRemovedPending;
     }
 
-    function masterOfCeremony() external view returns(address) {
+    function masterOfCeremony() public view returns(address) {
         return _moc;
     }
 
-    function masterOfCeremonyPending() external view returns(address) {
+    function masterOfCeremonyPending() public view returns(address) {
         return _mocPending;
     }
 
@@ -117,6 +120,12 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     /// the "change" finalized is the activation of the initial set.
     function finalizeChange() public onlySystemAndNotFinalized {
         finalized = true;
+        for (uint256 i = 0; i < pendingList.length; i++) {
+            ValidatorState storage state = validatorsState[pendingList[i]];
+            if (!state.isValidatorFinalized) {
+                state.isValidatorFinalized = true;
+            }
+        }
         currentValidators = pendingList;
         currentValidatorsLength = currentValidators.length;
         if (_mocPending != address(0)) {
@@ -138,6 +147,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         require(_validator != address(0));
         validatorsState[_validator] = ValidatorState({
             isValidator: true,
+            isValidatorFinalized: false,
             index: pendingList.length
         });
         pendingList.push(_validator);
@@ -160,10 +170,12 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         // Update the index of the last validator.
         validatorsState[lastValidator].index = removedIndex;
         delete pendingList[lastIndex];
-        require(pendingList.length > 0);
-        pendingList.length--;
+        if (pendingList.length > 0) {
+            pendingList.length--;
+        }
         validatorsState[_validator].index = 0;
         validatorsState[_validator].isValidator = false;
+        validatorsState[_validator].isValidatorFinalized = false;
         finalized = false;
         if (_shouldFireEvent) {
             if (_validator == _moc) {
@@ -197,11 +209,27 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         return validatorsState[_someone].isValidator;
     }
 
+    function isValidatorFinalized(address _someone) public view returns(bool) {
+        bool _isValidator = validatorsState[_someone].isValidator;
+        bool _isFinalized = validatorsState[_someone].isValidatorFinalized;
+        return _isValidator && _isFinalized;
+    }
+
     function getKeysManager() public view returns(address) {
         return proxyStorage.getKeysManager();
     }
 
     function getCurrentValidatorsLength() public view returns(uint256) {
         return currentValidatorsLength;
+    }
+
+    function getCurrentValidatorsLengthWithoutMoC() public view returns(uint256) {
+        if (_isMoCRemoved) {
+            return currentValidatorsLength;
+        }
+        if (currentValidatorsLength == 0) {
+            return 0;
+        }
+        return currentValidatorsLength - 1; // exclude MoC
     }
 }

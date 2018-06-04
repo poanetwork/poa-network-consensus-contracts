@@ -89,31 +89,12 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
         return IProxyStorage(proxyStorage()).getVotingToChangeMinThreshold();
     }
 
-    function getTotalNumberOfValidators() public view returns(uint256) {
-        IProxyStorage proxy = IProxyStorage(proxyStorage());
-        IPoaNetworkConsensus poa = IPoaNetworkConsensus(proxy.getPoaConsensus());
-        return poa.getCurrentValidatorsLength();
-    }
-
     function getProxyThreshold() public view returns(uint256) {
-        uint256 validatorsCount = getTotalNumberOfValidators();
-        IPoaNetworkConsensus poa = IPoaNetworkConsensus(
-            IProxyStorage(proxyStorage()).getPoaConsensus()
-        );
-        if (!poa.isMasterOfCeremonyRemoved()) {
-            validatorsCount = validatorsCount.sub(1); // exclude MoC
-        }
-        return validatorsCount.div(2).add(1);
+        return _getTotalNumberOfValidators().div(2).add(1);
     }
 
     function getBallotLimitPerValidator() public view returns(uint256) {
-        uint256 validatorsCount = getTotalNumberOfValidators();
-        IPoaNetworkConsensus poa = IPoaNetworkConsensus(
-            IProxyStorage(proxyStorage()).getPoaConsensus()
-        );
-        if (!poa.isMasterOfCeremonyRemoved()) {
-            validatorsCount = validatorsCount.sub(1); // exclude MoC
-        }
+        uint256 validatorsCount = _getTotalNumberOfValidators();
         if (validatorsCount == 0) {
             return getMaxLimitBallot();
         }
@@ -126,6 +107,12 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
 
     function _initDisable() private {
         boolStorage[INIT_DISABLED] = true;
+    }
+
+    function _getTotalNumberOfValidators() private view returns(uint256) {
+        IProxyStorage proxy = IProxyStorage(proxyStorage());
+        IPoaNetworkConsensus poa = IPoaNetworkConsensus(proxy.getPoaConsensus());
+        return poa.getCurrentValidatorsLengthWithoutMoC();
     }
 
     function _setThreshold(uint256 _newValue, uint8 _thresholdType) private {
