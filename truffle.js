@@ -24,7 +24,7 @@ module.exports = {
     sokol: {
       host: "localhost",
       port: 8545,
-      gas: 5700000,
+      gas: 6600000,
       network_id: "*" // Match any network id
     },
   },

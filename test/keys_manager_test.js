@@ -272,7 +272,7 @@ contract('KeysManager [all features]', function (accounts) {
       logs[0].args.key.should.be.equal(accounts[2]);
       logs[0].args.miningKey.should.be.equal(accounts[1]);
       logs[0].args.action.should.be.equal('added');
-      (await keysManager.miningKeyByPayout(accounts[2])).should.be.equal(
+      (await keysManager.miningKeyByPayout.call(accounts[2])).should.be.equal(
         accounts[1]
       );
     })
@@ -296,10 +296,10 @@ contract('KeysManager [all features]', function (accounts) {
         false,
         true]
       );
-      (await keysManager.miningKeyByPayout(accounts[3])).should.be.equal(
+      (await keysManager.miningKeyByPayout.call(accounts[3])).should.be.equal(
         accounts[1]
       );
-      (await keysManager.miningKeyByPayout(accounts[2])).should.be.equal(
+      (await keysManager.miningKeyByPayout.call(accounts[2])).should.be.equal(
         '0x0000000000000000000000000000000000000000'
       );
     });
@@ -549,10 +549,10 @@ contract('KeysManager [all features]', function (accounts) {
         false,
         true]
       );
-      (await keysManager.miningKeyByPayout(accounts[2])).should.be.equal(
+      (await keysManager.miningKeyByPayout.call(accounts[2])).should.be.equal(
         '0x0000000000000000000000000000000000000000'
       );
-      (await keysManager.miningKeyByPayout(accounts[3])).should.be.equal(
+      (await keysManager.miningKeyByPayout.call(accounts[3])).should.be.equal(
         accounts[1]
       );
     });
