@@ -71,8 +71,8 @@ async function main() {
 		(await poaOldInstance.methods.getPendingList().call()).should.be.deep.equal(
 			await poaNewInstance.methods.getPendingList().call()
 		);
-		(await poaOldInstance.methods.currentValidatorsLength().call()).should.be.equal(
-			await poaNewInstance.methods.currentValidatorsLength().call()
+		(await poaOldInstance.methods.getCurrentValidatorsLength().call()).should.be.equal(
+			await poaNewInstance.methods.getCurrentValidatorsLength().call()
 		);
 		for (let i = 0; i < miningKeys.length; i++) {
 			const validatorStateOld = await poaOldInstance.methods.validatorsState(miningKeys[i]).call();
