@@ -31,7 +31,11 @@ module.exports = async function(deployer, network, accounts) {
       poaNetworkConsensus = poaNetworkConsensus || await PoaNetworkConsensus.at(poaNetworkConsensusAddress);
       
       await deployer.deploy(ProxyStorage);
-      await deployer.deploy(EternalStorageProxy, 0, ProxyStorage.address);
+      await deployer.deploy(
+        EternalStorageProxy,
+        "0x0000000000000000000000000000000000000000",
+        ProxyStorage.address
+      );
       const proxyStorageEternalStorageAddress = EternalStorageProxy.address;
       const proxyStorage = await ProxyStorage.at(proxyStorageEternalStorageAddress);
       await proxyStorage.init(poaNetworkConsensusAddress);

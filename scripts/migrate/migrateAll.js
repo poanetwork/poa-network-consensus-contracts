@@ -89,7 +89,7 @@ async function main() {
 		const proxyStorageImplAddress = await utils.deploy('ProxyStorage', proxyStorageCompiled, sender, key, chainId);
 		console.log(`  ProxyStorage implementation address is ${proxyStorageImplAddress}`);
 		let storageCompiled = await utils.compile('../../contracts/eternal-storage/', 'EternalStorageProxy');
-		process.env.PROXY_STORAGE_NEW_ADDRESS = await utils.deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, [0, proxyStorageImplAddress]);
+		process.env.PROXY_STORAGE_NEW_ADDRESS = await utils.deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, ['0x0000000000000000000000000000000000000000', proxyStorageImplAddress]);
 		console.log(`  ProxyStorage storage address is ${process.env.PROXY_STORAGE_NEW_ADDRESS}`);
 		const proxyStorageInstance = new web3.eth.Contract(proxyStorageCompiled.abi, process.env.PROXY_STORAGE_NEW_ADDRESS);
 		const init = proxyStorageInstance.methods.init(process.env.POA_CONSENSUS_NEW_ADDRESS);
