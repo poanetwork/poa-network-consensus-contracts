@@ -74,7 +74,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
     it('should set currentValidators to pendingList', async () => {
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       const { logs } = await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      let currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength.call();
+      let currentValidatorsLength = await poaNetworkConsensus.getCurrentValidatorsLength.call();
       let currentValidators = [];
       let pendingList = [];
       for (let i = 0; i < currentValidatorsLength.toNumber(10); i++) {
@@ -93,7 +93,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
       await poaNetworkConsensus.addValidator(accounts[1], true);
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      let currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength.call();
+      let currentValidatorsLength = await poaNetworkConsensus.getCurrentValidatorsLength.call();
       let currentValidators = [];
       let pendingList = [];
       for (let i = 0; i < currentValidatorsLength.toNumber(10); i++) {
@@ -105,10 +105,10 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
       currentValidators.should.be.deep.equal(pendingList);
       await poaNetworkConsensus.addValidator(accounts[2], true);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength.call()
+      currentValidatorsLength = await poaNetworkConsensus.getCurrentValidatorsLength.call()
       const expected = [masterOfCeremony, accounts[1], accounts[2]];
 
-      currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength.call();
+      currentValidatorsLength = await poaNetworkConsensus.getCurrentValidatorsLength.call();
       currentValidators = [];
       pendingList = [];
       for (let i = 0; i < currentValidatorsLength.toNumber(10); i++) {
@@ -160,7 +160,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
     it('should emit InitiateChange with blockhash and pendingList as params', async () => {
       await proxyStorageMock.setKeysManagerMock(accounts[0]);
       const {logs} = await poaNetworkConsensus.addValidator(accounts[1], true).should.be.fulfilled;
-      let currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength.call();
+      let currentValidatorsLength = await poaNetworkConsensus.getCurrentValidatorsLength.call();
       let currentValidators = [];
       for (let i = 0; i < currentValidatorsLength.toNumber(10); i++) {
         let validator = await poaNetworkConsensus.currentValidators.call(i);
@@ -260,7 +260,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       await poaNetworkConsensus.addValidator(accounts[2], true).should.be.fulfilled;
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      let currentValidatorsLength = await poaNetworkConsensus.currentValidatorsLength.call();
+      let currentValidatorsLength = await poaNetworkConsensus.getCurrentValidatorsLength.call();
       let pendingList = [];
       for(let i = 0; i < currentValidatorsLength; i++){
         let pending = await poaNetworkConsensus.pendingList.call(i);

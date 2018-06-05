@@ -269,9 +269,9 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       (await keysManager.miningKeyByVoting.call(accounts[8])).should.be.equal(accounts[7]);
       (await keysManager.miningKeyByPayout.call(accounts[9])).should.be.equal(accounts[7]);
 
-      (await poaNetworkConsensusMock.currentValidatorsLength.call()).should.be.bignumber.equal(4);
+      (await poaNetworkConsensusMock.getCurrentValidatorsLength.call()).should.be.bignumber.equal(4);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
-      (await poaNetworkConsensusMock.currentValidatorsLength.call()).should.be.bignumber.equal(5);
+      (await poaNetworkConsensusMock.getCurrentValidatorsLength.call()).should.be.bignumber.equal(5);
     });
 
     it('should allow removing new validator if finalizeChange did not happen', async () => {
@@ -314,7 +314,7 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       (await keysManager.isVotingActive.call(accounts[8])).should.be.equal(true);
       (await keysManager.miningKeyByVoting.call(accounts[8])).should.be.equal(accounts[7]);
       (await keysManager.miningKeyByPayout.call(accounts[9])).should.be.equal(accounts[7]);
-      (await poaNetworkConsensusMock.currentValidatorsLength.call()).should.be.bignumber.equal(4);
+      (await poaNetworkConsensusMock.getCurrentValidatorsLength.call()).should.be.bignumber.equal(4);
 
       VOTING_START_DATE = moment.utc().add(20, 'days').unix();
       VOTING_END_DATE = moment.utc().add(30, 'days').unix();
@@ -348,9 +348,9 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       (await keysManager.getVotingByMining.call(accounts[7])).should.be.equal('0x0000000000000000000000000000000000000000');
       (await keysManager.getPayoutByMining.call(accounts[7])).should.be.equal('0x0000000000000000000000000000000000000000');
       
-      (await poaNetworkConsensusMock.currentValidatorsLength.call()).should.be.bignumber.equal(4);
+      (await poaNetworkConsensusMock.getCurrentValidatorsLength.call()).should.be.bignumber.equal(4);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
-      (await poaNetworkConsensusMock.currentValidatorsLength.call()).should.be.bignumber.equal(4);
+      (await poaNetworkConsensusMock.getCurrentValidatorsLength.call()).should.be.bignumber.equal(4);
     });
   });
   

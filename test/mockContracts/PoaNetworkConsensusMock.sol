@@ -31,6 +31,6 @@ contract PoaNetworkConsensusMock is PoaNetworkConsensus {
     }
 
     function setCurrentValidatorsLength(uint256 _newNumber) public {
-        currentValidatorsLength = _newNumber;
+        currentValidators.length = _newNumber;
     }
 }

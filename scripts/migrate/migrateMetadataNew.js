@@ -94,7 +94,7 @@ async function migrateAndCheck(privateKey) {
 		const metadataOldInstance = new web3.eth.Contract(METADATA_OLD_ABI, METADATA_OLD_ADDRESS);
 		const metadataNewInstance = new web3.eth.Contract(implCompiled.abi, contractNewAddress);
 		const poaInstance = new web3.eth.Contract(POA_ABI, POA_ADDRESS);
-		const validatorsLength = await poaInstance.methods.currentValidatorsLength().call();
+		const validatorsLength = await poaInstance.methods.getCurrentValidatorsLength().call();
 		
 		if (!ONLY_CHECK) {
 			console.log(`  Handle each of ${validatorsLength} validator(s)...`);

@@ -180,7 +180,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       let miningKey = accounts[4];
       await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.createKeys(miningKey, accounts[3], accounts[2], {from: accounts[1]});
-      const index = await poaNetworkConsensusMock.currentValidatorsLength.call();
+      const index = await poaNetworkConsensusMock.getCurrentValidatorsLength.call();
       (await poaNetworkConsensusMock.pendingList.call(index)).should.be.equal(miningKey);
     })
 
@@ -278,7 +278,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       logs[0].args.key.should.be.equal(accounts[2]);
       logs[0].args.miningKey.should.be.equal(accounts[1]);
       logs[0].args.action.should.be.equal('added');
-      (await keysManager.miningKeyByPayout(accounts[2])).should.be.equal(
+      (await keysManager.miningKeyByPayout.call(accounts[2])).should.be.equal(
         accounts[1]
       );
     })
@@ -302,10 +302,10 @@ contract('KeysManager upgraded [all features]', function (accounts) {
         false,
         true]
       );
-      (await keysManager.miningKeyByPayout(accounts[3])).should.be.equal(
+      (await keysManager.miningKeyByPayout.call(accounts[3])).should.be.equal(
         accounts[1]
       );
-      (await keysManager.miningKeyByPayout(accounts[2])).should.be.equal(
+      (await keysManager.miningKeyByPayout.call(accounts[2])).should.be.equal(
         '0x0000000000000000000000000000000000000000'
       );
     });
@@ -341,7 +341,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
       await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
-      let currentValidatorsLength = await poaNetworkConsensusMock.currentValidatorsLength.call();
+      let currentValidatorsLength = await poaNetworkConsensusMock.getCurrentValidatorsLength.call();
       let pendingList = [];
       for(let i = 0; i < currentValidatorsLength.sub(1).toNumber(); i++){
           let pending = await poaNetworkConsensusMock.pendingList.call(i);
@@ -352,7 +352,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       const validators = await poaNetworkConsensusMock.getValidators.call();
       validators.should.not.contain(accounts[1]);
       const expected = currentValidatorsLength.sub(1);
-      const actual = await poaNetworkConsensusMock.currentValidatorsLength.call();
+      const actual = await poaNetworkConsensusMock.getCurrentValidatorsLength.call();
       expected.should.be.bignumber.equal(actual);
     });
 
@@ -555,10 +555,10 @@ contract('KeysManager upgraded [all features]', function (accounts) {
         false,
         true]
       );
-      (await keysManager.miningKeyByPayout(accounts[2])).should.be.equal(
+      (await keysManager.miningKeyByPayout.call(accounts[2])).should.be.equal(
         '0x0000000000000000000000000000000000000000'
       );
-      (await keysManager.miningKeyByPayout(accounts[3])).should.be.equal(
+      (await keysManager.miningKeyByPayout.call(accounts[3])).should.be.equal(
         accounts[1]
       );
     });

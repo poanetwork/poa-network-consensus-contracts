@@ -27,8 +27,6 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         // Index in the currentValidators.
         uint256 index;
     }
-
-    uint256 public currentValidatorsLength;
     
     IProxyStorage public proxyStorage;
     address public systemAddress = 0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE;
@@ -83,7 +81,6 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
                 index: i
             });
         }
-        currentValidatorsLength = currentValidators.length;
         pendingList = currentValidators;
         _owner = msg.sender;
     }
@@ -127,7 +124,6 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
             }
         }
         currentValidators = pendingList;
-        currentValidatorsLength = currentValidators.length;
         if (_mocPending != address(0)) {
             _moc = _mocPending;
             _mocPending = address(0);
@@ -220,16 +216,16 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     }
 
     function getCurrentValidatorsLength() public view returns(uint256) {
-        return currentValidatorsLength;
+        return currentValidators.length;
     }
 
     function getCurrentValidatorsLengthWithoutMoC() public view returns(uint256) {
         if (_isMoCRemoved) {
-            return currentValidatorsLength;
+            return currentValidators.length;
         }
-        if (currentValidatorsLength == 0) {
+        if (currentValidators.length == 0) {
             return 0;
         }
-        return currentValidatorsLength - 1; // exclude MoC
+        return currentValidators.length - 1; // exclude MoC
     }
 }
