@@ -52,6 +52,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     voting = await Voting.new();
     const votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, voting.address);
     voting = await Voting.at(votingEternalStorage.address);
+    await voting.init(172800, 0).should.be.rejectedWith(ERROR_MSG);
     await voting.init(172800, 3).should.be.fulfilled;
     
     await proxyStorageMock.initializeAddresses(
@@ -419,6 +420,60 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       await voting.setTime(VOTING_END_DATE+1);
       await voting.finalize(1, {from: votingKey2}).should.be.fulfilled;
       (await voting.getIsFinalized.call(1)).should.be.equal(true);
+    });
+  });
+
+  describe('#migrate', async () => {
+    it('should copy a ballot to the new contract', async () => {
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(10, 'days').unix();
+      const id = await voting.nextBallotId.call();
+      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, 4, "memo", {from: votingKey}).should.be.fulfilled;
+
+      let votingNew = await Voting.new();
+      const votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingNew.address);
+      votingNew = await Voting.at(votingEternalStorage.address);
+
+      await votingNew.migrateBasicOne(
+        id,
+        voting.address,
+        await voting.getQuorumState.call(id),
+        await voting.getIndex.call(id),
+        await voting.getCreator.call(id),
+        await voting.getMemo.call(id),
+        [votingKey, votingKey2, votingKey3]
+      );
+
+      (await votingNew.getStartTime.call(id)).should.be.bignumber.equal(VOTING_START_DATE);
+      (await votingNew.getEndTime.call(id)).should.be.bignumber.equal(VOTING_END_DATE);
+      (await votingNew.getTotalVoters.call(id)).should.be.bignumber.equal(0);
+      (await votingNew.getProgress.call(id)).should.be.bignumber.equal(0);
+      (await votingNew.getIsFinalized.call(id)).should.be.equal(false);
+      (await votingNew.getQuorumState.call(id)).should.be.bignumber.equal(1);
+      (await votingNew.getIndex.call(id)).should.be.bignumber.equal(0);
+      (await votingNew.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(3);
+      (await votingNew.getCreator.call(id)).should.be.equal(accounts[1]);
+      (await votingNew.getMemo.call(id)).should.be.equal("memo");
+      (await votingNew.getProposedValue.call(id)).should.be.bignumber.equal(4);
+      (await votingNew.hasMiningKeyAlreadyVoted.call(id, votingKey)).should.be.equal(true);
+      (await votingNew.hasMiningKeyAlreadyVoted.call(id, votingKey2)).should.be.equal(true);
+      (await votingNew.hasMiningKeyAlreadyVoted.call(id, votingKey3)).should.be.equal(true);
+
+      (await votingNew.nextBallotId.call()).should.be.bignumber.equal(0);
+      (await votingNew.activeBallotsLength.call()).should.be.bignumber.equal(0);
+      (await votingNew.validatorActiveBallots.call(accounts[1])).should.be.bignumber.equal(0);
+      await votingNew.migrateBasicAll(voting.address, {from: accounts[6]}).should.be.rejectedWith(ERROR_MSG);
+      await votingNew.migrateBasicAll('0x0000000000000000000000000000000000000000').should.be.rejectedWith(ERROR_MSG);
+      await votingNew.migrateBasicAll(voting.address).should.be.fulfilled;
+      await votingNew.migrateBasicAll(voting.address).should.be.fulfilled;
+      (await votingNew.nextBallotId.call()).should.be.bignumber.equal(1);
+      (await votingNew.activeBallotsLength.call()).should.be.bignumber.equal(1);
+      (await votingNew.validatorActiveBallots.call(accounts[1])).should.be.bignumber.equal(1);
+      (await votingNew.migrateDisabled.call()).should.be.equal(false);
+      await votingNew.migrateDisable({from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
+      await votingNew.migrateDisable().should.be.fulfilled;
+      (await votingNew.migrateDisabled.call()).should.be.equal(true);
+      await votingNew.migrateBasicAll(voting.address).should.be.rejectedWith(ERROR_MSG);
     });
   });
 

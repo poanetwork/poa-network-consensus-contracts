@@ -72,6 +72,21 @@ contract('BallotsStorage [all features]', function (accounts) {
       );
     })
   })
+  describe('#migrate', async () => {
+    it('should copy thresholds from an old contract', async () => {
+      let ballotsStorageNew = await BallotsStorage.new();
+      const ballotsEternalStorageNew = await EternalStorageProxy.new(proxyStorage.address, ballotsStorageNew.address);
+      ballotsStorageNew = await BallotsStorage.at(ballotsEternalStorageNew.address);
+      (await ballotsStorageNew.getBallotThreshold.call(1)).should.be.bignumber.equal(0);
+      (await ballotsStorageNew.getBallotThreshold.call(2)).should.be.bignumber.equal(0);
+      await ballotsStorageNew.migrate('0x0000000000000000000000000000000000000000').should.be.rejectedWith(ERROR_MSG);
+      await ballotsStorageNew.migrate(ballotsStorage.address, {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
+      await ballotsStorageNew.migrate(ballotsStorage.address).should.be.fulfilled;
+      (await ballotsStorageNew.getBallotThreshold.call(1)).should.be.bignumber.equal(3);
+      (await ballotsStorageNew.getBallotThreshold.call(2)).should.be.bignumber.equal(2);
+      await ballotsStorageNew.migrate(ballotsStorage.address).should.be.rejectedWith(ERROR_MSG);
+    });
+  });
   describe('#setThreshold', async () => {
     it('can only be called from votingToChangeThreshold address', async () => {
       await ballotsStorage.setThreshold(4, 1, {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
