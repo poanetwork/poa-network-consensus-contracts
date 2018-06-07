@@ -626,6 +626,28 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       );
     });
 
+    it('send funds to receiver if most votes are for sending', async () => {
+      await addValidator(votingKey2, miningKey2);
+      await addValidator(votingKey3, miningKey3);
+
+      const receiverInitBalance = await web3.eth.getBalance(receiver);
+
+      (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(emissionFundsInitBalance);
+
+      await voting.setTime(VOTING_START_DATE);
+      await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
+      await voting.vote(id, choice.send, {from: votingKey2}).should.be.fulfilled;
+      await voting.vote(id, choice.burn, {from: votingKey3}).should.be.fulfilled;
+
+      (await voting.getIsFinalized.call(id)).should.be.equal(true);
+      (await voting.getQuorumState.call(id)).should.be.bignumber.equal(2);
+      (await voting.getTotalVoters.call(id)).should.be.bignumber.equal(3);
+      (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(0);
+      (await web3.eth.getBalance(receiver)).should.be.bignumber.equal(
+        receiverInitBalance.add(emissionFundsInitBalance)
+      );
+    });
+
     it('burn funds if most votes are for burning', async () => {
       await addValidator(votingKey2, miningKey2);
       await addValidator(votingKey3, miningKey3);

@@ -12,14 +12,17 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
   let proxyStorageMock;
   let masterOfCeremony = accounts[0];
   beforeEach(async () => {
-    poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []);
+    await PoaNetworkConsensus.new('0x0000000000000000000000000000000000000000', []).should.be.rejectedWith(ERROR_MSG);
+    poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []).should.be.fulfilled;;
     
     proxyStorageMock = await ProxyStorageMock.new();
     const proxyStorageEternalStorage = await EternalStorageProxy.new(0, proxyStorageMock.address);
     proxyStorageMock = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
     await proxyStorageMock.init(poaNetworkConsensus.address).should.be.fulfilled;
     
-    await poaNetworkConsensus.setProxyStorage(proxyStorageMock.address);
+    await poaNetworkConsensus.setProxyStorage(proxyStorageMock.address).should.be.fulfilled;
+    await poaNetworkConsensus.setProxyStorage(proxyStorageMock.address).should.be.rejectedWith(ERROR_MSG);
+    
     await proxyStorageMock.initializeAddresses(
       accounts[0],
       accounts[0],
@@ -184,6 +187,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
       (await poaNetworkConsensus.isValidator.call(accounts[1])).should.be.equal(true);
       (await poaNetworkConsensus.isValidator.call(accounts[2])).should.be.equal(false);
       
+      await poaNetworkConsensus.swapValidatorKey(accounts[2], accounts[3]).should.be.rejectedWith(ERROR_MSG);
       await poaNetworkConsensus.swapValidatorKey(accounts[2], accounts[1]).should.be.fulfilled;
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
 
