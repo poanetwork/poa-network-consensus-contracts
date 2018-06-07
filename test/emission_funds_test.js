@@ -32,6 +32,7 @@ contract('EmissionFunds [all features]', function (accounts) {
     );
   });
 
+  /*
   describe('constructor', async () => {
     it('should save VotingToManageEmissionFunds address', async () => {
       (await emissionFunds.votingToManageEmissionFunds.call()).should.be.equal(
@@ -52,6 +53,7 @@ contract('EmissionFunds [all features]', function (accounts) {
       );
     });
   });
+  */
 
   describe('#sendFundsTo', async () => {
     let receiver, receiverInitBalance;
@@ -61,6 +63,7 @@ contract('EmissionFunds [all features]', function (accounts) {
       receiverInitBalance = await web3.eth.getBalance(receiver);
     });
 
+    /*
     it('may be called only by VotingToManageEmissionFunds', async () => {
       const amountToSend = web3.toWei(5, 'ether');
       await emissionFunds.sendFundsTo(
@@ -207,8 +210,36 @@ contract('EmissionFunds [all features]', function (accounts) {
       logs[0].args.amount.should.be.bignumber.equal(0);
       logs[0].args.success.should.be.equal(true);
     });
+    */
+
+    it('should fail if receiver address is not full', async () => {
+      const signature = web3.sha3('sendFundsTo(address,uint256)').slice(0, 10);
+      let data = signature;
+      data += '0000000000000000000000000000000000000000000000000000000000000A';
+      data += '0000000000000000000000000000000000000000000000004563918244F40000';
+      let receipt = await web3.eth.getTransactionReceipt(
+        await web3.eth.sendTransaction({
+          from: votingToManageEmissionFunds,
+          to: emissionFunds.address,
+          data: data
+        })
+      );
+      receipt.logs.length.should.be.equal(0);
+      data = signature;
+      data += '000000000000000000000000000000000000000000000000000000000000000A';
+      data += '0000000000000000000000000000000000000000000000004563918244F40000';
+      receipt = await web3.eth.getTransactionReceipt(
+        await web3.eth.sendTransaction({
+          from: votingToManageEmissionFunds,
+          to: emissionFunds.address,
+          data: data
+        })
+      );
+      receipt.logs.length.should.be.equal(1);
+    });
   });
 
+  /*
   describe('#burnFunds', async () => {
     it('may be called only by VotingToManageEmissionFunds', async () => {
       const amountToBurn = web3.toWei(5, 'ether');
@@ -357,4 +388,5 @@ contract('EmissionFunds [all features]', function (accounts) {
       logs[0].args.amount.should.be.bignumber.equal(0);
     });
   });
+  */
 });
