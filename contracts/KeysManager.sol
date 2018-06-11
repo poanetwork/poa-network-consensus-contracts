@@ -429,8 +429,10 @@ contract KeysManager is EternalStorage, IKeysManager {
     function _removeMiningKey(address _key) private {
         require(initDisabled());
         require(isMiningActive(_key));
-        _setMiningKeyByVoting(getVotingByMining(_key), address(0));
-        _setMiningKeyByPayout(getPayoutByMining(_key), address(0));
+        address votingKey = getVotingByMining(_key);
+        address payoutKey = getPayoutByMining(_key);
+        _setMiningKeyByVoting(votingKey, address(0));
+        _setMiningKeyByPayout(payoutKey, address(0));
         _setVotingKey(address(0), _key);
         _setPayoutKey(address(0), _key);
         _setIsMiningActive(false, _key);
@@ -441,11 +443,17 @@ contract KeysManager is EternalStorage, IKeysManager {
         }
         IPoaNetworkConsensus(poaNetworkConsensus()).removeValidator(_key, true);
         emit MiningKeyChanged(_key, "removed");
+        if (votingKey != address(0)) {
+            emit VotingKeyChanged(votingKey, _key, "removed");
+        }
+        if (payoutKey != address(0)) {
+            emit PayoutKeyChanged(payoutKey, _key, "removed");
+        }
     }
 
     function _removeVotingKey(address _miningKey) private {
         require(initDisabled());
-        require(isVotingActiveByMiningKey(_miningKey));
+        if (!isVotingActiveByMiningKey(_miningKey)) return;
         address oldVoting = getVotingByMining(_miningKey);
         _setVotingKey(address(0), _miningKey);
         _setIsVotingActive(false, _miningKey);
@@ -455,7 +463,7 @@ contract KeysManager is EternalStorage, IKeysManager {
 
     function _removePayoutKey(address _miningKey) private {
         require(initDisabled());
-        require(isPayoutActive(_miningKey));
+        if (!isPayoutActive(_miningKey)) return;
         address oldPayout = getPayoutByMining(_miningKey);
         _setPayoutKey(address(0), _miningKey);
         _setIsPayoutActive(false, _miningKey);

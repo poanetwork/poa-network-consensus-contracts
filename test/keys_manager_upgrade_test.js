@@ -302,7 +302,6 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(accounts[2], accounts[1]).should.be.rejectedWith(ERROR_MSG);
     })
-
     it('swaps keys if voting already exists', async () => {
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(accounts[2], accounts[1]).should.be.fulfilled;
@@ -395,14 +394,20 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       logs[0].event.should.be.equal('MiningKeyChanged');
       logs[0].args.key.should.be.equal(accounts[1]);
       logs[0].args.action.should.be.equal('removed');
+      logs[1].event.should.be.equal('VotingKeyChanged');
+      logs[1].args.key.should.be.equal(accounts[3]);
+      logs[1].args.miningKey.should.be.equal(accounts[1]);
+      logs[1].args.action.should.be.equal('removed');
       (await keysManager.getMiningKeyByVoting.call(validator[0])).should.be.equal(
         '0x0000000000000000000000000000000000000000'
       );
       (await keysManager.miningKeyByPayout.call(validator[1])).should.be.equal(
         '0x0000000000000000000000000000000000000000'
       );
+      const result = await keysManager.removeVotingKey(accounts[1]).should.be.fulfilled;
+      result.logs.length.should.be.equal(0);
     })
-    
+  
     it('removes validator from poaConsensus', async () => {
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
@@ -481,13 +486,18 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       await keysManager.setInitEnabled().should.be.fulfilled;
       await keysManager.removeVotingKey(mining).should.be.rejectedWith(ERROR_MSG);
     });
-    it('may only be called for active voting key', async () => {
+    it('should be successful only for active voting key', async () => {
       const {mining, voting, payout} = {mining: accounts[1], voting: accounts[3], payout: accounts[2]};
       await keysManager.addMiningKey(mining).should.be.fulfilled;
       await keysManager.addPayoutKey(payout, mining).should.be.fulfilled;
-      await keysManager.removeVotingKey(mining).should.be.rejectedWith(ERROR_MSG);
+      const result = await keysManager.removeVotingKey(mining).should.be.fulfilled;
+      result.logs.length.should.be.equal(0);
       await keysManager.addVotingKey(voting, mining).should.be.fulfilled;
-      await keysManager.removeVotingKey(mining).should.be.fulfilled;
+      const {logs} = await keysManager.removeVotingKey(mining).should.be.fulfilled;
+      logs[0].event.should.be.equal('VotingKeyChanged');
+      logs[0].args.key.should.be.equal(voting);
+      logs[0].args.miningKey.should.be.equal(mining);
+      logs[0].args.action.should.be.equal('removed');
     });
     it('should remove votingKey', async () => {
       const {mining, voting, payout} = {mining: accounts[1], voting: accounts[3], payout: accounts[2]};
@@ -520,12 +530,17 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       await keysManager.setInitEnabled().should.be.fulfilled;
       await keysManager.removePayoutKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
     });
-    it('may only be called for active payout key', async () => {
+    it('should be successful only for active payout key', async () => {
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
       await keysManager.addVotingKey(accounts[3], accounts[1]).should.be.fulfilled;
-      await keysManager.removePayoutKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
+      const result = await keysManager.removePayoutKey(accounts[1]).should.be.fulfilled;
+      result.logs.length.should.be.equal(0);
       await keysManager.addPayoutKey(accounts[2], accounts[1]).should.be.fulfilled;
-      await keysManager.removePayoutKey(accounts[1]).should.be.fulfilled;
+      const {logs} = await keysManager.removePayoutKey(accounts[1]).should.be.fulfilled;
+      logs[0].event.should.be.equal('PayoutKeyChanged');
+      logs[0].args.key.should.be.equal(accounts[2]);
+      logs[0].args.miningKey.should.be.equal(accounts[1]);
+      logs[0].args.action.should.be.equal('removed');
     });
     it('should remove payoutKey', async () => {
       await keysManager.removePayoutKey(accounts[1], {from: accounts[4]}).should.be.rejectedWith(ERROR_MSG);
