@@ -129,6 +129,38 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         return ballotId;
     }
 
+    function getBallotInfo(uint256 _id) public view returns(
+        uint256 startTime,
+        uint256 endTime,
+        address affectedKey,
+        uint256 affectedKeyType,
+        address newVotingKey,
+        address newPayoutKey,
+        address miningKey,
+        uint256 totalVoters,
+        int256 progress,
+        bool isFinalized,
+        uint256 ballotType,
+        address creator,
+        string memo,
+        bool canBeFinalizedNow
+    ) {
+        startTime = getStartTime(_id);
+        endTime = getEndTime(_id);
+        affectedKey = getAffectedKey(_id);
+        affectedKeyType = getAffectedKeyType(_id);
+        newVotingKey = getNewVotingKey(_id);
+        newPayoutKey = getNewPayoutKey(_id);
+        miningKey = getMiningKey(_id);
+        totalVoters = getTotalVoters(_id);
+        progress = getProgress(_id);
+        isFinalized = getIsFinalized(_id);
+        ballotType = getBallotType(_id);
+        creator = getCreator(_id);
+        memo = getMemo(_id);
+        canBeFinalizedNow = this.canBeFinalizedNow(_id);
+    }
+
     function getAffectedKey(uint256 _id) public view returns(address) {
         return addressStorage[
             keccak256(abi.encodePacked(VOTING_STATE, _id, AFFECTED_KEY))

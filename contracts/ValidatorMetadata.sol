@@ -64,6 +64,14 @@ contract ValidatorMetadata is EternalStorage {
         return addressStorage[PENDING_PROXY_STORAGE];
     }
 
+    function getValidatorName(address _miningKey) public view returns (
+        bytes32 firstName,
+        bytes32 lastName
+    ) {
+        firstName = _getFirstName(false, _miningKey);
+        lastName = _getLastName(false, _miningKey);
+    }
+
     function validators(address _miningKey) public view returns (
         bytes32 firstName,
         bytes32 lastName,

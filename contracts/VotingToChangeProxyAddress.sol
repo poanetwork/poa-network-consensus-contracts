@@ -28,6 +28,32 @@ contract VotingToChangeProxyAddress is IVotingToChangeProxyAddress, VotingToChan
         _setContractType(ballotId, _contractType);
     }
 
+    function getBallotInfo(uint256 _id, address _votingKey) public view returns(
+        uint256 startTime,
+        uint256 endTime,
+        uint256 totalVoters,
+        int256 progress,
+        bool isFinalized,
+        address proposedValue,
+        uint256 contractType,
+        address creator,
+        string memo,
+        bool canBeFinalizedNow,
+        bool hasAlreadyVoted
+    ) {
+        startTime = getStartTime(_id);
+        endTime = getEndTime(_id);
+        totalVoters = getTotalVoters(_id);
+        progress = getProgress(_id);
+        isFinalized = getIsFinalized(_id);
+        proposedValue = getProposedValue(_id);
+        contractType = getContractType(_id);
+        creator = getCreator(_id);
+        memo = getMemo(_id);
+        canBeFinalizedNow = this.canBeFinalizedNow(_id);
+        hasAlreadyVoted = this.hasAlreadyVoted(_id, _votingKey);
+    }
+
     function getContractType(uint256 _id) public view returns(uint256) {
         return uintStorage[
             keccak256(abi.encodePacked(VOTING_STATE, _id, CONTRACT_TYPE))
