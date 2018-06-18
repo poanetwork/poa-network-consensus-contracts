@@ -37,31 +37,11 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function canBeFinalizedNow(uint256 _id) public view returns(bool) {
-        uint256 currentTime = getTime();
-        uint256 startTime = getStartTime(_id);
-
-        if (_id >= nextBallotId()) return false;
-        if (startTime > currentTime) return false;
-        if (getIsFinalized(_id)) return false;
-        
-        uint256 validatorsLength = IPoaNetworkConsensus(
-            IProxyStorage(proxyStorage()).getPoaConsensus()
-        ).getCurrentValidatorsLengthWithoutMoC();
-
-        if (validatorsLength == 0) {
-            return false;
-        }
-        
-        if (getTotalVoters(_id) < validatorsLength) {
-            return !isActive(_id);
-        }
-
-        uint256 diffTime = currentTime.sub(startTime);
-        return diffTime > minBallotDuration();
+        return _canBeFinalizedNow(_id);
     }
 
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
-        require(canBeFinalizedNow(_id));
+        require(_canBeFinalizedNow(_id));
         _finalizeBallot(_id);
     }
 
@@ -172,6 +152,30 @@ contract VotingToChange is IVotingToChange, VotingTo {
 
     function _activeBallotsSet(uint256 _index, uint256 _id) internal {
         uintArrayStorage[ACTIVE_BALLOTS][_index] = _id;
+    }
+
+    function _canBeFinalizedNow(uint256 _id) internal view returns(bool) {
+        uint256 currentTime = getTime();
+        uint256 startTime = getStartTime(_id);
+
+        if (_id >= nextBallotId()) return false;
+        if (startTime > currentTime) return false;
+        if (getIsFinalized(_id)) return false;
+        
+        uint256 validatorsLength = IPoaNetworkConsensus(
+            IProxyStorage(proxyStorage()).getPoaConsensus()
+        ).getCurrentValidatorsLengthWithoutMoC();
+
+        if (validatorsLength == 0) {
+            return false;
+        }
+        
+        if (getTotalVoters(_id) < validatorsLength) {
+            return !isActive(_id);
+        }
+
+        uint256 diffTime = currentTime.sub(startTime);
+        return diffTime > minBallotDuration();
     }
 
     function _createBallot(

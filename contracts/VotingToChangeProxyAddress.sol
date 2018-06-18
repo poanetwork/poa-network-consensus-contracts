@@ -50,7 +50,7 @@ contract VotingToChangeProxyAddress is IVotingToChangeProxyAddress, VotingToChan
         contractType = getContractType(_id);
         creator = getCreator(_id);
         memo = getMemo(_id);
-        canBeFinalizedNow = this.canBeFinalizedNow(_id);
+        canBeFinalizedNow = _canBeFinalizedNow(_id);
         hasAlreadyVoted = this.hasAlreadyVoted(_id, _votingKey);
     }
 

@@ -48,7 +48,7 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
         proposedValue = getProposedValue(_id);
         creator = getCreator(_id);
         memo = getMemo(_id);
-        canBeFinalizedNow = this.canBeFinalizedNow(_id);
+        canBeFinalizedNow = _canBeFinalizedNow(_id);
         hasAlreadyVoted = this.hasAlreadyVoted(_id, _votingKey);
     }
 
