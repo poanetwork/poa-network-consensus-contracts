@@ -158,7 +158,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         ballotType = getBallotType(_id);
         creator = getCreator(_id);
         memo = getMemo(_id);
-        canBeFinalizedNow = this.canBeFinalizedNow(_id);
+        canBeFinalizedNow = _canBeFinalizedNow(_id);
     }
 
     function getAffectedKey(uint256 _id) public view returns(address) {
