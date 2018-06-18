@@ -92,6 +92,32 @@ contract VotingToManageEmissionFunds is VotingTo {
         return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, AMOUNT))];
     }
 
+    function getBallotInfo(uint256 _id, address _votingKey) public view returns(
+        uint256 startTime,
+        uint256 endTime,
+        bool isFinalized,
+        address creator,
+        string memo,
+        bool hasAlreadyVoted,
+        uint256 amount,
+        uint256 burnVotes,
+        uint256 freezeVotes,
+        uint256 sendVotes,
+        address receiver
+    ) {
+        startTime = getStartTime(_id);
+        endTime = getEndTime(_id);
+        isFinalized = getIsFinalized(_id);
+        creator = getCreator(_id);
+        memo = getMemo(_id);
+        hasAlreadyVoted = this.hasAlreadyVoted(_id, _votingKey);
+        amount = getAmount(_id);
+        burnVotes = getBurnVotes(_id);
+        freezeVotes = getFreezeVotes(_id);
+        sendVotes = getSendVotes(_id);
+        receiver = getReceiver(_id);
+    }
+
     function getBurnVotes(uint256 _id) public view returns(uint256) {
         return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, BURN_VOTES))];
     }
