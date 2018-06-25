@@ -64,7 +64,13 @@ async function call(method, from, to, key, chainId) {
 
 	const serializedTx = tx.serialize();
 
-	return web3.eth.sendSignedTransaction("0x" + serializedTx.toString('hex'));
+	const result = await web3.eth.sendSignedTransaction("0x" + serializedTx.toString('hex'));
+
+	if (!result.status) {
+		throw new Error("transaction status is false");
+	}
+
+	return result;
 }
 
 async function readPrivateKey() {
