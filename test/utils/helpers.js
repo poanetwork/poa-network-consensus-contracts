@@ -14,6 +14,10 @@ async function addValidators({
   await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
 }
 
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
+}
+
 let arrayOfHundredAddresses = [
   "0xa6Bf70bd230867c870eF13631D7EFf1AE8Ab85c9",
   "0x00b5F428905DEA1a67940093fFeaCeee58cA91Ae",
@@ -116,4 +120,6 @@ let arrayOfHundredAddresses = [
   "0xA95C3543636F5d62Accf8d2B8Ae06bca1aDf679F",
   "0x4209C9eA64fb4fA437eb950B3839a43C99d96c06",
 ]
+
 exports.addValidators = addValidators;
+exports.getRandomInt = getRandomInt;
