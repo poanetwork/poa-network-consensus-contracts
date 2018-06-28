@@ -26,137 +26,147 @@ module.exports = function(deployer, network, accounts) {
 
     const minBallotDuration = demoMode ? 0 : 172800;
 
-    try {
-      deployer.then(function() {
-        if (!!process.env.DEPLOY_POA === true) {
-          poaNetworkConsensus = PoaNetworkConsensus.at(poaNetworkConsensusAddress);
-          let validators = poaNetworkConsensus.getValidators.call();
-          let moc = validators.indexOf(masterOfCeremony.toLowerCase())
-          if (moc > -1) {
-            validators.splice(moc, 1);
-          }
-
-          return PoaNetworkConsensus.new(masterOfCeremony, validators);
+    deployer.then(async function() {
+      if (!!process.env.DEPLOY_POA === true) {
+        poaNetworkConsensus = PoaNetworkConsensus.at(poaNetworkConsensusAddress);
+        let validators = await poaNetworkConsensus.getValidators.call();
+        const mocIndex = validators.indexOf(masterOfCeremony.toLowerCase())
+        if (mocIndex > -1) {
+          validators.splice(mocIndex, 1);
         }
 
-        return PoaNetworkConsensus.at(poaNetworkConsensusAddress);
-      }).then(function(instance) {
-        poaNetworkConsensus = instance;
-        if (!!process.env.DEPLOY_POA === true) {
-          console.log(poaNetworkConsensus.address);
-        }
+        poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, validators);
         poaNetworkConsensusAddress = poaNetworkConsensus.address;
+      } else {
+        poaNetworkConsensus = PoaNetworkConsensus.at(poaNetworkConsensusAddress);
+      }
 
-        return ProxyStorage.new();
-      }).then(function(instance) {
-        proxyStorageImplAddress = instance.address;
-        return EternalStorageProxy.new(
-          "0x0000000000000000000000000000000000000000",
-          instance.address
-        );
-      }).then(function(instance) {
-        proxyStorage = ProxyStorage.at(instance.address);
-        return proxyStorage.init(poaNetworkConsensusAddress);
-      }).then(function() {
-        return KeysManager.new();
-      }).then(function(instance) {
-        keysManagerImplAddress = instance.address;
-        return EternalStorageProxy.new(proxyStorage.address, instance.address);
-      }).then(function(instance) {
-        keysManager = KeysManager.at(instance.address);
-        return keysManager.init(previousKeysManager);
-      }).then(function() {
-        return BallotsStorage.new();
-      }).then(function(instance) {
-        ballotsStorageImplAddress = instance.address;
-        return EternalStorageProxy.new(proxyStorage.address, instance.address);
-      }).then(function(instance) {
-        ballotsStorage = BallotsStorage.at(instance.address);
-        if (demoMode) {
-          return ballotsStorage.init([1, 1]);
-        } else {
-          return ballotsStorage.init([3, 2]);
-        }
-      }).then(function() {
-        return ValidatorMetadata.new();
-      }).then(function(instance) {
-        validatorMetadataImplAddress = instance.address;
-        return EternalStorageProxy.new(proxyStorage.address, instance.address);
-      }).then(function(instance) {
-        validatorMetadata = ValidatorMetadata.at(instance.address);
-        return VotingToChangeKeys.new();
-      }).then(function(instance) {
-        votingToChangeKeysImplAddress = instance.address;
-        return EternalStorageProxy.new(proxyStorage.address, instance.address);
-      }).then(function(instance) {
-        votingToChangeKeys = VotingToChangeKeys.at(instance.address);
-        return votingToChangeKeys.init(minBallotDuration);
-      }).then(function() {
-        return VotingToChangeMinThreshold.new();
-      }).then(function(instance) {
-        votingToChangeMinThresholdImplAddress = instance.address;
-        return EternalStorageProxy.new(proxyStorage.address, instance.address);
-      }).then(function(instance) {
-        votingToChangeMinThreshold = VotingToChangeMinThreshold.at(instance.address);
-        return votingToChangeMinThreshold.init(minBallotDuration, demoMode ? 1 : 3);
-      }).then(function() {
-        return VotingToChangeProxyAddress.new();
-      }).then(function(instance) {
-        votingToChangeProxyAddressImplAddress = instance.address;
-        return EternalStorageProxy.new(proxyStorage.address, instance.address);
-      }).then(function(instance) {
-        votingToChangeProxyAddress = VotingToChangeProxyAddress.at(instance.address);
-        return votingToChangeProxyAddress.init(minBallotDuration);
-      }).then(function() {
-        return proxyStorage.initializeAddresses(
-          keysManager.address,
-          votingToChangeKeys.address,
-          votingToChangeMinThreshold.address,
-          votingToChangeProxyAddress.address,
-          ballotsStorage.address,
-          validatorMetadata.address
-        );
-      }).then(function() {
-        return poaNetworkConsensus.setProxyStorage(proxyStorage.address);
-      }).then(function() {
-        if (!!process.env.SAVE_TO_FILE === true) {
-          const contracts = {
-            "VOTING_TO_CHANGE_KEYS_ADDRESS": votingToChangeKeys.address,
-            "VOTING_TO_CHANGE_MIN_THRESHOLD_ADDRESS": votingToChangeMinThreshold.address,
-            "VOTING_TO_CHANGE_PROXY_ADDRESS": votingToChangeProxyAddress.address,
-            "BALLOTS_STORAGE_ADDRESS": ballotsStorage.address,
-            "KEYS_MANAGER_ADDRESS": keysManager.address,
-            "METADATA_ADDRESS": validatorMetadata.address,
-            "PROXY_ADDRESS": proxyStorage.address
-          };
+      // Deploy ProxyStorage
+      proxyStorage = await ProxyStorage.new();
+      proxyStorageImplAddress = proxyStorage.address;
+      proxyStorage = await EternalStorageProxy.new(
+        "0x0000000000000000000000000000000000000000",
+        proxyStorageImplAddress
+      );
+      proxyStorage = ProxyStorage.at(proxyStorage.address);
+      await proxyStorage.init(poaNetworkConsensusAddress);
+      await poaNetworkConsensus.setProxyStorage(proxyStorage.address);
 
-          fs.writeFileSync('./contracts.json', JSON.stringify(contracts, null, 2));
-        }
+      // Deploy KeysManager
+      keysManager = await KeysManager.new();
+      keysManagerImplAddress = keysManager.address;
+      keysManager = await EternalStorageProxy.new(
+        proxyStorage.address,
+        keysManagerImplAddress
+      );
+      keysManager = KeysManager.at(keysManager.address);
+      await keysManager.init(previousKeysManager);
+      
+      // Deploy BallotsStorage
+      ballotsStorage = await BallotsStorage.new();
+      ballotsStorageImplAddress = ballotsStorage.address;
+      ballotsStorage = await EternalStorageProxy.new(
+        proxyStorage.address,
+        ballotsStorageImplAddress
+      );
+      ballotsStorage = BallotsStorage.at(ballotsStorage.address);
+      if (demoMode) {
+        await ballotsStorage.init([1, 1]);
+      } else {
+        await ballotsStorage.init([3, 2]);
+      }
 
-        console.log('Done')
-        console.log(
-          'ADDRESSES:',
-          `
-  VotingToChangeKeys.address (implementation) ${votingToChangeKeysImplAddress} \n
-  VotingToChangeKeys.address (storage) ${votingToChangeKeys.address} \n
-  VotingToChangeMinThreshold.address (implementation) ${votingToChangeMinThresholdImplAddress} \n
-  VotingToChangeMinThreshold.address (storage) ${votingToChangeMinThreshold.address} \n
-  VotingToChangeProxyAddress.address (implementation) ${votingToChangeProxyAddressImplAddress} \n
-  VotingToChangeProxyAddress.address (storage) ${votingToChangeProxyAddress.address} \n
-  BallotsStorage.address (implementation) ${ballotsStorageImplAddress} \n
-  BallotsStorage.address (storage) ${ballotsStorage.address} \n
-  KeysManager.address (implementation) ${keysManagerImplAddress} \n
-  KeysManager.address (storage) ${keysManager.address} \n
-  ValidatorMetadata.address (implementation) ${validatorMetadataImplAddress} \n
-  ValidatorMetadata.address (storage) ${validatorMetadata.address} \n
-  ProxyStorage.address (implementation) ${proxyStorageImplAddress} \n
-  ProxyStorage.address (storage) ${proxyStorage.address} \n
-          `
-        );
-      });
-    } catch (error) {
+      // Deploy ValidatorMetadata
+      validatorMetadata = await ValidatorMetadata.new();
+      validatorMetadataImplAddress = validatorMetadata.address;
+      validatorMetadata = await EternalStorageProxy.new(
+        proxyStorage.address,
+        validatorMetadataImplAddress
+      );
+      validatorMetadata = ValidatorMetadata.at(validatorMetadata.address);
+
+      // Deploy VotingToChangeKeys
+      votingToChangeKeys = await VotingToChangeKeys.new();
+      votingToChangeKeysImplAddress = votingToChangeKeys.address;
+      votingToChangeKeys = await EternalStorageProxy.new(
+        proxyStorage.address,
+        votingToChangeKeysImplAddress
+      );
+      votingToChangeKeys = VotingToChangeKeys.at(votingToChangeKeys.address);
+      await votingToChangeKeys.init(minBallotDuration);
+
+      // Deploy VotingToChangeMinThreshold
+      votingToChangeMinThreshold = await VotingToChangeMinThreshold.new();
+      votingToChangeMinThresholdImplAddress = votingToChangeMinThreshold.address;
+      votingToChangeMinThreshold = await EternalStorageProxy.new(
+        proxyStorage.address,
+        votingToChangeMinThresholdImplAddress
+      );
+      votingToChangeMinThreshold = VotingToChangeMinThreshold.at(
+        votingToChangeMinThreshold.address
+      );
+      await votingToChangeMinThreshold.init(minBallotDuration, demoMode ? 1 : 3);
+
+      // Deploy VotingToChangeProxyAddress
+      votingToChangeProxyAddress = await VotingToChangeProxyAddress.new();
+      votingToChangeProxyAddressImplAddress = votingToChangeProxyAddress.address;
+      votingToChangeProxyAddress = await EternalStorageProxy.new(
+        proxyStorage.address,
+        votingToChangeProxyAddressImplAddress
+      );
+      votingToChangeProxyAddress = VotingToChangeProxyAddress.at(
+        votingToChangeProxyAddress.address
+      );
+      await votingToChangeProxyAddress.init(minBallotDuration);
+
+      // Initialize ProxyStorage
+      await proxyStorage.initializeAddresses(
+        keysManager.address,
+        votingToChangeKeys.address,
+        votingToChangeMinThreshold.address,
+        votingToChangeProxyAddress.address,
+        ballotsStorage.address,
+        validatorMetadata.address
+      );
+
+      if (!!process.env.SAVE_TO_FILE === true) {
+        const contracts = {
+          "VOTING_TO_CHANGE_KEYS_ADDRESS": votingToChangeKeys.address,
+          "VOTING_TO_CHANGE_MIN_THRESHOLD_ADDRESS": votingToChangeMinThreshold.address,
+          "VOTING_TO_CHANGE_PROXY_ADDRESS": votingToChangeProxyAddress.address,
+          "BALLOTS_STORAGE_ADDRESS": ballotsStorage.address,
+          "KEYS_MANAGER_ADDRESS": keysManager.address,
+          "METADATA_ADDRESS": validatorMetadata.address,
+          "PROXY_ADDRESS": proxyStorage.address,
+          "POA_ADDRESS": poaNetworkConsensusAddress
+        };
+
+        fs.writeFileSync('./contracts.json', JSON.stringify(contracts, null, 2));
+      }
+
+      console.log(
+        '\nDone. ADDRESSES:',
+        `
+  VotingToChangeKeys.address (implementation) ....... ${votingToChangeKeysImplAddress}
+  VotingToChangeKeys.address (storage) .............. ${votingToChangeKeys.address}
+  VotingToChangeMinThreshold.address (implementation) ${votingToChangeMinThresholdImplAddress}
+  VotingToChangeMinThreshold.address (storage) ...... ${votingToChangeMinThreshold.address}
+  VotingToChangeProxyAddress.address (implementation) ${votingToChangeProxyAddressImplAddress}
+  VotingToChangeProxyAddress.address (storage) ...... ${votingToChangeProxyAddress.address}
+  BallotsStorage.address (implementation) ........... ${ballotsStorageImplAddress}
+  BallotsStorage.address (storage) .................. ${ballotsStorage.address}
+  KeysManager.address (implementation) .............. ${keysManagerImplAddress}
+  KeysManager.address (storage) ..................... ${keysManager.address}
+  ValidatorMetadata.address (implementation) ........ ${validatorMetadataImplAddress}
+  ValidatorMetadata.address (storage) ............... ${validatorMetadata.address}
+  ProxyStorage.address (implementation) ............. ${proxyStorageImplAddress}
+  ProxyStorage.address (storage) .................... ${proxyStorage.address}
+  PoaNetworkConsensus.address ....................... ${poaNetworkConsensusAddress}
+        `
+      );
+    }).catch(function(error) {
       console.error(error);
-    }
+    });
   }
 };
 
