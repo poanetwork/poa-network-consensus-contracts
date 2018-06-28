@@ -4,6 +4,7 @@ const EternalStorageProxy = artifacts.require('./mockContracts/EternalStoragePro
 const KeysManager = artifacts.require('./mockContracts/KeysManagerMock');
 const PoaNetworkConsensus = artifacts.require('./mockContracts/PoaNetworkConsensusMock');
 const ProxyStorage = artifacts.require('./mockContracts/ProxyStorageMock');
+const {getRandomInt} = require('./utils/helpers');
 
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 
@@ -11,8 +12,6 @@ require('chai')
   .use(require('chai-as-promised'))
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
-
-const {getRandomInt} = require('./utils/helpers')
 
 contract('BlockReward [all features]', function (accounts) {
   let poaNetworkConsensus, proxyStorage, keysManager, emissionFunds, blockReward;
@@ -27,7 +26,7 @@ contract('BlockReward [all features]', function (accounts) {
   const payoutKey3 = accounts[6];
   const systemAddress = accounts[7];
   const votingToChangeKeys = accounts[9];
-  const hbbftTimeThreshold = 5;
+  const rbtThreshold = 5; // rewardByTime threshold
   
   beforeEach(async () => {
     poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []);
@@ -74,7 +73,7 @@ contract('BlockReward [all features]', function (accounts) {
       emissionFunds.address,
       blockRewardAmount,
       emissionFundsAmount,
-      hbbftTimeThreshold
+      rbtThreshold
     ).should.be.rejectedWith(ERROR_MSG);
 
     await BlockReward.new(
@@ -82,7 +81,7 @@ contract('BlockReward [all features]', function (accounts) {
       emissionFunds.address,
       0,
       emissionFundsAmount,
-      hbbftTimeThreshold
+      rbtThreshold
     ).should.be.rejectedWith(ERROR_MSG);
 
     blockReward = await BlockReward.new(
@@ -90,7 +89,7 @@ contract('BlockReward [all features]', function (accounts) {
       emissionFunds.address,
       blockRewardAmount,
       emissionFundsAmount,
-      hbbftTimeThreshold
+      rbtThreshold
     ).should.be.fulfilled;
   });
 
@@ -108,7 +107,7 @@ contract('BlockReward [all features]', function (accounts) {
       emissionFundsAmount.should.be.bignumber.equal(
         await blockReward.emissionFundsAmount.call()
       );
-      (await blockReward.hbbftTimeThreshold.call()).should.be.bignumber.equal(hbbftTimeThreshold);
+      (await blockReward.rbtThreshold.call()).should.be.bignumber.equal(rbtThreshold);
     });
   });
 
@@ -199,7 +198,7 @@ contract('BlockReward [all features]', function (accounts) {
         emissionFunds.address,
         blockRewardAmount,
         0,
-        hbbftTimeThreshold
+        rbtThreshold
       ).should.be.fulfilled;
 
       await blockReward.setSystemAddress(systemAddress);
@@ -217,11 +216,11 @@ contract('BlockReward [all features]', function (accounts) {
     });
   });
 
-  describe('#rewardHBBFT', async () => {
+  describe('#rewardByTime', async () => {
     it('may be called only by system address', async () => {
-      await blockReward.rewardHBBFT().should.be.rejectedWith(ERROR_MSG);
+      await blockReward.rewardByTime().should.be.rejectedWith(ERROR_MSG);
       await blockReward.setSystemAddress(systemAddress);
-      await blockReward.rewardHBBFT({from: systemAddress}).should.be.fulfilled;
+      await blockReward.rewardByTime({from: systemAddress}).should.be.fulfilled;
     });
 
     it('should assign rewards to payout keys and EmissionFunds', async () => {
@@ -229,25 +228,25 @@ contract('BlockReward [all features]', function (accounts) {
       let result;
       
       await blockReward.setTime(100);
-      result = await blockReward.rewardHBBFT({from: systemAddress}).should.be.fulfilled;
+      result = await blockReward.rewardByTime({from: systemAddress}).should.be.fulfilled;
       result.logs[0].event.should.be.equal('Rewarded');
       result.logs[0].args.receivers.should.be.deep.equal([masterOfCeremony, emissionFunds.address]);
       result.logs[0].args.rewards[0].toString().should.be.equal(blockRewardAmount.toString());
       result.logs[0].args.rewards[1].toString().should.be.equal(emissionFundsAmount.toString());
-      (await blockReward.hbbftLastTime.call()).should.be.bignumber.equal(100);
-      (await blockReward.hbbftKeyIndex.call()).should.be.bignumber.equal(1);
+      (await blockReward.rbtLastTime.call()).should.be.bignumber.equal(100);
+      (await blockReward.rbtKeyIndex.call()).should.be.bignumber.equal(1);
 
       await blockReward.setTime(107);
-      result = await blockReward.rewardHBBFT({from: systemAddress}).should.be.fulfilled;
+      result = await blockReward.rewardByTime({from: systemAddress}).should.be.fulfilled;
       result.logs[0].event.should.be.equal('Rewarded');
       result.logs[0].args.receivers.should.be.deep.equal([payoutKey, emissionFunds.address]);
       result.logs[0].args.rewards[0].toString().should.be.equal(blockRewardAmount.toString());
       result.logs[0].args.rewards[1].toString().should.be.equal(emissionFundsAmount.toString());
-      (await blockReward.hbbftLastTime.call()).should.be.bignumber.equal(100 + hbbftTimeThreshold);
-      (await blockReward.hbbftKeyIndex.call()).should.be.bignumber.equal(2);
+      (await blockReward.rbtLastTime.call()).should.be.bignumber.equal(100 + rbtThreshold);
+      (await blockReward.rbtKeyIndex.call()).should.be.bignumber.equal(2);
 
       await blockReward.setTime(123);
-      result = await blockReward.rewardHBBFT({from: systemAddress}).should.be.fulfilled;
+      result = await blockReward.rewardByTime({from: systemAddress}).should.be.fulfilled;
       result.logs[0].event.should.be.equal('Rewarded');
       result.logs[0].args.receivers.should.be.deep.equal([
         payoutKey2,
@@ -259,10 +258,10 @@ contract('BlockReward [all features]', function (accounts) {
       result.logs[0].args.rewards[1].toString().should.be.equal(blockRewardAmount.toString());
       result.logs[0].args.rewards[2].toString().should.be.equal(blockRewardAmount.toString());
       result.logs[0].args.rewards[3].toString().should.be.equal((emissionFundsAmount * 3).toString());
-      let hbbftLastTime = 100 + hbbftTimeThreshold * 4;
-      let hbbftKeyIndex = 1;
-      (await blockReward.hbbftLastTime.call()).should.be.bignumber.equal(hbbftLastTime);
-      (await blockReward.hbbftKeyIndex.call()).should.be.bignumber.equal(hbbftKeyIndex);
+      let rbtLastTime = 100 + rbtThreshold * 4;
+      let rbtKeyIndex = 1;
+      (await blockReward.rbtLastTime.call()).should.be.bignumber.equal(rbtLastTime);
+      (await blockReward.rbtKeyIndex.call()).should.be.bignumber.equal(rbtKeyIndex);
 
       const keysArray = [
         masterOfCeremony,
@@ -271,28 +270,28 @@ contract('BlockReward [all features]', function (accounts) {
         payoutKey3
       ];
 
-      (await blockReward.getHBBFTPayoutKeys.call()).should.be.deep.equal(keysArray);
+      (await blockReward.getRewardByTimePayoutKeys.call()).should.be.deep.equal(keysArray);
 
       for (let k = 0; k < 10; k++) {
-        const time = getRandomInt(hbbftLastTime + 4, hbbftLastTime + 81);
+        const time = getRandomInt(rbtLastTime + 4, rbtLastTime + 81);
         //console.log('time = ' + time);
-        const receiversCount = Math.floor((time - hbbftLastTime) / hbbftTimeThreshold);
+        const receiversCount = Math.floor((time - rbtLastTime) / rbtThreshold);
         let receivers = [];
         await blockReward.setTime(time);
-        result = await blockReward.rewardHBBFT({from: systemAddress}).should.be.fulfilled;
+        result = await blockReward.rewardByTime({from: systemAddress}).should.be.fulfilled;
         result.logs[0].event.should.be.equal('Rewarded');
         let i, n;
-        for (i = hbbftKeyIndex, n = 0; n < receiversCount; i++, n++) {
+        for (i = rbtKeyIndex, n = 0; n < receiversCount; i++, n++) {
           receivers.push(keysArray[i % keysArray.length]);
           result.logs[0].args.rewards[n].toString().should.be.equal(blockRewardAmount.toString());
         }
         receivers.push(emissionFunds.address);
         result.logs[0].args.receivers.should.be.deep.equal(receivers);
         result.logs[0].args.rewards[n].toString().should.be.equal((emissionFundsAmount * receiversCount).toString());
-        hbbftLastTime = hbbftLastTime + hbbftTimeThreshold * receiversCount;
-        hbbftKeyIndex = i % keysArray.length;
-        (await blockReward.hbbftLastTime.call()).should.be.bignumber.equal(hbbftLastTime);
-        (await blockReward.hbbftKeyIndex.call()).should.be.bignumber.equal(hbbftKeyIndex);
+        rbtLastTime = rbtLastTime + rbtThreshold * receiversCount;
+        rbtKeyIndex = i % keysArray.length;
+        (await blockReward.rbtLastTime.call()).should.be.bignumber.equal(rbtLastTime);
+        (await blockReward.rbtKeyIndex.call()).should.be.bignumber.equal(rbtKeyIndex);
       }
     });
 
@@ -301,15 +300,15 @@ contract('BlockReward [all features]', function (accounts) {
       let result;
       
       await blockReward.setTime(100);
-      result = await blockReward.rewardHBBFT({from: systemAddress}).should.be.fulfilled;
+      result = await blockReward.rewardByTime({from: systemAddress}).should.be.fulfilled;
       result.logs[0].event.should.be.equal('Rewarded');
       result.logs[0].args.receivers.should.be.deep.equal([masterOfCeremony, emissionFunds.address]);
       result.logs[0].args.rewards[0].toString().should.be.equal(blockRewardAmount.toString());
       result.logs[0].args.rewards[1].toString().should.be.equal(emissionFundsAmount.toString());
-      (await blockReward.hbbftLastTime.call()).should.be.bignumber.equal(100);
-      (await blockReward.hbbftKeyIndex.call()).should.be.bignumber.equal(1);
+      (await blockReward.rbtLastTime.call()).should.be.bignumber.equal(100);
+      (await blockReward.rbtKeyIndex.call()).should.be.bignumber.equal(1);
 
-      (await blockReward.getHBBFTPayoutKeys.call()).should.be.deep.equal([
+      (await blockReward.getRewardByTimePayoutKeys.call()).should.be.deep.equal([
         masterOfCeremony,
         payoutKey,
         payoutKey2,
@@ -319,7 +318,7 @@ contract('BlockReward [all features]', function (accounts) {
       await poaNetworkConsensus.setSystemAddress(coinbase);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
-      (await blockReward.getHBBFTPayoutKeys.call()).should.be.deep.equal([
+      (await blockReward.getRewardByTimePayoutKeys.call()).should.be.deep.equal([
         masterOfCeremony,
         payoutKey,
         payoutKey2,
@@ -327,15 +326,15 @@ contract('BlockReward [all features]', function (accounts) {
       ]);
 
       await blockReward.setTime(107);
-      result = await blockReward.rewardHBBFT({from: systemAddress}).should.be.fulfilled;
+      result = await blockReward.rewardByTime({from: systemAddress}).should.be.fulfilled;
       result.logs[0].event.should.be.equal('Rewarded');
       result.logs[0].args.receivers.should.be.deep.equal([payoutKey, emissionFunds.address]);
       result.logs[0].args.rewards[0].toString().should.be.equal(blockRewardAmount.toString());
       result.logs[0].args.rewards[1].toString().should.be.equal(emissionFundsAmount.toString());
-      (await blockReward.hbbftLastTime.call()).should.be.bignumber.equal(100 + hbbftTimeThreshold);
-      (await blockReward.hbbftKeyIndex.call()).should.be.bignumber.equal(2);
+      (await blockReward.rbtLastTime.call()).should.be.bignumber.equal(100 + rbtThreshold);
+      (await blockReward.rbtKeyIndex.call()).should.be.bignumber.equal(2);
 
-      (await blockReward.getHBBFTPayoutKeys.call()).should.be.deep.equal([
+      (await blockReward.getRewardByTimePayoutKeys.call()).should.be.deep.equal([
         masterOfCeremony,
         payoutKey,
         payoutKey2,
@@ -343,7 +342,7 @@ contract('BlockReward [all features]', function (accounts) {
       ]);
 
       await blockReward.setTime(123);
-      result = await blockReward.rewardHBBFT({from: systemAddress}).should.be.fulfilled;
+      result = await blockReward.rewardByTime({from: systemAddress}).should.be.fulfilled;
       result.logs[0].event.should.be.equal('Rewarded');
       result.logs[0].args.receivers.should.be.deep.equal([
         payoutKey2,
@@ -355,17 +354,17 @@ contract('BlockReward [all features]', function (accounts) {
       result.logs[0].args.rewards[1].toString().should.be.equal(blockRewardAmount.toString());
       result.logs[0].args.rewards[2].toString().should.be.equal(blockRewardAmount.toString());
       result.logs[0].args.rewards[3].toString().should.be.equal((emissionFundsAmount * 3).toString());
-      (await blockReward.hbbftLastTime.call()).should.be.bignumber.equal(100 + hbbftTimeThreshold * 4);
-      (await blockReward.hbbftKeyIndex.call()).should.be.bignumber.equal(1);
+      (await blockReward.rbtLastTime.call()).should.be.bignumber.equal(100 + rbtThreshold * 4);
+      (await blockReward.rbtKeyIndex.call()).should.be.bignumber.equal(1);
 
-      (await blockReward.getHBBFTPayoutKeys.call()).should.be.deep.equal([
+      (await blockReward.getRewardByTimePayoutKeys.call()).should.be.deep.equal([
         masterOfCeremony,
         payoutKey,
         payoutKey3
       ]);
 
       await blockReward.setTime(135);
-      result = await blockReward.rewardHBBFT({from: systemAddress}).should.be.fulfilled;
+      result = await blockReward.rewardByTime({from: systemAddress}).should.be.fulfilled;
       result.logs[0].event.should.be.equal('Rewarded');
       result.logs[0].args.receivers.should.be.deep.equal([
         payoutKey,
@@ -377,8 +376,8 @@ contract('BlockReward [all features]', function (accounts) {
       result.logs[0].args.rewards[1].toString().should.be.equal(blockRewardAmount.toString());
       result.logs[0].args.rewards[2].toString().should.be.equal(blockRewardAmount.toString());
       result.logs[0].args.rewards[3].toString().should.be.equal((emissionFundsAmount * 3).toString());
-      (await blockReward.hbbftLastTime.call()).should.be.bignumber.equal(100 + hbbftTimeThreshold * 7);
-      (await blockReward.hbbftKeyIndex.call()).should.be.bignumber.equal(1);
+      (await blockReward.rbtLastTime.call()).should.be.bignumber.equal(100 + rbtThreshold * 7);
+      (await blockReward.rbtKeyIndex.call()).should.be.bignumber.equal(1);
 
       await keysManager.addMiningKey(miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
       await keysManager.addPayoutKey(payoutKey2, miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
@@ -386,14 +385,14 @@ contract('BlockReward [all features]', function (accounts) {
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
 
-      (await blockReward.getHBBFTPayoutKeys.call()).should.be.deep.equal([
+      (await blockReward.getRewardByTimePayoutKeys.call()).should.be.deep.equal([
         masterOfCeremony,
         payoutKey,
         payoutKey3
       ]);
 
       await blockReward.setTime(147);
-      result = await blockReward.rewardHBBFT({from: systemAddress}).should.be.fulfilled;
+      result = await blockReward.rewardByTime({from: systemAddress}).should.be.fulfilled;
       result.logs[0].event.should.be.equal('Rewarded');
       result.logs[0].args.receivers.should.be.deep.equal([
         payoutKey,
@@ -401,7 +400,7 @@ contract('BlockReward [all features]', function (accounts) {
         emissionFunds.address
       ]);
 
-      (await blockReward.getHBBFTPayoutKeys.call()).should.be.deep.equal([
+      (await blockReward.getRewardByTimePayoutKeys.call()).should.be.deep.equal([
         masterOfCeremony,
         payoutKey,
         payoutKey3,
@@ -409,7 +408,7 @@ contract('BlockReward [all features]', function (accounts) {
       ]);
 
       await blockReward.setTime(166);
-      result = await blockReward.rewardHBBFT({from: systemAddress}).should.be.fulfilled;
+      result = await blockReward.rewardByTime({from: systemAddress}).should.be.fulfilled;
       result.logs[0].event.should.be.equal('Rewarded');
       result.logs[0].args.receivers.should.be.deep.equal([
         masterOfCeremony,
