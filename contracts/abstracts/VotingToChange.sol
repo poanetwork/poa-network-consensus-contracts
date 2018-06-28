@@ -83,9 +83,10 @@ contract VotingToChange is IVotingToChange, VotingTo {
 
         _setNextBallotId(prev.nextBallotId());
 
+        uint256 i;
         uint256 _activeBallotsLength = prev.activeBallotsLength();
         _activeBallotsClear();
-        for (uint256 i = 0; i < _activeBallotsLength; i++) {
+        for (i = 0; i < _activeBallotsLength; i++) {
             _activeBallotsAdd(prev.activeBallots(i));
         }
 

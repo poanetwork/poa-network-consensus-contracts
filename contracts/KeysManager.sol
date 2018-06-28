@@ -252,6 +252,11 @@ contract KeysManager is EternalStorage, IKeysManager {
         require(_miningKey != msg.sender);
         require(_votingKey != msg.sender);
         require(_payoutKey != msg.sender);
+        require(!isMiningActive(_miningKey));
+        require(miningKeyByVoting(_votingKey) == address(0));
+        require(miningKeyByPayout(_payoutKey) == address(0));
+        require(getVotingByMining(_miningKey) == address(0));
+        require(getPayoutByMining(_miningKey) == address(0));
         _setVotingKey(_votingKey, _miningKey);
         _setPayoutKey(_payoutKey, _miningKey);
         _setIsMiningActive(true, _miningKey);

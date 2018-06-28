@@ -175,7 +175,16 @@ contract('KeysManager [all features]', function (accounts) {
       await keysManager.createKeys(accounts[1], masterOfCeremony, accounts[2], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
       await keysManager.createKeys(masterOfCeremony, accounts[1], accounts[2], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
       await keysManager.createKeys(masterOfCeremony, accounts[2], accounts[1], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
-    })
+    });
+    it('should not allow passing the same key after it is already created', async () => {
+      await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.createKeys(accounts[4], accounts[3], accounts[2], {from: accounts[1]}).should.be.fulfilled;
+      await keysManager.initiateKeys(accounts[5], {from: masterOfCeremony}).should.be.fulfilled;
+      await keysManager.createKeys(accounts[8], accounts[7], accounts[2], {from: accounts[5]}).should.be.rejectedWith(ERROR_MSG);
+      await keysManager.createKeys(accounts[8], accounts[3], accounts[6], {from: accounts[5]}).should.be.rejectedWith(ERROR_MSG);
+      await keysManager.createKeys(accounts[4], accounts[7], accounts[6], {from: accounts[5]}).should.be.rejectedWith(ERROR_MSG);
+      await keysManager.createKeys(accounts[8], accounts[7], accounts[6], {from: accounts[5]}).should.be.fulfilled;
+    });
     it('should assign mining, voting, payout keys to relative mappings', async () => {
       await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
       const {logs} = await keysManager.createKeys(accounts[4], accounts[3], accounts[2], {from: accounts[1]}).should.be.fulfilled;
