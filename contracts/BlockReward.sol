@@ -20,12 +20,13 @@ contract BlockReward is IBlockReward {
     address public emissionFunds;
     IProxyStorage public proxyStorage;
 
-    uint256 public hbbftLastTime;
-    uint256 public hbbftKeyIndex;
-    uint256 public hbbftTimeThreshold;
-    address[] public hbbftPayoutKeys;
+    // for rewardByTime
+    uint256 public rbtLastTime;
+    uint256 public rbtKeyIndex;
+    uint256 public rbtThreshold;
+    address[] public rbtPayoutKeys;
 
-    event Rewarded(address[] receivers, uint256[] rewards, bool indexed isHBBFT);
+    event Rewarded(address[] receivers, uint256[] rewards, bool indexed byTime);
 
     modifier onlySystem {
         require(msg.sender == SYSTEM_ADDRESS);
@@ -37,20 +38,20 @@ contract BlockReward is IBlockReward {
         address _emissionFunds,
         uint256 _blockRewardAmount,
         uint256 _emissionFundsAmount,
-        uint256 _hbbftTimeThreshold
+        uint256 _rbtThreshold
     ) public {
         require(_proxyStorage != address(0));
         require(_blockRewardAmount != 0);
-        require(_hbbftTimeThreshold != 0);
+        require(_rbtThreshold != 0);
         proxyStorage = IProxyStorage(_proxyStorage);
         emissionFunds = _emissionFunds;
         blockRewardAmount = _blockRewardAmount;
         emissionFundsAmount = _emissionFundsAmount;
-        hbbftTimeThreshold = _hbbftTimeThreshold;
+        rbtThreshold = _rbtThreshold;
     }
 
-    function getHBBFTPayoutKeys() public view returns(address[]) {
-        return hbbftPayoutKeys;
+    function getRewardByTimePayoutKeys() public view returns(address[]) {
+        return rbtPayoutKeys;
     }
 
     function getTime() public view returns(uint256) {
@@ -85,7 +86,7 @@ contract BlockReward is IBlockReward {
         return (receivers, rewards);
     }
 
-    function rewardHBBFT()
+    function rewardByTime()
         external
         onlySystem
         returns (address[], uint256[])
@@ -96,14 +97,14 @@ contract BlockReward is IBlockReward {
         uint256 keysNumberToReward;
         uint256 n;
         
-        if (hbbftPayoutKeys.length == 0) { // the first call
-            hbbftLastTime = currentTime.sub(hbbftTimeThreshold);
-            _hbbftRefreshPayoutKeys();
+        if (rbtPayoutKeys.length == 0) { // the first call
+            rbtLastTime = currentTime.sub(rbtThreshold);
+            _rbtRefreshPayoutKeys();
         }
 
-        keysNumberToReward = currentTime.sub(hbbftLastTime).div(hbbftTimeThreshold);
+        keysNumberToReward = currentTime.sub(rbtLastTime).div(rbtThreshold);
 
-        if (keysNumberToReward == 0 || hbbftPayoutKeys.length == 0) {
+        if (keysNumberToReward == 0 || rbtPayoutKeys.length == 0) {
             receivers = new address[](0);
             rewards = new uint256[](0);
             return (receivers, rewards);
@@ -113,13 +114,13 @@ contract BlockReward is IBlockReward {
         rewards = new uint256[](receivers.length);
 
         for (n = 0; n < keysNumberToReward; n++) {
-            receivers[n] = hbbftPayoutKeys[hbbftKeyIndex];
+            receivers[n] = rbtPayoutKeys[rbtKeyIndex];
             rewards[n] = blockRewardAmount;
-            hbbftLastTime += hbbftTimeThreshold;
-            hbbftKeyIndex++;
+            rbtLastTime += rbtThreshold;
+            rbtKeyIndex++;
 
-            if (hbbftKeyIndex >= hbbftPayoutKeys.length) {
-                _hbbftRefreshPayoutKeys();
+            if (rbtKeyIndex >= rbtPayoutKeys.length) {
+                _rbtRefreshPayoutKeys();
             }
         }
 
@@ -140,18 +141,18 @@ contract BlockReward is IBlockReward {
         return keysManager.getPayoutByMining(_miningKey);
     }
 
-    function _hbbftRefreshPayoutKeys() private {
+    function _rbtRefreshPayoutKeys() private {
         IPoaNetworkConsensus poa = IPoaNetworkConsensus(proxyStorage.getPoaConsensus());
         address[] memory validators = poa.getValidators();
 
-        delete hbbftPayoutKeys;
+        delete rbtPayoutKeys;
         for (uint256 i = 0; i < validators.length; i++) {
             address miningKey = validators[i];
             address payoutKey = _getPayoutByMining(miningKey);
-            hbbftPayoutKeys.push((payoutKey != address(0)) ? payoutKey : miningKey);
+            rbtPayoutKeys.push((payoutKey != address(0)) ? payoutKey : miningKey);
         }
 
-        hbbftKeyIndex = 0;
+        rbtKeyIndex = 0;
     }
 
     function _isMiningActive(address _miningKey)
