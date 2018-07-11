@@ -10,7 +10,7 @@ process.env.NETWORK = process.env.NETWORK.toLowerCase();
 process.env.CORE_COMMIT = constants.CORE_COMMIT;
 process.env.SOKOL_COMMIT = constants.SOKOL_COMMIT;
 
-const web3 = new Web3(new Web3.providers.HttpProvider("https://" + process.env.NETWORK + ".poa.network"));
+const web3 = new Web3(new Web3.providers.HttpProvider("https://" + process.env.NETWORK + "-trace.poa.network"));
 
 require('chai')
 	.use(require('chai-as-promised'))
@@ -92,7 +92,7 @@ async function main() {
 		process.env.PROXY_STORAGE_NEW_ADDRESS = await utils.deploy('EternalStorageProxy', storageCompiled, sender, key, chainId, ['0x0000000000000000000000000000000000000000', proxyStorageImplAddress]);
 		console.log(`  ProxyStorage storage address is ${process.env.PROXY_STORAGE_NEW_ADDRESS}`);
 		const proxyStorageInstance = new web3.eth.Contract(proxyStorageCompiled.abi, process.env.PROXY_STORAGE_NEW_ADDRESS);
-		const init = proxyStorageInstance.methods.init(process.env.POA_CONSENSUS_NEW_ADDRESS);
+		let init = proxyStorageInstance.methods.init(process.env.POA_CONSENSUS_NEW_ADDRESS);
 		await utils.call(init, sender, process.env.PROXY_STORAGE_NEW_ADDRESS, key, chainId);
 		const setProxyStorage = poaNewInstance.methods.setProxyStorage(process.env.PROXY_STORAGE_NEW_ADDRESS);
 		await utils.call(setProxyStorage, sender, process.env.POA_CONSENSUS_NEW_ADDRESS, key, chainId);
@@ -142,6 +142,92 @@ async function main() {
 			'EternalStorageProxy', storageCompiled, sender, key, chainId, [process.env.PROXY_STORAGE_NEW_ADDRESS, metadataImplAddress]
 		);
 		console.log(`  ValidatorMetadata storage address is ${process.env.METADATA_NEW_ADDRESS}`);
+		console.log('Success');
+		console.log('');
+
+		console.log('Deploy VotingToManageEmissionFunds...');
+		const votingToManageEmissionFundsCompiled = await utils.compile('../../contracts/', 'VotingToManageEmissionFunds');
+		const votingToManageEmissionFundsImplAddress = await utils.deploy('VotingToManageEmissionFunds', votingToManageEmissionFundsCompiled, sender, key, chainId);
+		console.log('  VotingToManageEmissionFunds implementation address is ' + votingToManageEmissionFundsImplAddress);
+		storageCompiled = await utils.compile('../../contracts/eternal-storage/', 'EternalStorageProxy');
+		const votingToManageEmissionFundsAddress = await utils.deploy(
+			'EternalStorageProxy', storageCompiled, sender, key, chainId, [process.env.PROXY_STORAGE_NEW_ADDRESS, votingToManageEmissionFundsImplAddress]
+		);
+		console.log(`  VotingToManageEmissionFunds storage address is ${votingToManageEmissionFundsAddress}`);
+		const votingToManageEmissionFundsInstance = new web3.eth.Contract(votingToManageEmissionFundsCompiled.abi, votingToManageEmissionFundsAddress);
+		console.log('Success');
+		console.log('');
+
+		console.log('Deploy EmissionFunds...');
+		const emissionFundsCompiled = await utils.compile('../../contracts/', 'EmissionFunds');
+		let emissionFundsAddress = await utils.deploy(
+			'EmissionFunds', emissionFundsCompiled, sender, key, chainId, [votingToManageEmissionFundsAddress]
+		);
+		emissionFundsAddress = EthereumUtil.toChecksumAddress(emissionFundsAddress);
+		console.log(`  EmissionFunds address is ${emissionFundsAddress}`);
+		const emissionFundsInstance = new web3.eth.Contract(emissionFundsCompiled.abi, emissionFundsAddress);
+		console.log('Success');
+		console.log('');
+
+		console.log('Deploy RewardByBlock...');
+		let rewardByBlockCode = fs.readFileSync('../../contracts/RewardByBlock.sol').toString();
+		rewardByBlockCode = rewardByBlockCode.replace('0x0000000000000000000000000000000000000000', emissionFundsAddress);
+		const rewardByBlockCompiled = await utils.compile('../../contracts/', 'RewardByBlock', rewardByBlockCode);
+		const rewardByBlockImplAddress = await utils.deploy('RewardByBlock', rewardByBlockCompiled, sender, key, chainId);
+		console.log('  RewardByBlock implementation address is ' + rewardByBlockImplAddress);
+		storageCompiled = await utils.compile('../../contracts/eternal-storage/', 'EternalStorageProxy');
+		const rewardByBlockAddress = await utils.deploy(
+			'EternalStorageProxy', storageCompiled, sender, key, chainId, [process.env.PROXY_STORAGE_NEW_ADDRESS, rewardByBlockImplAddress]
+		);
+		console.log(`  RewardByBlock storage address is ${rewardByBlockAddress}`);
+		const rewardByBlockInstance = new web3.eth.Contract(rewardByBlockCompiled.abi, rewardByBlockAddress);
+		console.log('Success');
+		console.log('');
+
+		console.log('VotingToManageEmissionFunds.init...');
+		const distributionThreshold = 604800; // seven days, in seconds
+		const emissionReleaseThreshold = 7776000; // three months, in seconds
+		const emissionReleaseTime = 1542412800 + emissionReleaseThreshold; // 2018-11-17 plus emissionReleaseThreshold (unix timestamp)
+		init = votingToManageEmissionFundsInstance.methods.init(
+			emissionFundsAddress,
+			emissionReleaseTime,
+			emissionReleaseThreshold,
+			distributionThreshold
+		);
+		await utils.call(init, sender, votingToManageEmissionFundsAddress, key, chainId);
+		distributionThreshold.should.be.equal(
+			Number(await votingToManageEmissionFundsInstance.methods.distributionThreshold().call())
+		);
+		emissionFundsAddress.should.be.equal(
+			EthereumUtil.toChecksumAddress(await votingToManageEmissionFundsInstance.methods.emissionFunds().call())
+		);
+		emissionReleaseThreshold.should.be.equal(
+			Number(await votingToManageEmissionFundsInstance.methods.emissionReleaseThreshold().call())
+		);
+		emissionReleaseTime.should.be.equal(
+			Number(await votingToManageEmissionFundsInstance.methods.emissionReleaseTime().call())
+		);
+		true.should.be.equal(
+			await votingToManageEmissionFundsInstance.methods.initDisabled().call()
+		);
+		true.should.be.equal(
+			await votingToManageEmissionFundsInstance.methods.previousBallotFinalized().call()
+		);
+		EthereumUtil.toChecksumAddress(votingToManageEmissionFundsAddress).should.be.equal(
+			EthereumUtil.toChecksumAddress(await emissionFundsInstance.methods.votingToManageEmissionFunds().call())
+		);
+		web3.utils.toWei('1', 'ether').should.be.equal(
+			await rewardByBlockInstance.methods.blockRewardAmount().call()
+		);
+		web3.utils.toWei('1', 'ether').should.be.equal(
+			await rewardByBlockInstance.methods.emissionFundsAmount().call()
+		);
+		emissionFundsAddress.should.be.equal(
+			EthereumUtil.toChecksumAddress(await rewardByBlockInstance.methods.emissionFunds().call())
+		);
+		process.env.PROXY_STORAGE_NEW_ADDRESS.should.be.equal(
+			await rewardByBlockInstance.methods.proxyStorage().call()
+		);
 		console.log('Success');
 		console.log('');
 
@@ -212,11 +298,14 @@ async function main() {
 	"VOTING_TO_CHANGE_KEYS_ADDRESS": "${votingToChangeKeysNewAddress}",
 	"VOTING_TO_CHANGE_MIN_THRESHOLD_ADDRESS": "${votingToChangeMinThresholdNewAddress}",
 	"VOTING_TO_CHANGE_PROXY_ADDRESS": "${votingToChangeProxyNewAddress}",
+	"VOTING_TO_MANAGE_EMISSION_FUNDS_ADDRESS": "${votingToManageEmissionFundsAddress}",
 	"BALLOTS_STORAGE_ADDRESS": "${ballotsStorageNewAddress}",
 	"KEYS_MANAGER_ADDRESS": "${keysManagerNewAddress}",
 	"METADATA_ADDRESS": "${process.env.METADATA_NEW_ADDRESS}",
 	"PROXY_ADDRESS": "${process.env.PROXY_STORAGE_NEW_ADDRESS}",
 	"POA_ADDRESS": "${process.env.POA_CONSENSUS_NEW_ADDRESS}",
+	"EMISSION_FUNDS_ADDRESS": "${emissionFundsAddress}",
+	"REWARD_BY_BLOCK_ADDRESS": "${rewardByBlockAddress}",
 	"MOC": "${mocAddress}"
 }`;
 		if (!fs.existsSync(networkPath)) fs.mkdirSync(networkPath);
@@ -228,13 +317,16 @@ async function main() {
 		const abisPath = `${networkPath}/abis`;
 		if (!fs.existsSync(abisPath)) fs.mkdirSync(abisPath);
 		fs.writeFileSync(`${abisPath}/BallotsStorage.abi.json`, JSON.stringify(ballotsStorageNewAbi, null, '  '));
+		fs.writeFileSync(`${abisPath}/EmissionFunds.abi.json`, JSON.stringify(emissionFundsCompiled.abi, null, '  '));
 		fs.writeFileSync(`${abisPath}/KeysManager.abi.json`, JSON.stringify(keysManagerNewAbi, null, '  '));
 		fs.writeFileSync(`${abisPath}/PoaNetworkConsensus.abi.json`, JSON.stringify(poaCompiled.abi, null, '  '));
 		fs.writeFileSync(`${abisPath}/ProxyStorage.abi.json`, JSON.stringify(proxyStorageCompiled.abi, null, '  '));
+		fs.writeFileSync(`${abisPath}/RewardByBlock.abi.json`, JSON.stringify(rewardByBlockCompiled.abi, null, '  '));
 		fs.writeFileSync(`${abisPath}/ValidatorMetadata.abi.json`, JSON.stringify(metadataCompiled.abi, null, '  '));
 		fs.writeFileSync(`${abisPath}/VotingToChangeKeys.abi.json`, JSON.stringify(votingToChangeKeysNewAbi, null, '  '));
 		fs.writeFileSync(`${abisPath}/VotingToChangeMinThreshold.abi.json`, JSON.stringify(votingToChangeMinThresholdNewAbi, null, '  '));
 		fs.writeFileSync(`${abisPath}/VotingToChangeProxyAddress.abi.json`, JSON.stringify(votingToChangeProxyNewAbi, null, '  '));
+		fs.writeFileSync(`${abisPath}/VotingToManageEmissionFunds.abi.json`, JSON.stringify(votingToManageEmissionFundsCompiled.abi, null, '  '));
 		console.log('Success');
 		console.log('');
 
