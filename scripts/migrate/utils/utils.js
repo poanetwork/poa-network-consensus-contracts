@@ -8,11 +8,11 @@ const solc = require('solc');
 
 const web3 = new Web3(new Web3.providers.HttpProvider("https://" + process.env.NETWORK + ".poa.network"));
 
-async function compile(dir, contractName) {
+async function compile(dir, contractName, contractCode) {
 	console.log(`  ${contractName} compile...`);
 	const compiled = solc.compile({
 		sources: {
-			'': fs.readFileSync(dir + contractName + '.sol').toString()
+			'': (contractCode ? contractCode : fs.readFileSync(dir + contractName + '.sol').toString())
 		}
 	}, 1, function (path) {
 		let content;
@@ -66,7 +66,7 @@ async function call(method, from, to, key, chainId) {
 
 	const result = await web3.eth.sendSignedTransaction("0x" + serializedTx.toString('hex'));
 
-	if (!result.status) {
+	if (result.status !== true) {
 		throw new Error("transaction status is false");
 	}
 

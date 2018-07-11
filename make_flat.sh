@@ -14,6 +14,7 @@ solidity_flattener contracts/ProxyStorage.sol | sed "1s/.*/pragma solidity ^0.4.
 solidity_flattener contracts/BallotsStorage.sol | sed "1s/.*/pragma solidity ^0.4.24;/" > flat/BallotsStorage_flat.sol
 solidity_flattener contracts/VotingToChangeProxyAddress.sol | sed "1s/.*/pragma solidity ^0.4.24;/" > flat/VotingToChangeProxyAddress_flat.sol
 solidity_flattener contracts/eternal-storage/EternalStorageProxy.sol | sed "1s/.*/pragma solidity ^0.4.24;/" > flat/EternalStorageProxy_flat.sol
-solidity_flattener contracts/BlockReward.sol | sed "1s/.*/pragma solidity ^0.4.24;/" > flat/BlockReward_flat.sol
+solidity_flattener contracts/RewardByBlock.sol | sed "1s/.*/pragma solidity ^0.4.24;/" > flat/RewardByBlock_flat.sol
+solidity_flattener contracts/RewardByTime.sol | sed "1s/.*/pragma solidity ^0.4.24;/" > flat/RewardByTime_flat.sol
 solidity_flattener contracts/EmissionFunds.sol | sed "1s/.*/pragma solidity ^0.4.24;/" > flat/EmissionFunds_flat.sol
 solidity_flattener contracts/VotingToManageEmissionFunds.sol | sed "1s/.*/pragma solidity ^0.4.24;/" > flat/VotingToManageEmissionFunds_flat.sol
