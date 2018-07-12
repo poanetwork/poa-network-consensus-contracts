@@ -9,7 +9,7 @@ const KEYS_MANAGER_NEW_ADDRESS = process.env.KEYS_MANAGER_NEW_ADDRESS;
 const PROXY_STORAGE_NEW_ADDRESS = process.env.PROXY_STORAGE_NEW_ADDRESS;
 const ONLY_CHECK = !!process.env.ONLY_CHECK === true
 
-const web3 = new Web3(new Web3.providers.HttpProvider("https://" + NETWORK + ".poa.network"));
+const web3 = new Web3(new Web3.providers.HttpProvider(process.env.PROVIDER_URL));
 
 require('chai')
 	.use(require('chai-as-promised'))

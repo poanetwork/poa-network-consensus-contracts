@@ -9,7 +9,7 @@ const METADATA_NEW_ADDRESS = process.env.METADATA_NEW_ADDRESS;
 const PROXY_STORAGE_NEW_ADDRESS = process.env.PROXY_STORAGE_NEW_ADDRESS;
 const ONLY_CHECK = !!process.env.ONLY_CHECK === true
 
-web3 = new Web3(new Web3.providers.HttpProvider("https://" + NETWORK + ".poa.network"));
+web3 = new Web3(new Web3.providers.HttpProvider(process.env.PROVIDER_URL));
 
 require('chai')
 	.use(require('chai-as-promised'))
@@ -50,11 +50,11 @@ async function main() {
 
 	if (success) {
 		if (ONLY_CHECK) {
-			success = migrateAndCheck();
+			success = await migrateAndCheck();
 		} else {
 			let privateKey = process.env.PRIVATE_KEY;
 			if (!privateKey) privateKey = await utils.readPrivateKey();
-			success = migrateAndCheck(privateKey);
+			success = await migrateAndCheck(privateKey);
 		}
 	}
 
