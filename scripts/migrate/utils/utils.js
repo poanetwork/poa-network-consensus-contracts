@@ -6,7 +6,7 @@ const EthereumTx = require('ethereumjs-tx');
 const EthereumUtil = require('ethereumjs-util');
 const solc = require('solc');
 
-const web3 = new Web3(new Web3.providers.HttpProvider("https://" + process.env.NETWORK + ".poa.network"));
+const web3 = new Web3(new Web3.providers.HttpProvider(process.env.PROVIDER_URL));
 
 async function compile(dir, contractName, contractCode) {
 	console.log(`  ${contractName} compile...`);

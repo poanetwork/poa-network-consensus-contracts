@@ -3,13 +3,14 @@ const Web3 = require('web3');
 const EthereumUtil = require('ethereumjs-util');
 const axios = require('axios');
 const childProcess = require('child_process');
-const utils = require('./utils/utils');
 const constants = require('./utils/constants');
 
 process.env.NETWORK = process.env.NETWORK.toLowerCase();
 process.env.CORE_COMMIT = constants.CORE_COMMIT;
 process.env.SOKOL_COMMIT = constants.SOKOL_COMMIT;
 process.env.PROVIDER_URL = `https://${process.env.NETWORK}-trace.poa.network`;
+
+const utils = require('./utils/utils');
 
 const web3 = new Web3(new Web3.providers.HttpProvider(process.env.PROVIDER_URL));
 
