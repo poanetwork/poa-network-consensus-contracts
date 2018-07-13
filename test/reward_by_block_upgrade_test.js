@@ -51,6 +51,8 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
       accounts[9],
       accounts[9],
       accounts[9],
+      accounts[9],
+      accounts[9],
       accounts[9]
     );
 

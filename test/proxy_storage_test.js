@@ -7,6 +7,8 @@ let BallotsStorage = artifacts.require('./BallotsStorage');
 let VotingToChangeKeys = artifacts.require('./VotingToChangeKeys');
 let VotingToChangeMinThreshold = artifacts.require('./VotingToChangeMinThreshold');
 let VotingToChangeProxy = artifacts.require('./VotingToChangeProxyAddress');
+let VotingToManageEmissionFunds = artifacts.require('./VotingToManageEmissionFunds');
+let RewardByBlock = artifacts.require('./RewardByBlock');
 let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 require('chai')
@@ -22,6 +24,8 @@ let ballotsStorage, ballotsEternalStorage;
 let votingToChangeKeys, votingToChangeKeysEternalStorage;
 let votingToChangeMinThreshold, votingToChangeMinThresholdEternalStorage;
 let votingToChangeProxy, votingToChangeProxyEternalStorage;
+let votingToManageEmissionFunds, votingToManageEmissionFundsEternalStorage;
+let rewardByBlock, rewardByBlockEternalStorage;
 contract('ProxyStorage [all features]', function (accounts) {
   masterOfCeremony = accounts[0];
   beforeEach(async () => {
@@ -53,6 +57,12 @@ contract('ProxyStorage [all features]', function (accounts) {
 
     votingToChangeProxy = await VotingToChangeProxy.new();
     votingToChangeProxyEternalStorage = await EternalStorageProxy.new(proxyStorage.address, votingToChangeProxy.address);
+
+    votingToManageEmissionFunds = await VotingToManageEmissionFunds.new();
+    votingToManageEmissionFundsEternalStorage = await EternalStorageProxy.new(proxyStorage.address, votingToManageEmissionFunds.address);
+
+    rewardByBlock = await RewardByBlock.new();
+    rewardByBlockEternalStorage = await EternalStorageProxy.new(proxyStorage.address, rewardByBlock.address);
   })
   describe('#constructor', async () => {
     it('sets MoC and Poa', async () => {
@@ -71,8 +81,10 @@ contract('ProxyStorage [all features]', function (accounts) {
         votingToChangeKeysEternalStorage.address,
         votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxyEternalStorage.address,
+        votingToManageEmissionFundsEternalStorage.address,
         ballotsEternalStorage.address,
         validatorMetadataEternalStorage.address,
+        rewardByBlockEternalStorage.address,
         {from: accounts[2]}
       ).should.be.rejectedWith(ERROR_MSG);
       const {logs} = await proxyStorage.initializeAddresses(
@@ -80,8 +92,10 @@ contract('ProxyStorage [all features]', function (accounts) {
         votingToChangeKeysEternalStorage.address,
         votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxyEternalStorage.address,
+        votingToManageEmissionFundsEternalStorage.address,
         ballotsEternalStorage.address,
         validatorMetadataEternalStorage.address,
+        rewardByBlockEternalStorage.address
       ).should.be.fulfilled;
       keysManagerEternalStorage.address.should.be.equal(
         await proxyStorage.getKeysManager.call()
@@ -95,19 +109,27 @@ contract('ProxyStorage [all features]', function (accounts) {
       votingToChangeProxyEternalStorage.address.should.be.equal(
         await proxyStorage.getVotingToChangeProxy.call()
       );
+      votingToManageEmissionFundsEternalStorage.address.should.be.equal(
+        await proxyStorage.getVotingToManageEmissionFunds.call()
+      );
       ballotsEternalStorage.address.should.be.equal(
         await proxyStorage.getBallotsStorage.call()
       );
       validatorMetadataEternalStorage.address.should.be.equal(
         await proxyStorage.getValidatorMetadata.call()
       );
+      rewardByBlockEternalStorage.address.should.be.equal(
+        await proxyStorage.getRewardByBlock.call()
+      );
       logs[0].event.should.be.equal('ProxyInitialized');
       logs[0].args.keysManagerEternalStorage.should.be.equal(keysManagerEternalStorage.address);
       logs[0].args.votingToChangeKeysEternalStorage.should.be.equal(votingToChangeKeysEternalStorage.address);
       logs[0].args.votingToChangeMinThresholdEternalStorage.should.be.equal(votingToChangeMinThresholdEternalStorage.address);
       logs[0].args.votingToChangeProxyEternalStorage.should.be.equal(votingToChangeProxyEternalStorage.address);
+      logs[0].args.votingToManageEmissionFundsEternalStorage.should.be.equal(votingToManageEmissionFundsEternalStorage.address);
       logs[0].args.ballotsStorageEternalStorage.should.be.equal(ballotsEternalStorage.address);
       logs[0].args.validatorMetadataEternalStorage.should.be.equal(validatorMetadataEternalStorage.address);
+      logs[0].args.rewardByBlockEternalStorage.should.be.equal(rewardByBlockEternalStorage.address);
     })
     it('prevents Moc to call it more than once', async () => {
       false.should.be.equal(await proxyStorage.mocInitialized.call());
@@ -116,8 +138,10 @@ contract('ProxyStorage [all features]', function (accounts) {
         votingToChangeKeysEternalStorage.address,
         votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxyEternalStorage.address,
+        votingToManageEmissionFundsEternalStorage.address,
         ballotsEternalStorage.address,
-        validatorMetadataEternalStorage.address
+        validatorMetadataEternalStorage.address,
+        rewardByBlockEternalStorage.address
       ).should.be.fulfilled;
       true.should.be.equal(await proxyStorage.mocInitialized.call());
       await proxyStorage.initializeAddresses(
@@ -125,8 +149,10 @@ contract('ProxyStorage [all features]', function (accounts) {
         votingToChangeKeysEternalStorage.address,
         votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxyEternalStorage.address,
+        votingToManageEmissionFundsEternalStorage.address,
         ballotsEternalStorage.address,
-        validatorMetadataEternalStorage.address
+        validatorMetadataEternalStorage.address,
+        rewardByBlockEternalStorage.address
       ).should.be.rejectedWith(ERROR_MSG);
     })
   })
@@ -138,8 +164,10 @@ contract('ProxyStorage [all features]', function (accounts) {
         votingToChangeKeysEternalStorage.address,
         votingToChangeMinThresholdEternalStorage.address,
         votingToChangeProxyEternalStorage.address,
+        votingToManageEmissionFundsEternalStorage.address,
         ballotsEternalStorage.address,
         validatorMetadataEternalStorage.address,
+        rewardByBlockEternalStorage.address,
         {from: masterOfCeremony}
       ).should.be.fulfilled;
     })

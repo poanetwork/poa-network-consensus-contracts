@@ -1,4 +1,5 @@
 const fs = require('fs');
+const moment = require('moment');
 const PoaNetworkConsensus = artifacts.require("./PoaNetworkConsensus.sol");
 const ProxyStorage = artifacts.require("./ProxyStorage.sol");
 const KeysManager = artifacts.require("./KeysManager.sol");
@@ -7,6 +8,9 @@ const ValidatorMetadata = artifacts.require("./ValidatorMetadata.sol");
 const VotingToChangeKeys = artifacts.require("./VotingToChangeKeys");
 const VotingToChangeMinThreshold = artifacts.require("./VotingToChangeMinThreshold");
 const VotingToChangeProxyAddress = artifacts.require("./VotingToChangeProxyAddress");
+const VotingToManageEmissionFunds = artifacts.require("./VotingToManageEmissionFunds");
+const RewardByBlock = artifacts.require("./RewardByBlock");
+const EmissionFunds = artifacts.require("./EmissionFunds");
 const EternalStorageProxy = artifacts.require("./eternal-storage/EternalStorageProxy.sol");
 
 module.exports = function(deployer, network, accounts) {
@@ -15,7 +19,7 @@ module.exports = function(deployer, network, accounts) {
     let poaNetworkConsensusAddress = process.env.POA_NETWORK_CONSENSUS_ADDRESS;
     let previousKeysManager = process.env.OLD_KEYSMANAGER || "0x0000000000000000000000000000000000000000";
     let demoMode = !!process.env.DEMO === true;
-    let poaNetworkConsensus;
+    let poaNetworkConsensus, emissionFunds;
     let proxyStorage, proxyStorageImplAddress;
     let keysManager, keysManagerImplAddress;
     let ballotsStorage, ballotsStorageImplAddress;
@@ -23,6 +27,8 @@ module.exports = function(deployer, network, accounts) {
     let votingToChangeKeys, votingToChangeKeysImplAddress;
     let votingToChangeMinThreshold, votingToChangeMinThresholdImplAddress;
     let votingToChangeProxyAddress, votingToChangeProxyAddressImplAddress;
+    let votingToManageEmissionFunds, votingToManageEmissionFundsImplAddress;
+    let rewardByBlock, rewardByBlockImplAddress;
 
     const minBallotDuration = demoMode ? 0 : 172800;
 
@@ -119,14 +125,49 @@ module.exports = function(deployer, network, accounts) {
       );
       await votingToChangeProxyAddress.init(minBallotDuration);
 
+      // Deploy VotingToManageEmissionFunds
+      votingToManageEmissionFunds = await VotingToManageEmissionFunds.new();
+      votingToManageEmissionFundsImplAddress = votingToManageEmissionFunds.address;
+      votingToManageEmissionFunds = await EternalStorageProxy.new(
+        proxyStorage.address,
+        votingToManageEmissionFundsImplAddress
+      );
+      votingToManageEmissionFunds = VotingToManageEmissionFunds.at(
+        votingToManageEmissionFunds.address
+      );
+
+      // Deploy EmissionFunds
+      emissionFunds = await EmissionFunds.new(votingToManageEmissionFunds.address);
+
+      // Deploy RewardByBlock
+      rewardByBlock = await RewardByBlock.new();
+      rewardByBlockImplAddress = rewardByBlock.address;
+      rewardByBlock = await EternalStorageProxy.new(
+        proxyStorage.address,
+        rewardByBlockImplAddress
+      );
+      rewardByBlock = RewardByBlock.at(
+        rewardByBlock.address
+      );
+
+      // Initialize VotingToManageEmissionFunds
+      await votingToManageEmissionFunds.init(
+        emissionFunds.address,
+        moment.utc().add(3, 'months').unix(),
+        7776000,
+        604800
+      );
+
       // Initialize ProxyStorage
       await proxyStorage.initializeAddresses(
         keysManager.address,
         votingToChangeKeys.address,
         votingToChangeMinThreshold.address,
         votingToChangeProxyAddress.address,
+        votingToManageEmissionFunds.address,
         ballotsStorage.address,
-        validatorMetadata.address
+        validatorMetadata.address,
+        rewardByBlock.address
       );
 
       if (!!process.env.SAVE_TO_FILE === true) {
@@ -134,11 +175,14 @@ module.exports = function(deployer, network, accounts) {
           "VOTING_TO_CHANGE_KEYS_ADDRESS": votingToChangeKeys.address,
           "VOTING_TO_CHANGE_MIN_THRESHOLD_ADDRESS": votingToChangeMinThreshold.address,
           "VOTING_TO_CHANGE_PROXY_ADDRESS": votingToChangeProxyAddress.address,
+          "VOTING_TO_MANAGE_EMISSION_FUNDS_ADDRESS": votingToManageEmissionFunds.address,
           "BALLOTS_STORAGE_ADDRESS": ballotsStorage.address,
           "KEYS_MANAGER_ADDRESS": keysManager.address,
           "METADATA_ADDRESS": validatorMetadata.address,
           "PROXY_ADDRESS": proxyStorage.address,
-          "POA_ADDRESS": poaNetworkConsensusAddress
+          "POA_ADDRESS": poaNetworkConsensusAddress,
+          "EMISSION_FUNDS_ADDRESS": emissionFunds.address,
+          "REWARD_BY_BLOCK_ADDRESS": rewardByBlock.address
         };
 
         fs.writeFileSync('./contracts.json', JSON.stringify(contracts, null, 2));
@@ -147,21 +191,26 @@ module.exports = function(deployer, network, accounts) {
       console.log(
         '\nDone. ADDRESSES:',
         `
-  VotingToChangeKeys.address (implementation) ....... ${votingToChangeKeysImplAddress}
-  VotingToChangeKeys.address (storage) .............. ${votingToChangeKeys.address}
-  VotingToChangeMinThreshold.address (implementation) ${votingToChangeMinThresholdImplAddress}
-  VotingToChangeMinThreshold.address (storage) ...... ${votingToChangeMinThreshold.address}
-  VotingToChangeProxyAddress.address (implementation) ${votingToChangeProxyAddressImplAddress}
-  VotingToChangeProxyAddress.address (storage) ...... ${votingToChangeProxyAddress.address}
-  BallotsStorage.address (implementation) ........... ${ballotsStorageImplAddress}
-  BallotsStorage.address (storage) .................. ${ballotsStorage.address}
-  KeysManager.address (implementation) .............. ${keysManagerImplAddress}
-  KeysManager.address (storage) ..................... ${keysManager.address}
-  ValidatorMetadata.address (implementation) ........ ${validatorMetadataImplAddress}
-  ValidatorMetadata.address (storage) ............... ${validatorMetadata.address}
-  ProxyStorage.address (implementation) ............. ${proxyStorageImplAddress}
-  ProxyStorage.address (storage) .................... ${proxyStorage.address}
-  PoaNetworkConsensus.address ....................... ${poaNetworkConsensusAddress}
+  VotingToChangeKeys.address (implementation) ........ ${votingToChangeKeysImplAddress}
+  VotingToChangeKeys.address (storage) ............... ${votingToChangeKeys.address}
+  VotingToChangeMinThreshold.address (implementation). ${votingToChangeMinThresholdImplAddress}
+  VotingToChangeMinThreshold.address (storage) ....... ${votingToChangeMinThreshold.address}
+  VotingToChangeProxyAddress.address (implementation). ${votingToChangeProxyAddressImplAddress}
+  VotingToChangeProxyAddress.address (storage) ....... ${votingToChangeProxyAddress.address}
+  VotingToManageEmissionFunds.address (implementation) ${votingToManageEmissionFundsImplAddress}
+  VotingToManageEmissionFunds.address (storage) ...... ${votingToManageEmissionFunds.address}
+  BallotsStorage.address (implementation) ............ ${ballotsStorageImplAddress}
+  BallotsStorage.address (storage) ................... ${ballotsStorage.address}
+  KeysManager.address (implementation) ............... ${keysManagerImplAddress}
+  KeysManager.address (storage) ...................... ${keysManager.address}
+  ValidatorMetadata.address (implementation) ......... ${validatorMetadataImplAddress}
+  ValidatorMetadata.address (storage) ................ ${validatorMetadata.address}
+  ProxyStorage.address (implementation) .............. ${proxyStorageImplAddress}
+  ProxyStorage.address (storage) ..................... ${proxyStorage.address}
+  PoaNetworkConsensus.address ........................ ${poaNetworkConsensusAddress}
+  EmissionFunds.address .............................. ${emissionFunds.address}
+  RewardByBlock.address (implementation) .............. ${rewardByBlockImplAddress}
+  RewardByBlock.address (storage) ..................... ${rewardByBlock.address}
         `
       );
     }).catch(function(error) {

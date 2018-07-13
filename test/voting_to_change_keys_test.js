@@ -51,10 +51,12 @@ contract('Voting to change keys [all features]', function (accounts) {
     await proxyStorageMock.initializeAddresses(
       keysManagerEternalStorage.address,
       votingEternalStorage.address,
-      masterOfCeremony,
-      masterOfCeremony,
+      accounts[0],
+      accounts[0],
+      accounts[0],
       ballotsEternalStorage.address,
-      masterOfCeremony
+      accounts[0],
+      accounts[0]
     );
 
     ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);

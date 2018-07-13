@@ -239,8 +239,10 @@ async function main() {
 			votingToChangeKeysNewAddress,
 			votingToChangeMinThresholdNewAddress,
 			votingToChangeProxyNewAddress,
+			votingToManageEmissionFundsAddress,
 			ballotsStorageNewAddress,
-			process.env.METADATA_NEW_ADDRESS
+			process.env.METADATA_NEW_ADDRESS,
+			rewardByBlockAddress
 		);
 		await utils.call(initializeAddresses, sender, process.env.PROXY_STORAGE_NEW_ADDRESS, key, chainId);
 		true.should.be.equal(

@@ -24,6 +24,9 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     
     bytes32 internal constant POA_CONSENSUS =
         keccak256("poaConsensus");
+
+    bytes32 internal constant REWARD_BY_BLOCK_ETERNAL_STORAGE = 
+        keccak256("rewardByBlockEternalStorage");
     
     bytes32 internal constant VALIDATOR_METADATA_ETERNAL_STORAGE =
         keccak256("validatorMetadataEternalStorage");
@@ -36,6 +39,9 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     
     bytes32 internal constant VOTING_TO_CHANGE_PROXY_ETERNAL_STORAGE =
         keccak256("votingToChangeProxyEternalStorage");
+
+    bytes32 internal constant VOTING_TO_MANAGE_EMISSION_FUNDS_ETERNAL_STORAGE = 
+        keccak256("votingToManageEmissionFundsEternalStorage");
 
     enum ContractTypes {
         Invalid,
@@ -54,8 +60,10 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         address votingToChangeKeysEternalStorage,
         address votingToChangeMinThresholdEternalStorage,
         address votingToChangeProxyEternalStorage,
+        address votingToManageEmissionFundsEternalStorage,
         address ballotsStorageEternalStorage,
-        address validatorMetadataEternalStorage
+        address validatorMetadataEternalStorage,
+        address rewardByBlockEternalStorage
     );
 
     event AddressSet(uint256 contractType, address contractAddress);
@@ -102,6 +110,10 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         return addressStorage[VOTING_TO_CHANGE_PROXY_ETERNAL_STORAGE];
     }
 
+    function getVotingToManageEmissionFunds() public view returns(address) {
+        return addressStorage[VOTING_TO_MANAGE_EMISSION_FUNDS_ETERNAL_STORAGE];
+    }
+
     function getPoaConsensus() public view returns(address) {
         return addressStorage[POA_CONSENSUS];
     }
@@ -114,13 +126,19 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         return addressStorage[VALIDATOR_METADATA_ETERNAL_STORAGE];
     }
 
+    function getRewardByBlock() public view returns(address) {
+        return addressStorage[REWARD_BY_BLOCK_ETERNAL_STORAGE];
+    }
+
     function initializeAddresses(
         address _keysManagerEternalStorage,
         address _votingToChangeKeysEternalStorage,
         address _votingToChangeMinThresholdEternalStorage,
         address _votingToChangeProxyEternalStorage,
+        address _votingToManageEmissionFundsEternalStorage,
         address _ballotsStorageEternalStorage,
-        address _validatorMetadataEternalStorage
+        address _validatorMetadataEternalStorage,
+        address _rewardByBlockEternalStorage
     ) public {
         require(isValidator(msg.sender) || _isOwner(msg.sender));
         require(!mocInitialized());
@@ -132,18 +150,24 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
             _votingToChangeMinThresholdEternalStorage;
         addressStorage[VOTING_TO_CHANGE_PROXY_ETERNAL_STORAGE] =
             _votingToChangeProxyEternalStorage;
+        addressStorage[VOTING_TO_MANAGE_EMISSION_FUNDS_ETERNAL_STORAGE] =
+            _votingToManageEmissionFundsEternalStorage;
         addressStorage[BALLOTS_STORAGE_ETERNAL_STORAGE] =
             _ballotsStorageEternalStorage;
         addressStorage[VALIDATOR_METADATA_ETERNAL_STORAGE] =
             _validatorMetadataEternalStorage;
+        addressStorage[REWARD_BY_BLOCK_ETERNAL_STORAGE] = 
+            _rewardByBlockEternalStorage;
         boolStorage[MOC_INITIALIZED] = true;
         emit ProxyInitialized(
             _keysManagerEternalStorage,
             _votingToChangeKeysEternalStorage,
             _votingToChangeMinThresholdEternalStorage,
             _votingToChangeProxyEternalStorage,
+            _votingToManageEmissionFundsEternalStorage,
             _ballotsStorageEternalStorage,
-            _validatorMetadataEternalStorage
+            _validatorMetadataEternalStorage,
+            _rewardByBlockEternalStorage
         );
     }
 

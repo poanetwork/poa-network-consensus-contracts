@@ -66,11 +66,13 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     
     await proxyStorageMock.initializeAddresses(
       keysManager.address,
-      masterOfCeremony,
-      masterOfCeremony,
-      masterOfCeremony,
+      accounts[0],
+      accounts[0],
+      accounts[0],
+      accounts[0],
       ballotsEternalStorage.address,
-      metadataEternalStorage.address
+      metadataEternalStorage.address,
+      accounts[0]
     );
     
     metadata = await ValidatorMetadata.at(metadataEternalStorage.address);

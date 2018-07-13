@@ -47,6 +47,8 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       accounts[0],
       accounts[0],
       accounts[0],
+      accounts[0],
+      accounts[0],
       accounts[0]
     );
   });
