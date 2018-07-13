@@ -51,6 +51,8 @@ contract('RewardByBlock [all features]', function (accounts) {
       accounts[9],
       accounts[9],
       accounts[9],
+      accounts[9],
+      accounts[9],
       accounts[9]
     );
 

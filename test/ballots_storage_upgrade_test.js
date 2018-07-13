@@ -18,13 +18,17 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     votingToChangeKeys,
     votingToChangeMinThreshold,
     votingToChangeProxy,
-    validatorMetadataEternalStorage
+    votingToManageEmissionFunds,
+    validatorMetadataEternalStorage,
+    rewardByBlock
   } = {
     keysManager: '',
     votingToChangeKeys: accounts[0],
     votingToChangeMinThreshold: accounts[3],
     votingToChangeProxy: accounts[4],
-    validatorMetadataEternalStorage: accounts[7]
+    votingToManageEmissionFunds: accounts[5],
+    validatorMetadataEternalStorage: accounts[7],
+    rewardByBlock: accounts[8]
   }
   masterOfCeremony = accounts[0];
   beforeEach(async () => {
@@ -54,8 +58,10 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       votingToChangeKeys,
       votingToChangeMinThreshold,
       votingToChangeProxy,
+      votingToManageEmissionFunds,
       ballotsEternalStorage.address,
-      validatorMetadataEternalStorage
+      validatorMetadataEternalStorage,
+      rewardByBlock
     );
 
     let ballotsStorageNew = await BallotsStorageNew.new();

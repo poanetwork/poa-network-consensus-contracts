@@ -36,41 +36,55 @@ Select `0.4.24` Solidity compiler version. Set `Optimize` to `true`.
 
 Compile and deploy contracts in the next sequence:
 
-- `ProxyStorage_flat.sol` - Select contract `ProxyStorage`.
-- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+- `ProxyStorage_flat.sol` - Deploy `ProxyStorage` contract.
+- `EternalStorageProxy_flat.sol` - Deploy `EternalStorageProxy` contract with constructor parameters: <br />
 `_proxyStorage` - equal to zero,
 `_implementationAddress` - address of ProxyStorage contract.
--  Make a call to `ProxyStorage init` with `_poaConsensus` parameter equal to the address of poaConsensus contract, using the address of `EternalStorageProxy` and ABI of `ProxyStorage`.
--  Select `poaNetworkConsensus` contract and send transaction `setProxyStorage` with the address of ProxyStorage contract.
-- `KeysManager_flat.sol` - Select contract `KeysManager`.
-- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+-  Make a call to `ProxyStorage init` with `_poaConsensus` parameter equal to the address of PoaNetworkConsensus contract, using the address of `EternalStorageProxy` and ABI of `ProxyStorage`.
+-  Select `PoaNetworkConsensus` contract and call `setProxyStorage` with the address of ProxyStorage contract.
+- `KeysManager_flat.sol` - Deploy `KeysManager` contract.
+- `EternalStorageProxy_flat.sol` - Deploy `EternalStorageProxy` contract with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of KeysManager contract.
 -  Make a call to `KeysManager init` with `_previousKeysManager` parameter equal to 0x0000000000000000000000000000000000000000, using the address of `EternalStorageProxy` and ABI of `KeysManager`.
-- `BallotsStorage_flat.sol` - Select contract `BallotsStorage`.
-- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+- `BallotsStorage_flat.sol` - Deploy `BallotsStorage` contract.
+- `EternalStorageProxy_flat.sol` - Deploy `EternalStorageProxy` contract with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of BallotsStorage contract.
 -  Make a call to `BallotsStorage init` with `_thresholds` parameter equal to [3, 2], using the address of `EternalStorageProxy` and ABI of `BallotsStorage`.
-- `VotingToChangeKeys_flat.sol` - Select contract `VotingToChangeKeys`.
-- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+- `VotingToChangeKeys_flat.sol` - Deploy `VotingToChangeKeys` contract.
+- `EternalStorageProxy_flat.sol` - Deploy `EternalStorageProxy` contract with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of VotingToChangeKeys contract.
 -  Make a call to `VotingToChangeKeys init` with `_minBallotDuration` parameter equal to `172800`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeKeys`.
-- `VotingToChangeMinThreshold_flat.sol` - Select contract `VotingToChangeMinThreshold`.
-- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+- `VotingToChangeMinThreshold_flat.sol` - Deploy `VotingToChangeMinThreshold` contract.
+- `EternalStorageProxy_flat.sol` - Deploy `EternalStorageProxy` contract with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of VotingToChangeMinThreshold contract.
 -  Make a call to `VotingToChangeMinThreshold init` with `_minBallotDuration` parameter equal to `172800` and `_minPossibleThreshold` parameter equal to `3`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeMinThreshold`.
-- `VotingToChangeProxyAddress_flat.sol` - Select contract `VotingToChangeProxyAddress`.
-- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+- `VotingToChangeProxyAddress_flat.sol` - Deploy `VotingToChangeProxyAddress` contract.
+- `EternalStorageProxy_flat.sol` - Deploy `EternalStorageProxy` contract with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of VotingToChangeProxyAddress contract.
 -  Make a call to `VotingToChangeProxyAddress init` with `_minBallotDuration` parameter equal to `172800`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeProxyAddress`.
-- `ValidatorMetadata_flat.sol` - Select contract `ValidatorMetadata`.
-- `EternalStorageProxy_flat.sol` - Select contract `EternalStorageProxy` with constructor parameters: <br />
+- `ValidatorMetadata_flat.sol` - Deploy `ValidatorMetadata` contract.
+- `EternalStorageProxy_flat.sol` - Deploy `EternalStorageProxy` contract with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of ValidatorMetadata contract.
+- `VotingToManageEmissionFunds_flat.sol` - Deploy `VotingToManageEmissionFunds` contract.
+- `EternalStorageProxy_flat.sol` - Deploy `EternalStorageProxy` contract with constructor parameters: <br />
+`_proxyStorage` - address of ProxyStorage contract,
+`_implementationAddress` - address of VotingToManageEmissionFunds contract.
+- `EmissionFunds_flat.sol` - Deploy `EmissionFunds` contract with constructor parameter `_votingToManageEmissionFunds` equal to `EternalStorageProxy` address of `VotingToManageEmissionFunds` contract.
+- `RewardByBlock_flat.sol` - Deploy `RewardByBlock` contract and replace `emissionFunds` constant value `0x00...` inside it with the address of deployed `EmissionFunds`. Then deploy `RewardByBlock`.
+- `EternalStorageProxy_flat.sol` - Deploy `EternalStorageProxy` contract with constructor parameters: <br />
+`_proxyStorage` - address of ProxyStorage contract,
+`_implementationAddress` - address of RewardByBlock contract.
+-  Make a call to `VotingToManageEmissionFunds init`, using the address of `EternalStorageProxy` and ABI of `VotingToManageEmissionFunds`, with the next parameters: <br />
+`_emissionFunds` - address of EmissionFunds contract,
+`_emissionReleaseTime` - your emission release unix timestamp,
+`_emissionReleaseThreshold` - your emission release threshold in seconds,
+`_distributionThreshold` - your distribution threshold in seconds.
 -  Select deployed `ProxyStorage` contract and make a call from MoC address to `initializeAddresses` with relevant addresses.
 
 ## Unit tests

@@ -5,8 +5,10 @@ let VotingToChangeProxyAddress = artifacts.require('./mockContracts/VotingToChan
 let VotingToChangeProxyAddressNew = artifacts.require('./upgradeContracts/VotingToChangeProxyAddressNew');
 let VotingForKeys = artifacts.require('./mockContracts/VotingToChangeKeysMock');
 let VotingForMinThreshold = artifacts.require('./mockContracts/VotingToChangeMinThresholdMock');
+let VotingForEmissionFunds = artifacts.require('./mockContracts/VotingToManageEmissionFundsMock');
 let BallotsStorage = artifacts.require('./BallotsStorage');
 let ValidatorMetadata = artifacts.require('./ValidatorMetadata');
+let RewardByBlock = artifacts.require('./RewardByBlock');
 let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
@@ -61,6 +63,10 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
     const votingForMinThresholdEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingForMinThreshold.address);
     votingForMinThreshold = await VotingForMinThreshold.at(votingForMinThresholdEternalStorage.address);
     await votingForMinThreshold.init(172800, 3).should.be.fulfilled;
+
+    let votingForEmissionFunds = await VotingForEmissionFunds.new();
+    const votingForEmissionFundsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingForEmissionFunds.address);
+    votingForEmissionFunds = await VotingForEmissionFunds.at(votingForEmissionFundsEternalStorage.address);
     
     voting = await VotingToChangeProxyAddress.new();
     const votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, voting.address);
@@ -71,13 +77,19 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
     const validatorMetadata = await ValidatorMetadata.new();
     const validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, validatorMetadata.address);
 
+    let rewardByBlock = await RewardByBlock.new();
+    const rewardByBlockEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, rewardByBlock.address);
+    rewardByBlock = await RewardByBlock.at(rewardByBlockEternalStorage.address);
+
     await proxyStorageMock.initializeAddresses(
       keysManagerEternalStorage.address,
       votingForKeysEternalStorage.address,
       votingForMinThresholdEternalStorage.address,
       votingEternalStorage.address,
+      votingForEmissionFunds.address,
       ballotsEternalStorage.address,
-      validatorMetadataEternalStorage.address
+      validatorMetadataEternalStorage.address,
+      rewardByBlock.address
     );
   })
 

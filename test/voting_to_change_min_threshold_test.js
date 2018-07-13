@@ -57,11 +57,13 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     
     await proxyStorageMock.initializeAddresses(
       keysManager.address,
-      masterOfCeremony,
+      accounts[0],
       voting.address,
-      masterOfCeremony,
+      accounts[0],
+      accounts[0],
       ballotsEternalStorage.address,
-      masterOfCeremony
+      accounts[0],
+      accounts[0]
     );
     
     ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);

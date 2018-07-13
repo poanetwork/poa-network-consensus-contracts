@@ -4,6 +4,7 @@ const EternalStorageProxy = artifacts.require('./mockContracts/EternalStoragePro
 const KeysManager = artifacts.require('./mockContracts/KeysManagerMock');
 const PoaNetworkConsensus = artifacts.require('./mockContracts/PoaNetworkConsensusMock');
 const ProxyStorage = artifacts.require('./mockContracts/ProxyStorageMock');
+const RewardByBlock = artifacts.require('./mockContracts/RewardByBlockMock');
 const ValidatorMetadata = artifacts.require('./ValidatorMetadata');
 const VotingForKeys = artifacts.require('./mockContracts/VotingToChangeKeysMock');
 const VotingForMinThreshold = artifacts.require('./mockContracts/VotingToChangeMinThresholdMock');
@@ -104,14 +105,20 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       emissionReleaseThreshold,
       distributionThreshold
     ).should.be.fulfilled;
+
+    rewardByBlock = await RewardByBlock.new();
+    const rewardByBlockEternalStorage = await EternalStorageProxy.new(proxyStorage.address, rewardByBlock.address);
+    rewardByBlock = await RewardByBlock.at(rewardByBlockEternalStorage.address);
     
     await proxyStorage.initializeAddresses(
       keysManagerEternalStorage.address,
       votingForKeysEternalStorage.address,
       votingForMinThresholdEternalStorage.address,
       votingForProxyEternalStorage.address,
+      votingEternalStorage.address,
       ballotsEternalStorage.address,
-      validatorMetadataEternalStorage.address
+      validatorMetadataEternalStorage.address,
+      rewardByBlockEternalStorage.address
     );
 
     (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(0);
