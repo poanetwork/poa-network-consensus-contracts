@@ -161,5 +161,110 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
       logs[0].args.rewards[0].toString().should.be.equal(blockRewardAmount.toString());
       logs[0].args.rewards[1].toString().should.be.equal(emissionFundsAmount.toString());
     });
+
+    it('should assign rewards to extra receivers and clear extra receivers list', async () => {
+      await rewardByBlock.setBridgeContractAddress(accounts[1]);
+      await rewardByBlock.addExtraReceiver(accounts[2], 2, {from: accounts[1]}).should.be.fulfilled;
+      await rewardByBlock.addExtraReceiver(accounts[3], 3, {from: accounts[1]}).should.be.fulfilled;
+
+      await rewardByBlock.setSystemAddress(systemAddress);
+      let result = await rewardByBlock.reward(
+        [miningKey],
+        [0],
+        {from: systemAddress}
+      ).should.be.fulfilled;
+      result.logs[0].event.should.be.equal('Rewarded');
+      result.logs[0].args.receivers.should.be.deep.equal([payoutKey, emissionFundsAddress, accounts[2], accounts[3]]);
+      result.logs[0].args.rewards[0].toString().should.be.equal(blockRewardAmount.toString());
+      result.logs[0].args.rewards[1].toString().should.be.equal(emissionFundsAmount.toString());
+      result.logs[0].args.rewards[2].toString().should.be.equal('2');
+      result.logs[0].args.rewards[3].toString().should.be.equal('3');
+
+      (await rewardByBlock.extraReceiversAmounts.call(accounts[2])).should.be.bignumber.equal(0);
+      (await rewardByBlock.extraReceiversAmounts.call(accounts[3])).should.be.bignumber.equal(0);
+      (await rewardByBlock.extraReceiversLength.call()).should.be.bignumber.equal(0);
+
+      await rewardByBlock.addExtraReceiver(accounts[2], 2, {from: accounts[1]}).should.be.fulfilled;
+      await rewardByBlock.addExtraReceiver(accounts[3], 3, {from: accounts[1]}).should.be.fulfilled;
+      result = await rewardByBlock.reward(
+        [miningKey],
+        [0],
+        {from: systemAddress}
+      ).should.be.fulfilled;
+      result.logs[0].event.should.be.equal('Rewarded');
+      result.logs[0].args.receivers.should.be.deep.equal([payoutKey, emissionFundsAddress, accounts[2], accounts[3]]);
+      result.logs[0].args.rewards[0].toString().should.be.equal(blockRewardAmount.toString());
+      result.logs[0].args.rewards[1].toString().should.be.equal(emissionFundsAmount.toString());
+      result.logs[0].args.rewards[2].toString().should.be.equal('2');
+      result.logs[0].args.rewards[3].toString().should.be.equal('3');
+
+      (await rewardByBlock.extraReceiversAmounts.call(accounts[2])).should.be.bignumber.equal(0);
+      (await rewardByBlock.extraReceiversAmounts.call(accounts[3])).should.be.bignumber.equal(0);
+      (await rewardByBlock.extraReceiversLength.call()).should.be.bignumber.equal(0);
+    });
+  });
+
+  describe('#addExtraReceiver', async () => {
+    it('may be called only by bridge contract', async () => {
+      await rewardByBlock.addExtraReceiver(accounts[1], 1).should.be.rejectedWith(ERROR_MSG);
+      await rewardByBlock.setBridgeContractAddress(accounts[2]);
+      await rewardByBlock.addExtraReceiver(accounts[1], 1, {from: accounts[2]}).should.be.fulfilled;
+    });
+
+    it('should revert if receiver address is 0x0', async () => {
+      await rewardByBlock.setBridgeContractAddress(accounts[2]);
+      await rewardByBlock.addExtraReceiver(
+        '0x0000000000000000000000000000000000000000',
+        1,
+        {from: accounts[2]}
+      ).should.be.rejectedWith(ERROR_MSG);
+    });
+
+    it('should revert if amount is 0', async () => {
+      await rewardByBlock.setBridgeContractAddress(accounts[2]);
+      await rewardByBlock.addExtraReceiver(
+        accounts[1],
+        0,
+        {from: accounts[2]}
+      ).should.be.rejectedWith(ERROR_MSG);
+    });
+
+    it('can only be called once for the same recipient', async () => {
+      await rewardByBlock.setBridgeContractAddress(accounts[2]);
+      await rewardByBlock.addExtraReceiver(
+        accounts[1],
+        1,
+        {from: accounts[2]}
+      ).should.be.fulfilled;
+      await rewardByBlock.addExtraReceiver(
+        accounts[1],
+        1,
+        {from: accounts[2]}
+      ).should.be.rejectedWith(ERROR_MSG);
+    });
+
+    it('should add receivers', async () => {
+      await rewardByBlock.setBridgeContractAddress(accounts[1]);
+      (await rewardByBlock.extraReceiversAmounts.call(accounts[2])).should.be.bignumber.equal(0);
+      (await rewardByBlock.extraReceiversLength.call()).should.be.bignumber.equal(0);
+
+      let result = await rewardByBlock.addExtraReceiver(accounts[2], 2, {from: accounts[1]}).should.be.fulfilled;
+      (await rewardByBlock.extraReceivers.call(0)).should.be.equal(accounts[2]);
+      (await rewardByBlock.extraReceiversAmounts.call(accounts[2])).should.be.bignumber.equal(2);
+      (await rewardByBlock.extraReceiversLength.call()).should.be.bignumber.equal(1);
+      result.logs[0].event.should.be.equal('AddedReceiver');
+      result.logs[0].args.receiver.should.be.equal(accounts[2]);
+      result.logs[0].args.amount.should.be.bignumber.equal(2);
+
+      result = await rewardByBlock.addExtraReceiver(accounts[3], 3, {from: accounts[1]}).should.be.fulfilled;
+      (await rewardByBlock.extraReceivers.call(0)).should.be.equal(accounts[2]);
+      (await rewardByBlock.extraReceivers.call(1)).should.be.equal(accounts[3]);
+      (await rewardByBlock.extraReceiversAmounts.call(accounts[2])).should.be.bignumber.equal(2);
+      (await rewardByBlock.extraReceiversAmounts.call(accounts[3])).should.be.bignumber.equal(3);
+      (await rewardByBlock.extraReceiversLength.call()).should.be.bignumber.equal(2);
+      result.logs[0].event.should.be.equal('AddedReceiver');
+      result.logs[0].args.receiver.should.be.equal(accounts[3]);
+      result.logs[0].args.amount.should.be.bignumber.equal(3);
+    });
   });
 });
