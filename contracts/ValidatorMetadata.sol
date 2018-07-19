@@ -29,8 +29,6 @@ contract ValidatorMetadata is EternalStorage {
     string internal constant VOTERS = "voters";
     string internal constant ZIP_CODE = "zipcode";
 
-    uint256 public constant MAX_PENDING_CHANGE_CONFIRMATIONS = 50;
-
     event MetadataCreated(address indexed miningKey);
     event ChangeRequestInitiated(address indexed miningKey);
     event CancelledRequest(address indexed miningKey);
@@ -235,35 +233,9 @@ contract ValidatorMetadata is EternalStorage {
         returns(bool)
     {
         address miningKey = getMiningByVotingKey(msg.sender);
-        return changeRequestForValidator(
-            _firstName,
-            _lastName,
-            _licenseId,
-            _fullAddress,
-            _state,
-            _zipcode,
-            _expirationDate,
-            miningKey
-        );
-    }
-
-    function changeRequestForValidator(
-        bytes32 _firstName,
-        bytes32 _lastName,
-        bytes32 _licenseId,
-        string _fullAddress,
-        bytes32 _state,
-        bytes32 _zipcode,
-        uint256 _expirationDate,
-        address _miningKey
-    )
-        public
-        onlyValidVotingKey(msg.sender)
-        returns(bool) 
-    {
         _setMetadata(
             true,
-            _miningKey,
+            miningKey,
             _firstName,
             _lastName,
             _licenseId,
@@ -271,15 +243,15 @@ contract ValidatorMetadata is EternalStorage {
             _state,
             _zipcode,
             _expirationDate,
-            _getCreatedDate(false, _miningKey),
+            _getCreatedDate(false, miningKey),
             getTime(),
             getMinThreshold()
         );
-        _setMinThreshold(true, _miningKey, _getMinThreshold(false, _miningKey));
+        _setMinThreshold(true, miningKey, _getMinThreshold(false, miningKey));
         delete addressArrayStorage[keccak256(abi.encodePacked(
-            CONFIRMATIONS, _miningKey, VOTERS
+            CONFIRMATIONS, miningKey, VOTERS
         ))];
-        emit ChangeRequestInitiated(_miningKey);
+        emit ChangeRequestInitiated(miningKey);
         return true;
     }
 
@@ -327,8 +299,6 @@ contract ValidatorMetadata is EternalStorage {
         onlyValidVotingKey(msg.sender)
     {
         require(!isAddressAlreadyVoted(_miningKey, msg.sender));
-        uint256 count = _getConfirmationsVoters(_miningKey).length;
-        require(count <= MAX_PENDING_CHANGE_CONFIRMATIONS); // no need for more confirmations
         address miningKey = getMiningByVotingKey(msg.sender);
         require(miningKey != _miningKey);
         _confirmationsVoterAdd(_miningKey, msg.sender);

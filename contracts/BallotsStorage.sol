@@ -98,7 +98,11 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
         if (validatorsCount == 0) {
             return getMaxLimitBallot();
         }
-        return getMaxLimitBallot().div(validatorsCount);
+        uint256 limit = getMaxLimitBallot().div(validatorsCount);
+        if (limit == 0) {
+            limit = 1;
+        }
+        return limit;
     }
     
     function getMaxLimitBallot() public view returns(uint256) {
