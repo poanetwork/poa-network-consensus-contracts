@@ -1017,21 +1017,51 @@ async function deployAndTestBallot({_affectedKey, _affectedKeyType, _miningKey, 
     _miningKey,
     _ballotType,
     "memo",
-     {from: votingKey});
-  const activeBallotsLength = await voting.activeBallotsLength.call();
+    {from: votingKey}
+  );
+
   new web3.BigNumber(_ballotType).should.be.bignumber.equal(await voting.getBallotType.call(votingId));
   await voting.setTime(VOTING_START_DATE);
   await voting.vote(votingId, choice.reject, {from: votingKey}).should.be.fulfilled;
   false.should.be.equal(await voting.hasAlreadyVoted.call(votingId, votingKey2));
   await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
   await voting.vote(votingId, choice.accept, {from: votingKey3}).should.be.fulfilled;
-
   (await voting.getTotalVoters.call(votingId)).should.be.bignumber.equal(3);
   false.should.be.equal(await voting.getIsFinalized.call(votingId));
+
+  let secondVotingId = null;
+  if (_affectedKeyType == 1 && _ballotType == 2) { // mining key removal
+    // create a new ballot to remove the same mining key
+    secondVotingId = votingId + 1;
+    await voting.createBallot(
+      VOTING_START_DATE+10,
+      VOTING_END_DATE,
+      _affectedKey,
+      _affectedKeyType,
+      _miningKey,
+      _ballotType,
+      "memo",
+      {from: votingKey}
+    );
+    new web3.BigNumber(_ballotType).should.be.bignumber.equal(await voting.getBallotType.call(secondVotingId));
+    await voting.setTime(VOTING_START_DATE+10);
+    await voting.vote(secondVotingId, choice.reject, {from: votingKey}).should.be.fulfilled;
+    false.should.be.equal(await voting.hasAlreadyVoted.call(secondVotingId, votingKey2));
+    await voting.vote(secondVotingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
+    await voting.vote(secondVotingId, choice.accept, {from: votingKey3}).should.be.fulfilled;
+    (await voting.getTotalVoters.call(secondVotingId)).should.be.bignumber.equal(3);
+    false.should.be.equal(await voting.getIsFinalized.call(secondVotingId));
+  }
+
   await voting.setTime(VOTING_END_DATE + 1);
   const {logs} = await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
   true.should.be.equal(await voting.getIsFinalized.call(votingId));
-  
+
+  if (secondVotingId !== null) {
+    await voting.finalize(secondVotingId, {from: votingKey}).should.be.fulfilled;
+    true.should.be.equal(await voting.getIsFinalized.call(secondVotingId));
+  }
+
   (await voting.getStartTime.call(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
   (await voting.getEndTime.call(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
   (await voting.getAffectedKey.call(votingId)).should.be.equal(_affectedKey);
