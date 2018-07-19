@@ -134,7 +134,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function withinLimit(address _miningKey) public view returns(bool) {
-        return validatorActiveBallots(_miningKey) <= getBallotLimitPerValidator();
+        return validatorActiveBallots(_miningKey) < getBallotLimitPerValidator();
     }
 
     function _activeBallotsAdd(uint256 _id) internal {
