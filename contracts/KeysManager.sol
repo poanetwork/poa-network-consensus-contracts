@@ -74,7 +74,7 @@ contract KeysManager is EternalStorage, IKeysManager {
 
     modifier withinTotalLimit() {
         IPoaNetworkConsensus poa = IPoaNetworkConsensus(poaNetworkConsensus());
-        require(poa.getCurrentValidatorsLength() <= maxLimitValidators());
+        require(poa.getCurrentValidatorsLength() < maxLimitValidators());
         _;
     }
 
@@ -362,11 +362,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsVotingActive(isVotingActive(votingKey), _key);
         _setIsPayoutActive(isPayoutActive(_oldMiningKey), _key);
         IPoaNetworkConsensus(poaNetworkConsensus()).swapValidatorKey(_key, _oldMiningKey);
-        _setVotingKey(address(0), _oldMiningKey);
-        _setPayoutKey(address(0), _oldMiningKey);
-        _setIsMiningActive(false, _oldMiningKey);
-        _setIsVotingActive(false, _oldMiningKey);
-        _setIsPayoutActive(false, _oldMiningKey);
+        _clearMiningKey(_oldMiningKey);
         _setMiningKeyByVoting(votingKey, _key);
         _setMiningKeyByPayout(payoutKey, _key);
         emit MiningKeyChanged(_key, "swapped");
@@ -431,18 +427,22 @@ contract KeysManager is EternalStorage, IKeysManager {
         }
     }
 
+    function _clearMiningKey(address _miningKey) private {
+        _setVotingKey(address(0), _miningKey);
+        _setPayoutKey(address(0), _miningKey);
+        _setIsMiningActive(false, _miningKey);
+        _setIsVotingActive(false, _miningKey);
+        _setIsPayoutActive(false, _miningKey);
+    }
+
     function _removeMiningKey(address _key) private {
         require(initDisabled());
-        require(isMiningActive(_key));
+        if (!isMiningActive(_key)) return;
         address votingKey = getVotingByMining(_key);
         address payoutKey = getPayoutByMining(_key);
         _setMiningKeyByVoting(votingKey, address(0));
         _setMiningKeyByPayout(payoutKey, address(0));
-        _setVotingKey(address(0), _key);
-        _setPayoutKey(address(0), _key);
-        _setIsMiningActive(false, _key);
-        _setIsVotingActive(false, _key);
-        _setIsPayoutActive(false, _key);
+        _clearMiningKey(_key);
         if (_key == masterOfCeremony()) {
             require(initialKeysCount() >= maxNumberOfInitialKeys());
         }

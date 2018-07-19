@@ -223,7 +223,10 @@ contract VotingToChange is IVotingToChange, VotingTo {
 
     function _decreaseValidatorLimit(uint256 _id) internal {
         address miningKey = getCreator(_id);
-        _setValidatorActiveBallots(miningKey, validatorActiveBallots(miningKey).sub(1));
+        uint256 ballotsCount = validatorActiveBallots(miningKey);
+        if (ballotsCount > 0) {
+            _setValidatorActiveBallots(miningKey, ballotsCount - 1);
+        }
     }
 
     function _finalizeBallot(uint256 _id) internal {

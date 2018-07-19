@@ -411,6 +411,7 @@ contract('KeysManager [all features]', function (accounts) {
       );
       const result = await keysManager.removeVotingKey(accounts[1]).should.be.fulfilled;
       result.logs.length.should.be.equal(0);
+      await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
     })
   
     it('removes validator from poaConsensus', async () => {
@@ -468,10 +469,14 @@ contract('KeysManager [all features]', function (accounts) {
     });
 
     it('should still enforce removal of votingKey to 0x0 even if voting key did not exist', async () => {
-      await keysManager.removeMiningKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
+      let result = await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
+      result.logs.length.should.be.equal(0);
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      const {logs} = await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
+      result = await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
+      result.logs[0].event.should.be.equal('MiningKeyChanged');
+      result.logs[0].args.key.should.be.equal(accounts[1]);
+      result.logs[0].args.action.should.be.equal('removed');
       const validator = await keysManager.validatorKeys.call(accounts[1]);
       (await keysManager.getMiningKeyByVoting.call(validator[0])).should.be.equal(
         '0x0000000000000000000000000000000000000000'
