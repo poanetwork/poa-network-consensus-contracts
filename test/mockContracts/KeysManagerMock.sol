@@ -4,11 +4,15 @@ import '../../contracts/KeysManager.sol';
 
 
 contract KeysManagerMock is KeysManager {
+    function getInitialKey(address _initialKey) public view returns(uint8) {
+        return getInitialKeyStatus(_initialKey);
+    }
+
     function setProxyStorage(address _proxyStorage) public {
         addressStorage[keccak256("proxyStorage")] = _proxyStorage;
     }
 
     function setInitEnabled() public {
-    	boolStorage[INIT_DISABLED] = false;
+        boolStorage[INIT_DISABLED] = false;
     }
 }

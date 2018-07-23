@@ -167,7 +167,7 @@ async function migrateAndCheck(privateKey) {
 		for (let i = 0; i < initialKeys.length; i++) {
 			const initialKey = initialKeys[i];
 			(await keysManagerOldInstance.methods.getInitialKey(initialKey).call()).should.be.equal(
-				await keysManagerNewInstance.methods.getInitialKey(initialKey).call()
+				await keysManagerNewInstance.methods.getInitialKeyStatus(initialKey).call()
 			);
 		}
 		for (let i = 0; i < miningKeys.length; i++) {
