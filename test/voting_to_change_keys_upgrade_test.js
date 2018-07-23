@@ -147,6 +147,28 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, masterOfCeremony, 1, "memo", {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, accounts[2], 1, "memo", {from: votingKey}).should.be.fulfilled;
     })
+    it('should not let add votingKey for 0x0', async () => {
+      await proxyStorageMock.setVotingContractMock(accounts[0]);
+      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
+      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
+      await proxyStorageMock.setVotingContractMock(voting.address);
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(10, 'days').unix();
+      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, '0x0000000000000000000000000000000000000000', 1, "memo", {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, accounts[2], 1, "memo", {from: votingKey}).should.be.fulfilled;
+    })
+    it('should not let add payoutKey for 0x0', async () => {
+      await proxyStorageMock.setVotingContractMock(accounts[0]);
+      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
+      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
+      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
+      await proxyStorageMock.setVotingContractMock(voting.address);
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(10, 'days').unix();
+      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 3, '0x0000000000000000000000000000000000000000', 1, "memo", {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 3, accounts[2], 1, "memo", {from: votingKey}).should.be.fulfilled;
+    })
     it('should not let create more ballots than the limit', async () => {
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
       await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
