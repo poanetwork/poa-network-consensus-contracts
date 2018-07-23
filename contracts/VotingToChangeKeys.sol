@@ -232,10 +232,10 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         }
         if (_affectedKeyType == uint256(KeyTypes.VotingKey)) {
             require(_miningKey != IKeysManager(getKeysManager()).masterOfCeremony());
-            return _affectedKey != _miningKey;
+            return _affectedKey != _miningKey && _miningKey != address(0);
         }
         if (_affectedKeyType == uint256(KeyTypes.PayoutKey)) {
-            return _affectedKey != _miningKey;
+            return _affectedKey != _miningKey && _miningKey != address(0);
         }
     }
 
