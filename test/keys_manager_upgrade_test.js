@@ -129,9 +129,9 @@ contract('KeysManager upgraded [all features]', function (accounts) {
     })
 
     it('should set initialKeys hash to activated status', async() => {
-      new web3.BigNumber(0).should.be.bignumber.equal(await keysManager.initialKeys.call(accounts[1]));
+      new web3.BigNumber(0).should.be.bignumber.equal(await keysManager.getInitialKeyStatus.call(accounts[1]));
       const {logs} = await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
-      new web3.BigNumber(1).should.be.bignumber.equal(await keysManager.initialKeys.call(accounts[1]));
+      new web3.BigNumber(1).should.be.bignumber.equal(await keysManager.getInitialKeyStatus.call(accounts[1]));
       let initialKeysCount = await keysManager.initialKeysCount.call();
       // event InitialKeyCreated(address indexed initialKey, uint256 time, uint256 initialKeysCount);
       logs[0].event.should.equal("InitialKeyCreated");
@@ -249,7 +249,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       let miningKey = accounts[4];
       await keysManager.initiateKeys(accounts[1], {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.createKeys(miningKey, accounts[3], accounts[2], {from: accounts[1]});
-      new web3.BigNumber(2).should.be.bignumber.equal(await keysManager.initialKeys.call(accounts[1]));
+      new web3.BigNumber(2).should.be.bignumber.equal(await keysManager.getInitialKeyStatus.call(accounts[1]));
     })
   })
 
@@ -723,11 +723,11 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       await newKeysManager.migrateInitialKey(accounts[1]).should.be.rejectedWith(ERROR_MSG);
 
       new web3.BigNumber(1).should.be.bignumber.equal(
-        await newKeysManager.initialKeys.call(accounts[1])
+        await newKeysManager.getInitialKeyStatus.call(accounts[1])
       )
       await newKeysManager.migrateInitialKey(accounts[2]).should.be.rejectedWith(ERROR_MSG);
       new web3.BigNumber(0).should.be.bignumber.equal(
-        await newKeysManager.initialKeys.call(accounts[2])
+        await newKeysManager.getInitialKeyStatus.call(accounts[2])
       )
     })
   });
