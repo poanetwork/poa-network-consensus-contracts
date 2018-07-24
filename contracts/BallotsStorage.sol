@@ -5,10 +5,11 @@ import "./interfaces/IKeysManager.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
 import "./eternal-storage/EternalStorage.sol";
+import "./abstracts/ThresholdTypesEnum.sol";
 import "./libs/SafeMath.sol";
 
 
-contract BallotsStorage is EternalStorage, IBallotsStorage {
+contract BallotsStorage is EternalStorage, ThresholdTypesEnum, IBallotsStorage {
     using SafeMath for uint256;
 
     bytes32 internal constant INIT_DISABLED = keccak256("initDisabled");
@@ -17,7 +18,6 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
 
     string internal constant BALLOT_THRESHOLDS = "ballotThresholds";
 
-    enum ThresholdTypes {Invalid, Keys, MetadataChange}
     event ThresholdChanged(uint8 indexed thresholdType, uint256 newValue);
 
     modifier onlyOwner() {
@@ -44,7 +44,7 @@ contract BallotsStorage is EternalStorage, IBallotsStorage {
         require(!initDisabled());
         require(_thresholds.length == uint256(ThresholdTypes.MetadataChange));
         require(_thresholds.length <= 255);
-        for (uint8 thresholdType = 1; thresholdType <= _thresholds.length; thresholdType++) {
+        for (uint8 thresholdType = uint8(ThresholdTypes.Keys); thresholdType <= _thresholds.length; thresholdType++) {
             uint256 thresholdValue = _thresholds[thresholdType - 1];
             require(thresholdValue > 0);
             _setThreshold(thresholdValue, thresholdType);
