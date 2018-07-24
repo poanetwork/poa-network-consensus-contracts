@@ -235,6 +235,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
       (await poaNetworkConsensus.masterOfCeremony.call()).should.be.equal(masterOfCeremony);
       (await poaNetworkConsensus.isMasterOfCeremonyRemoved.call()).should.be.equal(false);
       (await poaNetworkConsensus.isMasterOfCeremonyRemovedPending.call()).should.be.equal(false);
+      (await poaNetworkConsensus.getCurrentValidatorsLength.call()).should.be.bignumber.equal(1);
       await poaNetworkConsensus.removeValidator(masterOfCeremony, true).should.be.fulfilled;
       (await poaNetworkConsensus.isMasterOfCeremonyRemoved.call()).should.be.equal(false);
       (await poaNetworkConsensus.isMasterOfCeremonyRemovedPending.call()).should.be.equal(true);

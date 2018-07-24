@@ -5,9 +5,10 @@ import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IKeysManager.sol";
 import "./eternal-storage/EternalStorage.sol";
+import "./abstracts/ThresholdTypesEnum.sol";
 
 
-contract ValidatorMetadata is EternalStorage {
+contract ValidatorMetadata is EternalStorage, ThresholdTypesEnum {
     using SafeMath for uint256;
 
     bytes32 internal constant INIT_METADATA_DISABLED = keccak256("initMetadataDisabled");
@@ -334,9 +335,8 @@ contract ValidatorMetadata is EternalStorage {
     }
 
     function getMinThreshold() public view returns(uint256) {
-        uint8 metadataChangeThresholdType = 2;
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
-        return ballotsStorage.getBallotThreshold(metadataChangeThresholdType);
+        return ballotsStorage.getBallotThreshold(uint8(ThresholdTypes.MetadataChange));
     }
 
     function getBallotsStorage() public view returns(address) {

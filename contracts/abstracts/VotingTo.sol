@@ -183,7 +183,7 @@ contract VotingTo is EternalStorage {
         returns(bool)
     {
         address miningKey = getMiningByVotingKey(_votingKey);
-        bool notVoted = !hasAlreadyVoted(_id, _votingKey);
+        bool notVoted = !hasMiningKeyAlreadyVoted(_id, miningKey);
         bool oldKeysNotVoted = !areOldMiningKeysVoted(_id, miningKey);
         return notVoted && isActive(_id) && oldKeysNotVoted;
     }

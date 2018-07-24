@@ -157,6 +157,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         address _validator,
         bool _shouldFireEvent
     ) public onlyKeysManager isNotNewValidator(_validator) {
+        require(pendingList.length > 0);
         uint256 removedIndex = validatorsState[_validator].index;
         // Can not remove the last validator.
         uint256 lastIndex = pendingList.length - 1;
@@ -165,10 +166,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         pendingList[removedIndex] = lastValidator;
         // Update the index of the last validator.
         validatorsState[lastValidator].index = removedIndex;
-        delete pendingList[lastIndex];
-        if (pendingList.length > 0) {
-            pendingList.length--;
-        }
+        pendingList.length--;
         validatorsState[_validator].index = 0;
         validatorsState[_validator].isValidator = false;
         validatorsState[_validator].isValidatorFinalized = false;

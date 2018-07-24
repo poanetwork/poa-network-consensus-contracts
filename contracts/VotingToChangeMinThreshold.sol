@@ -2,9 +2,10 @@ pragma solidity ^0.4.24;
 
 import "./interfaces/IVotingToChangeMinThreshold.sol";
 import "./abstracts/VotingToChange.sol";
+import "./abstracts/ThresholdTypesEnum.sol";
 
 
-contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChange {
+contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChange, ThresholdTypesEnum {
     bytes32 internal constant MIN_POSSIBLE_THRESHOLD = keccak256("minPossibleThreshold");
 
     string internal constant PROPOSED_VALUE = "proposedValue";
@@ -93,9 +94,8 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
     }
 
     function _finalizeBallotInner(uint256 _id) internal {
-        uint8 thresholdForKeysType = 1;
         IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
-        ballotsStorage.setThreshold(getProposedValue(_id), thresholdForKeysType);
+        ballotsStorage.setThreshold(getProposedValue(_id), uint8(ThresholdTypes.Keys));
     }
 
     function _setProposedValue(uint256 _ballotId, uint256 _value) private {
