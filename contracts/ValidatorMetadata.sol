@@ -13,7 +13,6 @@ contract ValidatorMetadata is EternalStorage, ThresholdTypesEnum {
 
     bytes32 internal constant INIT_METADATA_DISABLED = keccak256("initMetadataDisabled");
     bytes32 internal constant OWNER = keccak256("owner");
-    bytes32 internal constant PENDING_PROXY_STORAGE = keccak256("pendingProxyStorage");
     bytes32 internal constant PROXY_STORAGE = keccak256("proxyStorage");
 
     string internal constant CONFIRMATIONS = "confirmations";
@@ -24,7 +23,6 @@ contract ValidatorMetadata is EternalStorage, ThresholdTypesEnum {
     string internal constant LAST_NAME = "lastName";
     string internal constant LICENSE_ID = "licenseId";
     string internal constant MIN_THRESHOLD = "minThreshold";
-    string internal constant PENDING_PROXY_CONFIRMATIONS = "pendingProxyConfirmations";
     string internal constant STATE = "state";
     string internal constant UPDATED_DATE = "updatedDate";
     string internal constant VOTERS = "voters";
@@ -35,8 +33,6 @@ contract ValidatorMetadata is EternalStorage, ThresholdTypesEnum {
     event CancelledRequest(address indexed miningKey);
     event Confirmed(address indexed miningKey, address votingSender);
     event FinalizedChange(address indexed miningKey);
-    event RequestForNewProxy(address newProxyAddress);
-    event ChangeProxyStorage(address newProxyAddress);
 
     modifier onlyValidVotingKey(address _votingKey) {
         IKeysManager keysManager = IKeysManager(getKeysManager());
@@ -57,10 +53,6 @@ contract ValidatorMetadata is EternalStorage, ThresholdTypesEnum {
 
     function proxyStorage() public view returns (address) {
         return addressStorage[PROXY_STORAGE];
-    }
-
-    function pendingProxyStorage() public view returns (address) {
-        return addressStorage[PENDING_PROXY_STORAGE];
     }
 
     function getValidatorName(address _miningKey) public view returns (
@@ -107,44 +99,6 @@ contract ValidatorMetadata is EternalStorage, ThresholdTypesEnum {
     ) {
         voters = _getConfirmationsVoters(_miningKey);
         count = voters.length;
-    }
-
-    function pendingProxyConfirmations(address _newProxyAddress) public view returns (
-        uint256 count,
-        address[] voters
-    ) {
-        voters = _getPendingProxyConfirmationsVoters(_newProxyAddress);
-        count = voters.length;
-    }
-
-    function setProxyAddress(address _newProxyAddress)
-        public
-        onlyValidVotingKey(msg.sender)
-    {
-        require(pendingProxyStorage() == address(0));
-        _setPendingProxyStorage(_newProxyAddress);
-        _pendingProxyConfirmationsVoterAdd(_newProxyAddress, msg.sender);
-        emit RequestForNewProxy(_newProxyAddress);
-    }
-
-    function confirmNewProxyAddress(address _newProxyAddress)
-        public
-        onlyValidVotingKey(msg.sender)
-    {
-        require(pendingProxyStorage() != address(0));
-        require(!isAddressAlreadyVotedProxy(_newProxyAddress, msg.sender));
-        _pendingProxyConfirmationsVoterAdd(_newProxyAddress, msg.sender);
-        uint256 count = _getPendingProxyConfirmationsVoters(_newProxyAddress).length;
-        if (count >= 3) {
-            _setProxyStorage(_newProxyAddress);
-            _setPendingProxyStorage(address(0));
-            delete addressArrayStorage[keccak256(abi.encodePacked(
-                PENDING_PROXY_CONFIRMATIONS, _newProxyAddress, VOTERS
-            ))];
-            emit ChangeProxyStorage(_newProxyAddress);
-        }
-        
-        emit Confirmed(_newProxyAddress, msg.sender);
     }
 
     function initMetadataDisabled() public view returns(bool) {
@@ -271,22 +225,6 @@ contract ValidatorMetadata is EternalStorage, ThresholdTypesEnum {
         uint256 count;
         address[] memory voters;
         (count, voters) = confirmations(_miningKey);
-        for (uint256 i = 0; i < count; i++) {
-            if (voters[i] == _voter) {
-                return true;   
-            }
-        }
-        return false;
-    }
-
-    function isAddressAlreadyVotedProxy(address _newProxy, address _voter)
-        public
-        view
-        returns(bool)
-    {
-        uint256 count;
-        address[] memory voters;
-        (count, voters) = pendingProxyConfirmations(_newProxy);
         for (uint256 i = 0; i < count; i++) {
             if (voters[i] == _voter) {
                 return true;   
@@ -465,16 +403,6 @@ contract ValidatorMetadata is EternalStorage, ThresholdTypesEnum {
         ))];
     }
 
-    function _getPendingProxyConfirmationsVoters(address _newProxyAddress)
-        private
-        view
-        returns(address[] voters)
-    {
-        voters = addressArrayStorage[keccak256(abi.encodePacked(
-            PENDING_PROXY_CONFIRMATIONS, _newProxyAddress, VOTERS
-        ))];
-    }
-
     function _deletePendingChange(address _miningKey) private {
         string memory _store = _storeName(true);
         delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, FIRST_NAME))];
@@ -615,26 +543,9 @@ contract ValidatorMetadata is EternalStorage, ThresholdTypesEnum {
         ))] = _minThreshold;
     }
 
-    function _setProxyStorage(address _proxyStorage) private {
-        addressStorage[PROXY_STORAGE] = _proxyStorage;
-    }
-
-    function _setPendingProxyStorage(address _proxyStorage) private {
-        addressStorage[PENDING_PROXY_STORAGE] = _proxyStorage;
-    }
-
     function _confirmationsVoterAdd(address _miningKey, address _voter) private {
         addressArrayStorage[keccak256(abi.encodePacked(
             CONFIRMATIONS, _miningKey, VOTERS
-        ))].push(_voter);
-    }
-
-    function _pendingProxyConfirmationsVoterAdd(
-        address _newProxyAddress,
-        address _voter
-    ) private {
-        addressArrayStorage[keccak256(abi.encodePacked(
-            PENDING_PROXY_CONFIRMATIONS, _newProxyAddress, VOTERS
         ))].push(_voter);
     }
 
