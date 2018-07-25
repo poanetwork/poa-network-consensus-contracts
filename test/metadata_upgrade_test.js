@@ -387,41 +387,6 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       (await metadata.getMinThreshold.call()).should.be.bignumber.equal(2);
     })
   })
-  describe('#setProxyAddress', async () => {
-    let newProxy = "0xfb9c7fc2a00dffc53948e3bbeb11f3d4b56c31b8";
-    it('can request a new proxy address', async () => {
-      "0x0000000000000000000000000000000000000000".should.be.equal(
-        await metadata.pendingProxyStorage.call()
-      );
-      (await metadata.proxyStorage.call()).should.be.equal(proxyStorageMock.address);
-      await metadata.confirmNewProxyAddress(newProxy, {from: votingKey2}).should.be.rejectedWith(ERROR_MSG);
-      await metadata.setProxyAddress(newProxy, {from: miningKey}).should.be.rejectedWith(ERROR_MSG);
-      const {logs} = await metadata.setProxyAddress(newProxy, {from: votingKey}).should.be.fulfilled;
-      (await metadata.pendingProxyStorage.call()).should.be.equal(newProxy);
-      (await metadata.pendingProxyConfirmations.call(newProxy))[0].should.be.bignumber.deep.equal(1);
-      logs[0].event.should.be.equal("RequestForNewProxy");
-      logs[0].args.newProxyAddress.should.be.equal(newProxy);
-      await metadata.setProxyAddress(newProxy, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
-      await metadata.confirmNewProxyAddress(newProxy, {from: votingKey2}).should.be.fulfilled;
-      (await metadata.pendingProxyConfirmations.call(newProxy))[0].should.be.bignumber.deep.equal(2);
-      true.should.be.equal(
-        await metadata.isAddressAlreadyVotedProxy.call(newProxy, votingKey)
-      );
-      true.should.be.equal(
-        await metadata.isAddressAlreadyVotedProxy.call(newProxy, votingKey2)
-      );
-      false.should.be.equal(
-        await metadata.isAddressAlreadyVotedProxy.call(newProxy, votingKey3)
-      );
-      let final = await metadata.confirmNewProxyAddress(newProxy, {from: votingKey3}).should.be.fulfilled;
-      final.logs[0].event.should.be.equal("ChangeProxyStorage");
-      final.logs[0].args.newProxyAddress.should.be.equal(newProxy);
-      "0x0000000000000000000000000000000000000000".should.be.equal(
-        await metadata.pendingProxyStorage.call()
-      );
-      (await metadata.proxyStorage.call()).should.be.equal(newProxy);
-    })
-  })
 })
 
 function toHex(someString) {
