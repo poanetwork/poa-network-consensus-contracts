@@ -22,10 +22,11 @@ let keysManager, poaNetworkConsensusMock, voting;
 let votingKey, votingKey2, votingKey3, miningKeyForVotingKey;
 let VOTING_START_DATE, VOTING_END_DATE;
 contract('Voting to change keys upgraded [all features]', function (accounts) {
-  votingKey = accounts[2];
-  miningKeyForVotingKey = accounts[1];
-  masterOfCeremony = accounts[0];
   beforeEach(async () => {
+    votingKey = accounts[2];
+    miningKeyForVotingKey = accounts[1];
+    masterOfCeremony = accounts[0];
+
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
     
     proxyStorageMock = await ProxyStorageMock.new();
@@ -34,14 +35,14 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
     await proxyStorageMock.init(poaNetworkConsensusMock.address).should.be.fulfilled;
     
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
-    
+
     keysManager = await KeysManagerMock.new();
     const keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, keysManager.address);
     keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);
     await keysManager.init(
       "0x0000000000000000000000000000000000000000"
     ).should.be.fulfilled;
-    
+
     let ballotsStorage = await BallotsStorage.new();
     const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
     ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
@@ -91,7 +92,7 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
         "memo",            // _memo
         {from: miningKeyForVotingKey}
       ).should.be.rejectedWith(ERROR_MSG);
-      
+
       await voting.createBallot(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
@@ -102,7 +103,7 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
         "memo",            // _memo
         {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG);
-      
+
       const {logs} = await voting.createBallot(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
@@ -113,7 +114,7 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
         "memo",            // _memo
         {from: votingKey}
       ).should.be.fulfilled;
-      
+
       const startTime = await voting.getStartTime.call(id.toNumber());
       const endTime = await voting.getEndTime.call(id.toNumber());
       const keysManagerFromContract = await voting.getKeysManager.call();
@@ -392,7 +393,7 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       (await poaNetworkConsensusMock.getCurrentValidatorsLength.call()).should.be.bignumber.equal(4);
     });
   });
-  
+
   describe('#vote', async() => {
     let id;
     beforeEach(async ()=> {
@@ -487,11 +488,13 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
 
   describe('#finalize', async () => {
     let votingId;
-    votingKey  = accounts[2];
-    votingKey2 = accounts[3];
-    votingKey3 = accounts[5];
-    let payoutKeyToAdd = accounts[0];
+    let payoutKeyToAdd;
     beforeEach(async () => {
+      votingKey  = accounts[3];
+      votingKey2 = accounts[5];
+      votingKey3 = accounts[6];
+      payoutKeyToAdd = accounts[0];
+
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
@@ -578,13 +581,13 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       )
     })
     it('finalize addition of VotingKey', async () => {
-      let miningKey = accounts[6];
+      let miningKey = accounts[7];
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
       await proxyStorageMock.setVotingContractMock(voting.address);
 
       // Ballot to Add Voting Key for miner account[1]
-      let votingKeyToAdd = accounts[5];
+      let votingKeyToAdd = accounts[8];
 
       // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
       // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
@@ -691,14 +694,12 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       false.should.be.equal(await poaNetworkConsensusMock.isValidator.call(miningKey));
     })
     it('finalize removal of VotingKey', async () => {
-      let miningKey = accounts[6];
-      let votingKeyToAdd = accounts[5];
+      let miningKey = accounts[7];
+      let votingKeyToAdd = accounts[8];
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
       await keysManager.addVotingKey(votingKeyToAdd, miningKey).should.be.fulfilled;
       await proxyStorageMock.setVotingContractMock(voting.address);
-
-      // Ballot to Add Voting Key for miner account[1]
 
       // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
       // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
@@ -719,14 +720,12 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       )
     })
     it('finalize removal of PayoutKey', async () => {
-      let miningKey = accounts[6];
-      let affectedKey = accounts[5];
+      let miningKey = accounts[7];
+      let affectedKey = accounts[8];
       await proxyStorageMock.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
       await keysManager.addPayoutKey(affectedKey, miningKey).should.be.fulfilled;
       await proxyStorageMock.setVotingContractMock(voting.address);
-
-      // Ballot to Add Voting Key for miner account[1]
 
       // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
       // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
@@ -748,14 +747,12 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
     })
     
     it('finalize swap of VotingKey', async () => {
-      let miningKey = accounts[6];
-      let affectedKey = accounts[5];
+      let miningKey = accounts[7];
+      let affectedKey = accounts[8];
       await proxyStorageMock.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
       await keysManager.addVotingKey(affectedKey, miningKey).should.be.fulfilled;
       await proxyStorageMock.setVotingContractMock(voting.address);
-
-      // Ballot to Add Voting Key for miner account[1]
 
       // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
       // uint256 _ballotType [  enum BallotTypes {Invalid, Adding, Removal, Swap} ]
@@ -776,8 +773,8 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       )
     })
     it('finalize swap of PayoutKey', async () => {
-      let miningKey = accounts[6];
-      let affectedKey = accounts[5];
+      let miningKey = accounts[7];
+      let affectedKey = accounts[8];
       await proxyStorageMock.setVotingContractMock(accounts[0]);
       await keysManager.addMiningKey(miningKey).should.be.fulfilled;
       await keysManager.addPayoutKey(affectedKey, miningKey).should.be.fulfilled;

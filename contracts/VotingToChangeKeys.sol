@@ -115,6 +115,11 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         IKeysManager keysManager = IKeysManager(getKeysManager());
         require(keysManager.miningKeyByVoting(_newVotingKey) == address(0));
         require(keysManager.miningKeyByPayout(_newPayoutKey) == address(0));
+        require(_newVotingKey != _newMiningKey);
+        require(_newPayoutKey != _newMiningKey);
+        if (_newVotingKey != address(0) && _newPayoutKey != address(0)) {
+            require(_newVotingKey != _newPayoutKey);
+        }
         uint256 ballotId = createBallot(
             _startTime,
             _endTime,
@@ -220,6 +225,8 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         _setAffectedKey(_id, prev.getAffectedKey(_id));
         _setAffectedKeyType(_id, prev.getAffectedKeyType(_id));
         _setMiningKey(_id, prev.getMiningKey(_id));
+        //_setNewVotingKey(_id, prev.getNewVotingKey(_id));
+        //_setNewPayoutKey(_id, prev.getNewPayoutKey(_id));
     }
 
     function _areKeyAddingBallotParamsValid(
@@ -230,12 +237,15 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         if (_affectedKeyType == uint256(KeyTypes.MiningKey)) {
             return !checkIfMiningExisted(_miningKey, _affectedKey);
         }
+        IKeysManager keysManager = IKeysManager(getKeysManager());
         if (_affectedKeyType == uint256(KeyTypes.VotingKey)) {
-            require(_miningKey != IKeysManager(getKeysManager()).masterOfCeremony());
-            return _affectedKey != _miningKey && _miningKey != address(0);
+            require(_miningKey != keysManager.masterOfCeremony());
+            require(keysManager.miningKeyByVoting(_affectedKey) == address(0));
+            return _affectedKey != _miningKey && keysManager.isMiningActive(_miningKey);
         }
         if (_affectedKeyType == uint256(KeyTypes.PayoutKey)) {
-            return _affectedKey != _miningKey && _miningKey != address(0);
+            require(keysManager.miningKeyByPayout(_affectedKey) == address(0));
+            return _affectedKey != _miningKey && keysManager.isMiningActive(_miningKey);
         }
     }
 
@@ -277,11 +287,13 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         if (_affectedKeyType == uint256(KeyTypes.VotingKey)) {
             address votingKey = keysManager.getVotingByMining(_miningKey);
             require(_affectedKey != votingKey);
+            require(keysManager.miningKeyByVoting(_affectedKey) == address(0));
             return keysManager.isVotingActive(votingKey);
         }
         if (_affectedKeyType == uint256(KeyTypes.PayoutKey)) {
             address payoutKey = keysManager.getPayoutByMining(_miningKey);
             require(_affectedKey != payoutKey);
+            require(keysManager.miningKeyByPayout(_affectedKey) == address(0));
             return keysManager.isPayoutActive(_miningKey);
         }
     }

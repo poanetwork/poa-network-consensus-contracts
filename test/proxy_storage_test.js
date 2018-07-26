@@ -27,8 +27,8 @@ let votingToChangeProxy, votingToChangeProxyEternalStorage;
 let votingToManageEmissionFunds, votingToManageEmissionFundsEternalStorage;
 let rewardByBlock, rewardByBlockEternalStorage;
 contract('ProxyStorage [all features]', function (accounts) {
-  masterOfCeremony = accounts[0];
   beforeEach(async () => {
+    masterOfCeremony = accounts[0];
     poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []);
     
     proxyStorage = await ProxyStorageMock.new();

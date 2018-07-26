@@ -12,9 +12,9 @@ require('chai')
 
 contract('KeysManager [all features]', function (accounts) {
   let keysManager, poaNetworkConsensusMock, proxyStorageMock;
-  masterOfCeremony = accounts[0];
 
   beforeEach(async () => {
+    masterOfCeremony = accounts[0];
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
     
     proxyStorageMock = await ProxyStorageMock.new();
@@ -832,9 +832,10 @@ contract('KeysManager [all features]', function (accounts) {
   });
 
   describe('#upgradeTo', async () => {
-    const proxyStorageStubAddress = accounts[8];
+    let proxyStorageStubAddress;
     let keysManagerEternalStorage;
     beforeEach(async () => {
+      proxyStorageStubAddress = accounts[8];
       keysManager = await KeysManagerMock.new();
       keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, keysManager.address);
       keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);

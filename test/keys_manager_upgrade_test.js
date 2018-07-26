@@ -12,9 +12,9 @@ require('chai')
 
 contract('KeysManager upgraded [all features]', function (accounts) {
   let keysManager, poaNetworkConsensusMock, proxyStorageMock;
-  masterOfCeremony = accounts[0];
 
   beforeEach(async () => {
+    masterOfCeremony = accounts[0];
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
     
     proxyStorageMock = await ProxyStorageMock.new();
