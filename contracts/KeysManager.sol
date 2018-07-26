@@ -398,6 +398,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         require(initDisabled());
         require(isMiningActive(_miningKey));
         require(_key != _miningKey);
+        require(miningKeyByVoting(_key) == address(0));
         address oldVotingKey = getVotingByMining(_miningKey);
         if (isVotingActiveByMiningKey(_miningKey) && oldVotingKey != address(0)) {
             _swapVotingKey(_key, _miningKey);
@@ -413,6 +414,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         require(initDisabled());
         require(isMiningActive(_miningKey));
         require(_key != _miningKey);
+        require(miningKeyByPayout(_key) == address(0));
         address oldPayoutKey = getPayoutByMining(_miningKey);
         if (isPayoutActive(_miningKey) && oldPayoutKey != address(0)) {
             _swapPayoutKey(_key, _miningKey);

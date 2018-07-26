@@ -10,8 +10,9 @@ require('chai')
 contract('PoaNetworkConsensus [all features]', function (accounts) {
   let poaNetworkConsensus;
   let proxyStorageMock;
-  let masterOfCeremony = accounts[0];
+  let masterOfCeremony;
   beforeEach(async () => {
+    masterOfCeremony = accounts[0];
     await PoaNetworkConsensus.new('0x0000000000000000000000000000000000000000', []).should.be.rejectedWith(ERROR_MSG);
     poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []).should.be.fulfilled;;
     

@@ -34,18 +34,18 @@ let votingKey, votingKey2, votingKey3, votingKey4;
 let miningKey, miningKey2, miningKey3, miningKey4;
 let emissionFundsInitBalance;
 contract('VotingToManageEmissionFunds [all features]', function (accounts) {
-  coinbase = accounts[0];
-  masterOfCeremony = accounts[0];
-  votingKey = accounts[2];
-  votingKey2 = accounts[3];
-  votingKey3 = accounts[4];
-  votingKey4 = accounts[7];
-  miningKey = accounts[1];
-  miningKey2 = accounts[5];
-  miningKey3 = accounts[6];
-  miningKey4 = accounts[8];
-  
   beforeEach(async () => {
+    coinbase = accounts[0];
+    masterOfCeremony = accounts[0];
+    votingKey = accounts[2];
+    votingKey2 = accounts[3];
+    votingKey3 = accounts[4];
+    votingKey4 = accounts[7];
+    miningKey = accounts[1];
+    miningKey2 = accounts[5];
+    miningKey3 = accounts[6];
+    miningKey4 = accounts[8];
+
     poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []);
     
     proxyStorage = await ProxyStorage.new();
@@ -332,8 +332,9 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
 
   describe('#vote', async () => {
     let VOTING_START_DATE, VOTING_END_DATE, id;
-    let receiver = accounts[9];
+    let receiver;
     beforeEach(async () => {
+      receiver = accounts[9];
       await addValidator(votingKey, miningKey);
       VOTING_START_DATE = moment.utc().add(20, 'minutes').unix();
       VOTING_END_DATE = moment.utc().add(7, 'days').unix();
@@ -523,8 +524,9 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
 
   describe('#finalize', async () => {
     let VOTING_START_DATE, VOTING_END_DATE, id;
-    let receiver = accounts[9];
+    let receiver;
     beforeEach(async () => {
+      receiver = accounts[9];
       await addValidator(votingKey, miningKey);
       VOTING_START_DATE = moment.utc().add(20, 'minutes').unix();
       VOTING_END_DATE = moment.utc().add(7, 'days').unix();
@@ -711,9 +713,10 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
   });
 
   describe('#upgradeTo', async () => {
-    const proxyStorageStubAddress = accounts[8];
+    let proxyStorageStubAddress;
     let votingEternalStorage;
     beforeEach(async () => {
+      proxyStorageStubAddress = accounts[8];
       voting = await VotingToManageEmissionFunds.new();
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, voting.address);
       voting = await VotingToManageEmissionFunds.at(votingEternalStorage.address);

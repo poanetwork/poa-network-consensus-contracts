@@ -30,16 +30,17 @@ let anotherData = [
   "Feodosiy", "Bush", "123123", "Petrovka 38", "ZA", "1337", 71
 ];
 contract('ValidatorMetadata [all features]', function (accounts) {
-  if (typeof masterOfCeremony === 'undefined') {
-  	masterOfCeremony = accounts[0];
-  }
-  votingKey = accounts[2];
-  votingKey2 = accounts[3];
-  miningKey = accounts[1];
-  miningKey2 = accounts[4];
-  miningKey3 = accounts[5];
-  votingKey3 = accounts[7];
-  beforeEach(async () => { 
+  beforeEach(async () => {
+    if (typeof masterOfCeremony === 'undefined') {
+      masterOfCeremony = accounts[0];
+    }
+    votingKey = accounts[2];
+    votingKey2 = accounts[3];
+    miningKey = accounts[1];
+    miningKey2 = accounts[4];
+    miningKey3 = accounts[5];
+    votingKey3 = accounts[7];
+
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
     
     proxyStorageMock = await ProxyStorageMock.new();
@@ -385,8 +386,9 @@ contract('ValidatorMetadata [all features]', function (accounts) {
   })
 
   describe('#upgradeTo', async () => {
-    const proxyStorageStubAddress = accounts[8];
+    let proxyStorageStubAddress;
     beforeEach(async () => {
+      proxyStorageStubAddress = accounts[8];
       metadata = await ValidatorMetadata.new();
       metadataEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, metadata.address);
       metadata = await ValidatorMetadata.at(metadataEternalStorage.address);

@@ -13,25 +13,23 @@ require('chai')
 
 let masterOfCeremony, poaNetworkConsensus, proxyStorage, ballotsStorage;
 contract('BallotsStorage [all features]', function (accounts) {
-  let {
-    keysManager,
-    votingToChangeKeys,
-    votingToChangeMinThreshold,
-    votingToChangeProxy,
-    votingToManageEmissionFunds,
-    validatorMetadataEternalStorage,
-    rewardByBlock
-  } = {
-    keysManager: '',
-    votingToChangeKeys: accounts[0],
-    votingToChangeMinThreshold: accounts[3],
-    votingToChangeProxy: accounts[4],
-    votingToManageEmissionFunds: accounts[5],
-    validatorMetadataEternalStorage: accounts[7],
-    rewardByBlock: accounts[8]
-  }
-  masterOfCeremony = accounts[0];
+  let keysManager;
+  let votingToChangeKeys;
+  let votingToChangeMinThreshold;
+  let votingToChangeProxy;
+  let votingToManageEmissionFunds;
+  let validatorMetadataEternalStorage;
+  let rewardByBlock;
+
   beforeEach(async () => {
+    masterOfCeremony = accounts[0];
+    votingToChangeKeys = accounts[0];
+    votingToChangeMinThreshold = accounts[3];
+    votingToChangeProxy = accounts[4];
+    votingToManageEmissionFunds = accounts[5];
+    validatorMetadataEternalStorage = accounts[7];
+    rewardByBlock = accounts[8];
+
     poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []);
     
     proxyStorage = await ProxyStorageMock.new();
@@ -221,9 +219,10 @@ contract('BallotsStorage [all features]', function (accounts) {
     });
   })
   describe('#upgradeTo', async () => {
-    const proxyStorageStubAddress = accounts[8];
+    let proxyStorageStubAddress;
     let ballotsEternalStorage;
     beforeEach(async () => {
+      proxyStorageStubAddress = accounts[8];
       ballotsStorage = await BallotsStorage.new();
       ballotsEternalStorage = await EternalStorageProxy.new(proxyStorage.address, ballotsStorage.address);
       ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);

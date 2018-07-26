@@ -24,12 +24,13 @@ let keysManager, poaNetworkConsensusMock, ballotsStorage, voting;
 let votingKey, votingKey2, votingKey3, miningKeyForVotingKey;
 let VOTING_START_DATE, VOTING_END_DATE;
 contract('VotingToChangeMinThreshold [all features]', function (accounts) {
-  votingKey = accounts[3];
-  votingKey2 = accounts[5];
-  votingKey3 = accounts[6];
-  masterOfCeremony = accounts[0];
-  miningKeyForVotingKey = accounts[1];
   beforeEach(async () => {
+    votingKey = accounts[3];
+    votingKey2 = accounts[5];
+    votingKey3 = accounts[6];
+    masterOfCeremony = accounts[0];
+    miningKeyForVotingKey = accounts[1];
+
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
     
     proxyStorageMock = await ProxyStorageMock.new();
@@ -224,8 +225,9 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
 
   describe('#finalize', async() => {
     let votingId;
-    let payoutKeyToAdd = accounts[0];
+    let payoutKeyToAdd;
     beforeEach(async () => {
+      payoutKeyToAdd = accounts[0];
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();      
     })
@@ -480,8 +482,9 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
   });
 
   describe('#upgradeTo', async () => {
-    const proxyStorageStubAddress = accounts[8];
+    let proxyStorageStubAddress;
     beforeEach(async () => {
+      proxyStorageStubAddress = accounts[8];
       voting = await Voting.new();
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, voting.address);
       voting = await Voting.at(votingEternalStorage.address);

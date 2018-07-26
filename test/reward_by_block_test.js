@@ -17,18 +17,29 @@ contract('RewardByBlock [all features]', function (accounts) {
   let poaNetworkConsensus, proxyStorage, keysManager;
   let rewardByBlock, rewardByBlockEternalStorage;
   let blockRewardAmount, emissionFundsAmount, emissionFundsAddress;
-  const coinbase = accounts[0];
-  const masterOfCeremony = accounts[0];
-  const miningKey = accounts[1];
-  const miningKey2 = accounts[2];
-  const miningKey3 = accounts[3];
-  const payoutKey = accounts[4];
-  const payoutKey2 = accounts[5];
-  const payoutKey3 = accounts[6];
-  const systemAddress = accounts[7];
-  const votingToChangeKeys = accounts[9];
+  let coinbase;
+  let masterOfCeremony;
+  let miningKey;
+  let miningKey2;
+  let miningKey3;
+  let payoutKey;
+  let payoutKey2;
+  let payoutKey3;
+  let systemAddress;
+  let votingToChangeKeys;
   
   beforeEach(async () => {
+    coinbase = accounts[0];
+    masterOfCeremony = accounts[0];
+    miningKey = accounts[1];
+    miningKey2 = accounts[2];
+    miningKey3 = accounts[3];
+    payoutKey = accounts[4];
+    payoutKey2 = accounts[5];
+    payoutKey3 = accounts[6];
+    systemAddress = accounts[7];
+    votingToChangeKeys = accounts[9];
+
     poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []);
 
     proxyStorage = await ProxyStorage.new();
