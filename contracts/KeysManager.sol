@@ -242,6 +242,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     )
         public
         onlyValidInitialKey
+        withinTotalLimit
     {
         require(_miningKey != address(0));
         require(_votingKey != address(0));

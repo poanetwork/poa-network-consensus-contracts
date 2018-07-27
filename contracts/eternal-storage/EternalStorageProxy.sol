@@ -107,8 +107,8 @@ contract EternalStorageProxy is EternalStorage {
      * @param implementation representing the address of the new implementation to be set.
      */
     function upgradeTo(address implementation) public onlyProxyStorage {
-        require(_implementation != implementation);
         require(implementation != address(0));
+        if (_implementation == implementation) return;
 
         uint256 _newVersion = _version + 1;
         assert(_newVersion > _version);
