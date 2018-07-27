@@ -115,10 +115,11 @@ contract('EternalStorageProxy [all features]', function (accounts) {
       await instance.upgradeTo(accounts[3], {from: accounts[1]}).should.be.fulfilled;
     });
     it('should not change implementation address if it is the same', async () => {
-      await instance.upgradeTo(
+      const result = await instance.upgradeTo(
         accounts[2],
         {from: accounts[1]}
-      ).should.be.rejectedWith(ERROR_MSG);
+      ).should.be.fulfilled;
+      result.logs.length.should.be.equal(0);
     });
     it('should not change implementation address if it is 0x0', async () => {
       await instance.upgradeTo(
