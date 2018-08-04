@@ -8,7 +8,8 @@ async function addValidators({
   arrayOfAddresses = arrayOfAddresses || arrayOfHundredAddresses;
   await proxyStorageMock.setVotingContractMock(masterOfCeremony);
   for(let validator of arrayOfAddresses){
-    await keysManager.addMiningKey(validator).should.be.fulfilled;
+    const {logs} = await keysManager.addMiningKey(validator);
+    logs[0].event.should.be.equal("MiningKeyChanged");
   }
   await poaNetworkConsensusMock.setSystemAddress(masterOfCeremony);
   await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;

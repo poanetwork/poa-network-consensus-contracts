@@ -13,9 +13,11 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
+let keysManager;
+let votingToChangeKeys;
+let rewardByBlock, rewardByBlockEternalStorage;
 contract('RewardByBlock [all features]', function (accounts) {
-  let poaNetworkConsensus, proxyStorage, keysManager;
-  let rewardByBlock, rewardByBlockEternalStorage;
+  let poaNetworkConsensus, proxyStorage;
   let blockRewardAmount, emissionFundsAmount, emissionFundsAddress;
   let coinbase;
   let masterOfCeremony;
@@ -26,7 +28,6 @@ contract('RewardByBlock [all features]', function (accounts) {
   let payoutKey2;
   let payoutKey3;
   let systemAddress;
-  let votingToChangeKeys;
   
   beforeEach(async () => {
     coinbase = accounts[0];
@@ -67,12 +68,12 @@ contract('RewardByBlock [all features]', function (accounts) {
       accounts[9]
     );
 
-    await keysManager.addMiningKey(miningKey, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addMiningKey(miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addMiningKey(miningKey3, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addPayoutKey(payoutKey, miningKey, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addPayoutKey(payoutKey2, miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addPayoutKey(payoutKey3, miningKey3, {from: votingToChangeKeys}).should.be.fulfilled;
+    await addMiningKey(miningKey);
+    await addMiningKey(miningKey2);
+    await addMiningKey(miningKey3);
+    await addPayoutKey(payoutKey, miningKey);
+    await addPayoutKey(payoutKey2, miningKey2);
+    await addPayoutKey(payoutKey3, miningKey3);
     await poaNetworkConsensus.setSystemAddress(coinbase);
     await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
     await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
@@ -87,7 +88,7 @@ contract('RewardByBlock [all features]', function (accounts) {
   });
 
   describe('#reward', async () => {
-    it('may be called only by system address', async () => {
+    it('may only be called by system address', async () => {
       await rewardByBlock.reward([miningKey], [0]).should.be.rejectedWith(ERROR_MSG);
       await rewardByBlock.setSystemAddress(systemAddress);
       await rewardByBlock.reward([miningKey], [0], {from: systemAddress}).should.be.fulfilled;
@@ -121,7 +122,8 @@ contract('RewardByBlock [all features]', function (accounts) {
     });
 
     it('should revert if mining key does not exist', async () => {
-      await keysManager.removeMiningKey(miningKey3, {from: votingToChangeKeys}).should.be.fulfilled;
+      const {logs} = await keysManager.removeMiningKey(miningKey3, {from: votingToChangeKeys});
+      logs[0].event.should.equal("MiningKeyChanged");
       await rewardByBlock.setSystemAddress(systemAddress);
       await rewardByBlock.reward(
         [miningKey3],
@@ -149,10 +151,11 @@ contract('RewardByBlock [all features]', function (accounts) {
     });
 
     it('should assign reward to mining key if payout key is 0', async () => {
-      await keysManager.removePayoutKey(
+      const result = await keysManager.removePayoutKey(
         miningKey,
         {from: votingToChangeKeys}
-      ).should.be.fulfilled;
+      );
+      result.logs[0].event.should.be.equal("PayoutKeyChanged");
 
       await rewardByBlock.setSystemAddress(systemAddress);
       const {logs} = await rewardByBlock.reward(
@@ -275,11 +278,11 @@ contract('RewardByBlock [all features]', function (accounts) {
 
   describe('#upgradeTo', async () => {
     const proxyStorageStubAddress = accounts[8];
-    it('may be called only by ProxyStorage', async () => {
+    it('may only be called by ProxyStorage', async () => {
       const rewardByBlockNew = await RewardByBlockNew.new();
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorageStubAddress);
       await rewardByBlockEternalStorage.upgradeTo(rewardByBlockNew.address, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
-      await rewardByBlockEternalStorage.upgradeTo(rewardByBlockNew.address, {from: proxyStorageStubAddress}).should.be.fulfilled;
+      await upgradeTo(rewardByBlockNew.address, {from: proxyStorageStubAddress});
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorage.address);
     });
     it('should change implementation address', async () => {
@@ -288,7 +291,7 @@ contract('RewardByBlock [all features]', function (accounts) {
       const newImplementation = rewardByBlockNew.address;
       (await rewardByBlockEternalStorage.implementation.call()).should.be.equal(oldImplementation);
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorageStubAddress);
-      await rewardByBlockEternalStorage.upgradeTo(newImplementation, {from: proxyStorageStubAddress});
+      await upgradeTo(newImplementation, {from: proxyStorageStubAddress});
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorage.address);
       rewardByBlockNew = await RewardByBlockNew.at(rewardByBlockEternalStorage.address);
       (await rewardByBlockNew.implementation.call()).should.be.equal(newImplementation);
@@ -300,7 +303,7 @@ contract('RewardByBlock [all features]', function (accounts) {
       const newVersion = oldVersion.add(1);
       (await rewardByBlockEternalStorage.version.call()).should.be.bignumber.equal(oldVersion);
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorageStubAddress);
-      await rewardByBlockEternalStorage.upgradeTo(rewardByBlockNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(rewardByBlockNew.address, {from: proxyStorageStubAddress});
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorage.address);
       rewardByBlockNew = await RewardByBlockNew.at(rewardByBlockEternalStorage.address);
       (await rewardByBlockNew.version.call()).should.be.bignumber.equal(newVersion);
@@ -309,7 +312,7 @@ contract('RewardByBlock [all features]', function (accounts) {
     it('new implementation should work', async () => {
       let rewardByBlockNew = await RewardByBlockNew.new();
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorageStubAddress);
-      await rewardByBlockEternalStorage.upgradeTo(rewardByBlockNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(rewardByBlockNew.address, {from: proxyStorageStubAddress});
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorage.address);
       rewardByBlockNew = await RewardByBlockNew.at(rewardByBlockEternalStorage.address);
       (await rewardByBlockNew.initialized.call()).should.be.equal(false);
@@ -319,10 +322,25 @@ contract('RewardByBlock [all features]', function (accounts) {
     it('new implementation should use the same proxyStorage address', async () => {
       let rewardByBlockNew = await RewardByBlockNew.new();
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorageStubAddress);
-      await rewardByBlockEternalStorage.upgradeTo(rewardByBlockNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(rewardByBlockNew.address, {from: proxyStorageStubAddress});
       rewardByBlockNew = await RewardByBlockNew.at(rewardByBlockEternalStorage.address);
       (await rewardByBlockNew.proxyStorage.call()).should.be.equal(proxyStorageStubAddress);
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorage.address);
     });
   });
 });
+
+async function addMiningKey(_key) {
+  const {logs} = await keysManager.addMiningKey(_key, {from: votingToChangeKeys});
+  logs[0].event.should.be.equal("MiningKeyChanged");
+}
+
+async function addPayoutKey(_key, _miningKey) {
+  const {logs} = await keysManager.addPayoutKey(_key, _miningKey, {from: votingToChangeKeys});
+  logs[0].event.should.be.equal("PayoutKeyChanged");
+}
+
+async function upgradeTo(implementation, options) {
+  const {logs} = await rewardByBlockEternalStorage.upgradeTo(implementation, options);
+  logs[0].event.should.be.equal("Upgraded");
+}

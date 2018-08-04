@@ -1,85 +1,19 @@
 pragma solidity ^0.4.24;
 
+import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IKeysManager.sol";
 import "./interfaces/IVotingToChangeKeys.sol";
 import "./abstracts/VotingToChange.sol";
+import "./abstracts/EnumKeyTypes.sol";
 
 
-contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
+contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange, EnumKeyTypes {
     string internal constant AFFECTED_KEY = "affectedKey";
     string internal constant AFFECTED_KEY_TYPE = "affectedKeyType";
     string internal constant BALLOT_TYPE = "ballotType";
     string internal constant MINING_KEY = "miningKey";
     string internal constant NEW_PAYOUT_KEY = "newPayoutKey";
     string internal constant NEW_VOTING_KEY = "newVotingKey";
-
-    enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}
-
-    function areBallotParamsValid(
-        uint256 _ballotType,
-        address _affectedKey,
-        uint256 _affectedKeyType,
-        address _miningKey
-    ) public view returns(bool) {
-        require(_ballotType >= uint256(BallotTypes.KeyAdding));
-        require(_ballotType <= uint256(BallotTypes.KeySwap));
-        require(_affectedKey != address(0));
-        require(_affectedKeyType >= uint256(KeyTypes.MiningKey));
-        require(_affectedKeyType <= uint256(KeyTypes.PayoutKey));
-
-        if (_ballotType == uint256(BallotTypes.KeyAdding)) {
-            return _areKeyAddingBallotParamsValid(
-                _affectedKey,
-                _affectedKeyType, 
-                _miningKey
-            );
-        }
-        if (_ballotType == uint256(BallotTypes.KeyRemoval)) {
-            return _areKeyRemovalBallotParamsValid(
-                _affectedKey,
-                _affectedKeyType,
-                _miningKey
-            );
-        }
-        if (_ballotType == uint256(BallotTypes.KeySwap)) {
-            return _areKeySwapBallotParamsValid(
-                _affectedKey,
-                _affectedKeyType,
-                _miningKey
-            );
-        }
-    }
-
-    function checkIfMiningExisted(address _currentKey, address _newKey)
-        public
-        view
-        returns(bool)
-    {
-        IKeysManager keysManager = IKeysManager(getKeysManager());
-        
-        if (keysManager.isMiningActive(_newKey)) {
-            return true;
-        }
-
-        if (_currentKey == address(0)) {
-            return false;
-        }
-        
-        uint8 maxDeep = maxOldMiningKeysDeepCheck();
-        
-        for (uint8 i = 0; i < maxDeep; i++) {
-            address oldMiningKey = keysManager.getMiningKeyHistory(_currentKey);
-            if (oldMiningKey == address(0)) {
-                return false;
-            }
-            if (oldMiningKey == _newKey) {
-                return true;
-            }
-            _currentKey = oldMiningKey;
-        }
-        
-        return false;
-    }
 
     function createBallot(
         uint256 _startTime,
@@ -90,7 +24,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         uint256 _ballotType,
         string _memo
     ) public returns(uint256) {
-        require(areBallotParamsValid(
+        require(IBallotsStorage(_getBallotsStorage()).areKeysBallotParamsValid(
             _ballotType,
             _affectedKey,
             _affectedKeyType,
@@ -112,7 +46,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         address _newPayoutKey,
         string _memo
     ) public returns(uint256) {
-        IKeysManager keysManager = IKeysManager(getKeysManager());
+        IKeysManager keysManager = IKeysManager(_getKeysManager());
         require(keysManager.miningKeyByVoting(_newVotingKey) == address(0));
         require(keysManager.miningKeyByPayout(_newPayoutKey) == address(0));
         require(_newVotingKey != _newMiningKey);
@@ -150,56 +84,20 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         string memo,
         bool canBeFinalizedNow
     ) {
-        startTime = getStartTime(_id);
-        endTime = getEndTime(_id);
-        affectedKey = getAffectedKey(_id);
-        affectedKeyType = getAffectedKeyType(_id);
-        newVotingKey = getNewVotingKey(_id);
-        newPayoutKey = getNewPayoutKey(_id);
-        miningKey = getMiningKey(_id);
-        totalVoters = getTotalVoters(_id);
-        progress = getProgress(_id);
-        isFinalized = getIsFinalized(_id);
-        ballotType = getBallotType(_id);
-        creator = getCreator(_id);
-        memo = getMemo(_id);
+        startTime = _getStartTime(_id);
+        endTime = _getEndTime(_id);
+        affectedKey = _getAffectedKey(_id);
+        affectedKeyType = _getAffectedKeyType(_id);
+        newVotingKey = _getNewVotingKey(_id);
+        newPayoutKey = _getNewPayoutKey(_id);
+        miningKey = _getMiningKey(_id);
+        totalVoters = _getTotalVoters(_id);
+        progress = _getProgress(_id);
+        isFinalized = _getIsFinalized(_id);
+        ballotType = _getBallotType(_id);
+        creator = _getCreator(_id);
+        memo = _getMemo(_id);
         canBeFinalizedNow = _canBeFinalizedNow(_id);
-    }
-
-    function getAffectedKey(uint256 _id) public view returns(address) {
-        return addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, AFFECTED_KEY))
-        ];
-    }
-
-    function getAffectedKeyType(uint256 _id) public view returns(uint256) {
-        return uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, AFFECTED_KEY_TYPE))
-        ];
-    }
-
-    function getBallotType(uint256 _id) public view returns(uint256) {
-        return uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, BALLOT_TYPE))
-        ];
-    }
-
-    function getMiningKey(uint256 _id) public view returns(address) {
-        return addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, MINING_KEY))
-        ];
-    }
-
-    function getNewPayoutKey(uint256 _id) public view returns(address) {
-        return addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, NEW_PAYOUT_KEY))
-        ];
-    }
-
-    function getNewVotingKey(uint256 _id) public view returns(address) {
-        return addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, NEW_VOTING_KEY))
-        ];
     }
 
     function migrateBasicOne(
@@ -220,7 +118,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
             _memo,
             _voters
         );
-        IVotingToChangeKeys prev = IVotingToChangeKeys(_prevVotingToChange);
+        IVotingToChangeKeysPrev prev = IVotingToChangeKeysPrev(_prevVotingToChange);
         _setBallotType(_id, prev.getBallotType(_id));
         _setAffectedKey(_id, prev.getAffectedKey(_id));
         _setAffectedKeyType(_id, prev.getAffectedKeyType(_id));
@@ -229,137 +127,132 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange {
         //_setNewPayoutKey(_id, prev.getNewPayoutKey(_id));
     }
 
-    function _areKeyAddingBallotParamsValid(
-        address _affectedKey,
-        uint256 _affectedKeyType,
-        address _miningKey
-    ) internal view returns(bool) {
-        if (_affectedKeyType == uint256(KeyTypes.MiningKey)) {
-            return !checkIfMiningExisted(_miningKey, _affectedKey);
-        }
-        IKeysManager keysManager = IKeysManager(getKeysManager());
-        if (_affectedKeyType == uint256(KeyTypes.VotingKey)) {
-            require(_miningKey != keysManager.masterOfCeremony());
-            require(keysManager.miningKeyByVoting(_affectedKey) == address(0));
-            return _affectedKey != _miningKey && keysManager.isMiningActive(_miningKey);
-        }
-        if (_affectedKeyType == uint256(KeyTypes.PayoutKey)) {
-            require(keysManager.miningKeyByPayout(_affectedKey) == address(0));
-            return _affectedKey != _miningKey && keysManager.isMiningActive(_miningKey);
-        }
-    }
+    // solhint-disable code-complexity
+    function _finalizeAdding(uint256 _id) internal returns(bool) {
+        IKeysManager keysManager = IKeysManager(_getKeysManager());
 
-    function _areKeyRemovalBallotParamsValid(
-        address _affectedKey,
-        uint256 _affectedKeyType,
-        address _miningKey
-    ) internal view returns(bool) {
-        IKeysManager keysManager = IKeysManager(getKeysManager());
-        require(keysManager.isMiningActive(_miningKey));
-        if (_affectedKeyType == uint256(KeyTypes.MiningKey)) {
-            return true;
-        }
-        if (_affectedKeyType == uint256(KeyTypes.VotingKey)) {
-            require(_affectedKey != _miningKey);
-            address votingKey = keysManager.getVotingByMining(_miningKey);
-            require(_affectedKey == votingKey);
-            return keysManager.isVotingActive(votingKey);
-        }
-        if (_affectedKeyType == uint256(KeyTypes.PayoutKey)) {
-            require(_affectedKey != _miningKey);
-            address payoutKey = keysManager.getPayoutByMining(_miningKey);
-            require(_affectedKey == payoutKey);
-            return keysManager.isPayoutActive(_miningKey);
-        }
-    }
-
-    function _areKeySwapBallotParamsValid(
-        address _affectedKey,
-        uint256 _affectedKeyType,
-        address _miningKey
-    ) internal view returns(bool) {
-        require(_affectedKey != _miningKey);
-        IKeysManager keysManager = IKeysManager(getKeysManager());
-        require(keysManager.isMiningActive(_miningKey));
-        if (_affectedKeyType == uint256(KeyTypes.MiningKey)) {
-            return !checkIfMiningExisted(_miningKey, _affectedKey);
-        }
-        if (_affectedKeyType == uint256(KeyTypes.VotingKey)) {
-            address votingKey = keysManager.getVotingByMining(_miningKey);
-            require(_affectedKey != votingKey);
-            require(keysManager.miningKeyByVoting(_affectedKey) == address(0));
-            return keysManager.isVotingActive(votingKey);
-        }
-        if (_affectedKeyType == uint256(KeyTypes.PayoutKey)) {
-            address payoutKey = keysManager.getPayoutByMining(_miningKey);
-            require(_affectedKey != payoutKey);
-            require(keysManager.miningKeyByPayout(_affectedKey) == address(0));
-            return keysManager.isPayoutActive(_miningKey);
-        }
-    }
-
-    function _finalizeAdding(uint256 _id) internal {
-        require(getBallotType(_id) == uint256(BallotTypes.KeyAdding));
-        IKeysManager keysManager = IKeysManager(getKeysManager());
-
-        address affectedKey = getAffectedKey(_id);
-        uint256 affectedKeyType = getAffectedKeyType(_id);
+        address affectedKey = _getAffectedKey(_id);
+        uint256 affectedKeyType = _getAffectedKeyType(_id);
         
         if (affectedKeyType == uint256(KeyTypes.MiningKey)) {
-            keysManager.addMiningKey(affectedKey);
+            address newVotingKey = _getNewVotingKey(_id);
+            if (keysManager.miningKeyByVoting(newVotingKey) != address(0)) {
+                return false;
+            }
 
-            address newVotingKey = getNewVotingKey(_id);
+            address newPayoutKey = _getNewPayoutKey(_id);
+            if (keysManager.miningKeyByPayout(newPayoutKey) != address(0)) {
+                return false;
+            }
+
+            if (!keysManager.addMiningKey(affectedKey)) {
+                return false;
+            }
+
             if (newVotingKey != address(0)) {
                 keysManager.addVotingKey(newVotingKey, affectedKey);
             }
 
-            address newPayoutKey = getNewPayoutKey(_id);
             if (newPayoutKey != address(0)) {
                 keysManager.addPayoutKey(newPayoutKey, affectedKey);
             }
+
+            return true;
         } else if (affectedKeyType == uint256(KeyTypes.VotingKey)) {
-            keysManager.addVotingKey(affectedKey, getMiningKey(_id));
+            if (keysManager.miningKeyByVoting(affectedKey) != address(0)) {
+                return false;
+            }
+            return keysManager.addVotingKey(affectedKey, _getMiningKey(_id));
         } else if (affectedKeyType == uint256(KeyTypes.PayoutKey)) {
-            keysManager.addPayoutKey(affectedKey, getMiningKey(_id));
+            if (keysManager.miningKeyByPayout(affectedKey) != address(0)) {
+                return false;
+            }
+            return keysManager.addPayoutKey(affectedKey, _getMiningKey(_id));
         }
+        return false;
+    }
+    // solhint-enable code-complexity
+
+    function _finalizeBallotInner(uint256 _id) internal returns(bool) {
+        uint256 ballotType = _getBallotType(_id);
+        if (ballotType == uint256(BallotTypes.KeyAdding)) {
+            return _finalizeAdding(_id);
+        } else if (ballotType == uint256(BallotTypes.KeyRemoval)) {
+            return _finalizeRemoval(_id);
+        } else if (ballotType == uint256(BallotTypes.KeySwap)) {
+            return _finalizeSwap(_id);
+        }
+        return false;
     }
 
-    function _finalizeBallotInner(uint256 _id) internal {
-        if (getBallotType(_id) == uint256(BallotTypes.KeyAdding)) {
-            _finalizeAdding(_id);
-        } else if (getBallotType(_id) == uint256(BallotTypes.KeyRemoval)) {
-            _finalizeRemoval(_id);
-        } else if (getBallotType(_id) == uint256(BallotTypes.KeySwap)) {
-            _finalizeSwap(_id);
+    function _finalizeRemoval(uint256 _id) internal returns(bool) {
+        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        uint256 affectedKeyType = _getAffectedKeyType(_id);
+        if (affectedKeyType == uint256(KeyTypes.MiningKey)) {
+            return keysManager.removeMiningKey(_getAffectedKey(_id));
+        } else if (affectedKeyType == uint256(KeyTypes.VotingKey)) {
+            return keysManager.removeVotingKey(_getMiningKey(_id));
+        } else if (affectedKeyType == uint256(KeyTypes.PayoutKey)) {
+            return keysManager.removePayoutKey(_getMiningKey(_id));
         }
+        return false;
     }
 
-    function _finalizeRemoval(uint256 _id) internal {
-        require(getBallotType(_id) == uint256(BallotTypes.KeyRemoval));
-        IKeysManager keysManager = IKeysManager(getKeysManager());
-        if (getAffectedKeyType(_id) == uint256(KeyTypes.MiningKey)) {
-            keysManager.removeMiningKey(getAffectedKey(_id));
+    function _finalizeSwap(uint256 _id) internal returns(bool) {
+        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        uint256 affectedKeyType = _getAffectedKeyType(_id);
+        if (affectedKeyType == uint256(KeyTypes.MiningKey)) {
+            return keysManager.swapMiningKey(_getAffectedKey(_id), _getMiningKey(_id));
+        } else if (affectedKeyType == uint256(KeyTypes.VotingKey)) {
+            address newVotingKey = _getAffectedKey(_id);
+            if (keysManager.miningKeyByVoting(newVotingKey) != address(0)) {
+                return false;
+            }
+            return keysManager.swapVotingKey(newVotingKey, _getMiningKey(_id));
+        } else if (affectedKeyType == uint256(KeyTypes.PayoutKey)) {
+            address newPayoutKey = _getAffectedKey(_id);
+            if (keysManager.miningKeyByPayout(newPayoutKey) != address(0)) {
+                return false;
+            }
+            return keysManager.swapPayoutKey(newPayoutKey, _getMiningKey(_id));
         }
-        if (getAffectedKeyType(_id) == uint256(KeyTypes.VotingKey)) {
-            keysManager.removeVotingKey(getMiningKey(_id));
-        }
-        if (getAffectedKeyType(_id) == uint256(KeyTypes.PayoutKey)) {
-            keysManager.removePayoutKey(getMiningKey(_id));
-        }
+        return false;
     }
 
-    function _finalizeSwap(uint256 _id) internal {
-        require(getBallotType(_id) == uint256(BallotTypes.KeySwap));
-        IKeysManager keysManager = IKeysManager(getKeysManager());
-        if (getAffectedKeyType(_id) == uint256(KeyTypes.MiningKey)) {
-            keysManager.swapMiningKey(getAffectedKey(_id), getMiningKey(_id));
-        }
-        if (getAffectedKeyType(_id) == uint256(KeyTypes.VotingKey)) {
-            keysManager.swapVotingKey(getAffectedKey(_id), getMiningKey(_id));
-        }
-        if (getAffectedKeyType(_id) == uint256(KeyTypes.PayoutKey)) {
-            keysManager.swapPayoutKey(getAffectedKey(_id), getMiningKey(_id));
-        }
+    function _getAffectedKey(uint256 _id) internal view returns(address) {
+        return addressStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, AFFECTED_KEY))
+        ];
+    }
+
+    function _getAffectedKeyType(uint256 _id) internal view returns(uint256) {
+        return uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, AFFECTED_KEY_TYPE))
+        ];
+    }
+
+    function _getBallotType(uint256 _id) internal view returns(uint256) {
+        return uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, BALLOT_TYPE))
+        ];
+    }
+
+    function _getMiningKey(uint256 _id) internal view returns(address) {
+        return addressStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, MINING_KEY))
+        ];
+    }
+
+    function _getNewPayoutKey(uint256 _id) internal view returns(address) {
+        return addressStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, NEW_PAYOUT_KEY))
+        ];
+    }
+
+    function _getNewVotingKey(uint256 _id) internal view returns(address) {
+        return addressStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, NEW_VOTING_KEY))
+        ];
     }
 
     function _setAffectedKey(uint256 _ballotId, address _value) internal {

@@ -72,14 +72,41 @@ contract KeysManager is EternalStorage, IKeysManager {
         _;
     }
 
-    modifier withinTotalLimit() {
-        IPoaNetworkConsensus poa = IPoaNetworkConsensus(poaNetworkConsensus());
-        require(poa.getCurrentValidatorsLength() < maxLimitValidators());
-        _;
+    function checkIfMiningExisted(address _currentKey, address _newKey)
+        public
+        view
+        returns(bool)
+    {
+        if (isMiningActive(_newKey)) {
+            return true;
+        }
+
+        if (_currentKey == address(0)) {
+            return false;
+        }
+        
+        uint8 maxDeep = maxOldMiningKeysDeepCheck();
+        
+        for (uint8 i = 0; i < maxDeep; i++) {
+            address oldMiningKey = getMiningKeyHistory(_currentKey);
+            if (oldMiningKey == address(0)) {
+                return false;
+            }
+            if (oldMiningKey == _newKey) {
+                return true;
+            }
+            _currentKey = oldMiningKey;
+        }
+        
+        return false;
     }
 
     function maxLimitValidators() public pure returns(uint256) {
         return 2000;
+    }
+
+    function maxOldMiningKeysDeepCheck() public pure returns(uint8) {
+        return 25;
     }
 
     function masterOfCeremony() public view returns(address) {
@@ -242,8 +269,8 @@ contract KeysManager is EternalStorage, IKeysManager {
     )
         public
         onlyValidInitialKey
-        withinTotalLimit
     {
+        require(_withinTotalLimit());
         require(_miningKey != address(0));
         require(_votingKey != address(0));
         require(_payoutKey != address(0));
@@ -258,6 +285,9 @@ contract KeysManager is EternalStorage, IKeysManager {
         require(miningKeyByPayout(_payoutKey) == address(0));
         require(getVotingByMining(_miningKey) == address(0));
         require(getPayoutByMining(_miningKey) == address(0));
+        if (!IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_miningKey, true)) {
+            revert();
+        }
         _setVotingKey(_votingKey, _miningKey);
         _setPayoutKey(_payoutKey, _miningKey);
         _setIsMiningActive(true, _miningKey);
@@ -266,7 +296,6 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setMiningKeyByVoting(_votingKey, _miningKey);
         _setMiningKeyByPayout(_payoutKey, _miningKey);
         _setInitialKeyStatus(msg.sender, uint8(InitialKeyState.Deactivated));
-        IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_miningKey, true);
         emit ValidatorInitialized(_miningKey, _votingKey, _payoutKey);
     }
 
@@ -321,36 +350,89 @@ contract KeysManager is EternalStorage, IKeysManager {
         return miningKeyByVoting(_votingKey);
     }
 
-    function addMiningKey(address _key) public onlyVotingToChangeKeys withinTotalLimit {
-        _addMiningKey(_key);
+    function addMiningKey(address _key) public onlyVotingToChangeKeys returns(bool) {
+        if (!_withinTotalLimit()) return false;
+        if (!initDisabled()) return false;
+        if (!IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_key, true)) {
+            return false;
+        }
+        _setVotingKey(address(0), _key);
+        _setPayoutKey(address(0), _key);
+        _setIsMiningActive(true, _key);
+        _setIsVotingActive(false, _key);
+        _setIsPayoutActive(false, _key);
+        emit MiningKeyChanged(_key, "added");
+        return true;
     }
 
-    function addVotingKey(address _key, address _miningKey) public onlyVotingToChangeKeys {
-        _addVotingKey(_key, _miningKey);
+    function addVotingKey(address _key, address _miningKey) public onlyVotingToChangeKeys returns(bool) {
+        if (isVotingActiveByMiningKey(_miningKey) && getVotingByMining(_miningKey) != address(0)) {
+            return swapVotingKey(_key, _miningKey);
+        }
+        if (_addVotingPayoutKeyAllowed(_key, _miningKey)) {
+            _addVotingKey(_key, _miningKey);
+            return true;
+        }
+        return false;
     }
 
-    function addPayoutKey(address _key, address _miningKey) public onlyVotingToChangeKeys {
-        _addPayoutKey(_key, _miningKey);
+    function addPayoutKey(address _key, address _miningKey) public onlyVotingToChangeKeys returns(bool) {
+        if (isPayoutActive(_miningKey) && getPayoutByMining(_miningKey) != address(0)) {
+            return swapPayoutKey(_key, _miningKey);
+        }
+        if (_addVotingPayoutKeyAllowed(_key, _miningKey)) {
+            _addPayoutKey(_key, _miningKey);
+            return true;
+        }
+        return false;
     }
 
-    function removeMiningKey(address _key) public onlyVotingToChangeKeys {
-        _removeMiningKey(_key);
+    function removeMiningKey(address _key) public onlyVotingToChangeKeys returns(bool) {
+        if (!initDisabled()) return false;
+        if (!isMiningActive(_key)) return false;
+        if (_key == masterOfCeremony() && initialKeysCount() < maxNumberOfInitialKeys()) return false;
+        if (!IPoaNetworkConsensus(poaNetworkConsensus()).removeValidator(_key, true)) return false;
+        address votingKey = getVotingByMining(_key);
+        address payoutKey = getPayoutByMining(_key);
+        _setMiningKeyByVoting(votingKey, address(0));
+        _setMiningKeyByPayout(payoutKey, address(0));
+        _clearMiningKey(_key);
+        emit MiningKeyChanged(_key, "removed");
+        if (votingKey != address(0)) {
+            emit VotingKeyChanged(votingKey, _key, "removed");
+        }
+        if (payoutKey != address(0)) {
+            emit PayoutKeyChanged(payoutKey, _key, "removed");
+        }
+        return true;
     }
 
-    function removeVotingKey(address _miningKey) public onlyVotingToChangeKeys {
-        _removeVotingKey(_miningKey);
+    function removeVotingKey(address _miningKey) public onlyVotingToChangeKeys returns(bool) {
+        if (_removeVotingKeyAllowed(_miningKey)) {
+            _removeVotingKey(_miningKey);
+            return true;
+        }
+        return false;
     }
 
-    function removePayoutKey(address _miningKey) public onlyVotingToChangeKeys {
-        _removePayoutKey(_miningKey);
+    function removePayoutKey(address _miningKey) public onlyVotingToChangeKeys returns(bool) {
+        if (_removePayoutKeyAllowed(_miningKey)) {
+            _removePayoutKey(_miningKey);
+            return true;
+        }
+        return false;
     }
 
     function swapMiningKey(address _key, address _oldMiningKey)
         public
         onlyVotingToChangeKeys
+        returns(bool)
     {
-        require(_key != _oldMiningKey);
-        require(isMiningActive(_oldMiningKey));
+        if (_key == _oldMiningKey) return false;
+        if (!isMiningActive(_oldMiningKey)) return false;
+        if (!IPoaNetworkConsensus(poaNetworkConsensus()).swapValidatorKey(_key, _oldMiningKey)) {
+            return false;
+        }
         _setMiningKeyHistory(_key, _oldMiningKey);
         address votingKey = getVotingByMining(_oldMiningKey);
         address payoutKey = getPayoutByMining(_oldMiningKey);
@@ -359,72 +441,46 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsMiningActive(true, _key);
         _setIsVotingActive(isVotingActive(votingKey), _key);
         _setIsPayoutActive(isPayoutActive(_oldMiningKey), _key);
-        IPoaNetworkConsensus(poaNetworkConsensus()).swapValidatorKey(_key, _oldMiningKey);
         _clearMiningKey(_oldMiningKey);
         _setMiningKeyByVoting(votingKey, _key);
         _setMiningKeyByPayout(payoutKey, _key);
         emit MiningKeyChanged(_key, "swapped");
+        return true;
     }
 
-    function swapVotingKey(address _key, address _miningKey) public onlyVotingToChangeKeys {
-        _swapVotingKey(_key, _miningKey);
-    }
-
-    function swapPayoutKey(address _key, address _miningKey) public onlyVotingToChangeKeys {
-        _swapPayoutKey(_key, _miningKey);
-    }
-
-    function _swapVotingKey(address _key, address _miningKey) private {
+    function swapVotingKey(address _key, address _miningKey) public onlyVotingToChangeKeys returns(bool) {
+        if (!_removeVotingKeyAllowed(_miningKey) || !_addVotingPayoutKeyAllowed(_key, _miningKey)) return false;
         _removeVotingKey(_miningKey);
         _addVotingKey(_key, _miningKey);
+        return true;
     }
 
-    function _swapPayoutKey(address _key, address _miningKey) private {
+    function swapPayoutKey(address _key, address _miningKey) public onlyVotingToChangeKeys returns(bool) {
+        if (!_removePayoutKeyAllowed(_miningKey) || !_addVotingPayoutKeyAllowed(_key, _miningKey)) return false;
         _removePayoutKey(_miningKey);
         _addPayoutKey(_key, _miningKey);
-    }
-
-    function _addMiningKey(address _key) private {
-        require(initDisabled());
-        _setVotingKey(address(0), _key);
-        _setPayoutKey(address(0), _key);
-        _setIsMiningActive(true, _key);
-        _setIsVotingActive(false, _key);
-        _setIsPayoutActive(false, _key);
-        IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_key, true);
-        emit MiningKeyChanged(_key, "added");
+        return true;
     }
 
     function _addVotingKey(address _key, address _miningKey) private {
-        require(initDisabled());
-        require(isMiningActive(_miningKey));
-        require(_key != _miningKey);
-        require(miningKeyByVoting(_key) == address(0));
-        address oldVotingKey = getVotingByMining(_miningKey);
-        if (isVotingActiveByMiningKey(_miningKey) && oldVotingKey != address(0)) {
-            _swapVotingKey(_key, _miningKey);
-        } else {
-            _setVotingKey(_key, _miningKey);
-            _setIsVotingActive(true, _miningKey);
-            _setMiningKeyByVoting(_key, _miningKey);
-            emit VotingKeyChanged(_key, _miningKey, "added");
-        }
+        _setVotingKey(_key, _miningKey);
+        _setIsVotingActive(true, _miningKey);
+        _setMiningKeyByVoting(_key, _miningKey);
+        emit VotingKeyChanged(_key, _miningKey, "added");
+    }
+
+    function _addVotingPayoutKeyAllowed(address _key, address _miningKey) private view returns(bool) {
+        if (!initDisabled()) return false;
+        if (!isMiningActive(_miningKey)) return false;
+        if (_key == _miningKey) return false;
+        return true;
     }
 
     function _addPayoutKey(address _key, address _miningKey) private {
-        require(initDisabled());
-        require(isMiningActive(_miningKey));
-        require(_key != _miningKey);
-        require(miningKeyByPayout(_key) == address(0));
-        address oldPayoutKey = getPayoutByMining(_miningKey);
-        if (isPayoutActive(_miningKey) && oldPayoutKey != address(0)) {
-            _swapPayoutKey(_key, _miningKey);
-        } else {
-            _setPayoutKey(_key, _miningKey);
-            _setIsPayoutActive(true, _miningKey);
-            _setMiningKeyByPayout(_key, _miningKey);
-            emit PayoutKeyChanged(_key, _miningKey, "added");
-        }
+        _setPayoutKey(_key, _miningKey);
+        _setIsPayoutActive(true, _miningKey);
+        _setMiningKeyByPayout(_key, _miningKey);
+        emit PayoutKeyChanged(_key, _miningKey, "added");
     }
 
     function _clearMiningKey(address _miningKey) private {
@@ -435,30 +491,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsPayoutActive(false, _miningKey);
     }
 
-    function _removeMiningKey(address _key) private {
-        require(initDisabled());
-        if (!isMiningActive(_key)) return;
-        address votingKey = getVotingByMining(_key);
-        address payoutKey = getPayoutByMining(_key);
-        _setMiningKeyByVoting(votingKey, address(0));
-        _setMiningKeyByPayout(payoutKey, address(0));
-        _clearMiningKey(_key);
-        if (_key == masterOfCeremony()) {
-            require(initialKeysCount() >= maxNumberOfInitialKeys());
-        }
-        IPoaNetworkConsensus(poaNetworkConsensus()).removeValidator(_key, true);
-        emit MiningKeyChanged(_key, "removed");
-        if (votingKey != address(0)) {
-            emit VotingKeyChanged(votingKey, _key, "removed");
-        }
-        if (payoutKey != address(0)) {
-            emit PayoutKeyChanged(payoutKey, _key, "removed");
-        }
-    }
-
     function _removeVotingKey(address _miningKey) private {
-        require(initDisabled());
-        if (!isVotingActiveByMiningKey(_miningKey)) return;
         address oldVoting = getVotingByMining(_miningKey);
         _setVotingKey(address(0), _miningKey);
         _setIsVotingActive(false, _miningKey);
@@ -466,14 +499,24 @@ contract KeysManager is EternalStorage, IKeysManager {
         emit VotingKeyChanged(oldVoting, _miningKey, "removed");
     }
 
+    function _removeVotingKeyAllowed(address _miningKey) private view returns(bool) {
+        if (!initDisabled()) return false;
+        if (!isVotingActiveByMiningKey(_miningKey)) return false;
+        return true;
+    }
+
     function _removePayoutKey(address _miningKey) private {
-        require(initDisabled());
-        if (!isPayoutActive(_miningKey)) return;
         address oldPayout = getPayoutByMining(_miningKey);
         _setPayoutKey(address(0), _miningKey);
         _setIsPayoutActive(false, _miningKey);
         _setMiningKeyByPayout(oldPayout, address(0));
         emit PayoutKeyChanged(oldPayout, _miningKey, "removed");
+    }
+
+    function _removePayoutKeyAllowed(address _miningKey) private view returns(bool) {
+        if (!initDisabled()) return false;
+        if (!isPayoutActive(_miningKey)) return false;
+        return true;
     }
 
     function _setPreviousKeysManager(address _keysManager) private {
@@ -544,5 +587,10 @@ contract KeysManager is EternalStorage, IKeysManager {
         boolStorage[
             keccak256(abi.encodePacked(SUCCESSFUL_VALIDATOR_CLONE, _miningKey))
         ] = _success;
+    }
+
+    function _withinTotalLimit() private view returns(bool) {
+        IPoaNetworkConsensus poa = IPoaNetworkConsensus(poaNetworkConsensus());
+        return poa.getCurrentValidatorsLength() < maxLimitValidators();
     }
 }

@@ -13,8 +13,10 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
+let keysManager;
+let votingToChangeKeys;
 contract('RewardByTime upgraded [all features]', function (accounts) {
-  let poaNetworkConsensus, proxyStorage, keysManager;
+  let poaNetworkConsensus, proxyStorage;
   let rewardByTime, rewardByTimeEternalStorage;
   let blockRewardAmount, emissionFundsAmount, emissionFundsAddress;
   let threshold;
@@ -27,7 +29,6 @@ contract('RewardByTime upgraded [all features]', function (accounts) {
   let payoutKey2;
   let payoutKey3;
   let systemAddress;
-  let votingToChangeKeys;
   
   beforeEach(async () => {
     coinbase = accounts[0];
@@ -67,12 +68,12 @@ contract('RewardByTime upgraded [all features]', function (accounts) {
       accounts[9]
     );
 
-    await keysManager.addMiningKey(miningKey, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addMiningKey(miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addMiningKey(miningKey3, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addPayoutKey(payoutKey, miningKey, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addPayoutKey(payoutKey2, miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addPayoutKey(payoutKey3, miningKey3, {from: votingToChangeKeys}).should.be.fulfilled;
+    await addMiningKey(miningKey);
+    await addMiningKey(miningKey2);
+    await addMiningKey(miningKey3);
+    await addPayoutKey(payoutKey, miningKey);
+    await addPayoutKey(payoutKey2, miningKey2);
+    await addPayoutKey(payoutKey3, miningKey3);
     await poaNetworkConsensus.setSystemAddress(coinbase);
     await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
     await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
@@ -83,7 +84,8 @@ contract('RewardByTime upgraded [all features]', function (accounts) {
 
     const rewardByTimeNew = await RewardByTimeNew.new();
     await rewardByTimeEternalStorage.setProxyStorage(accounts[8]);
-    await rewardByTimeEternalStorage.upgradeTo(rewardByTimeNew.address, {from: accounts[8]});
+    const {logs} = await rewardByTimeEternalStorage.upgradeTo(rewardByTimeNew.address, {from: accounts[8]});
+    logs[0].event.should.be.equal("Upgraded");
     await rewardByTimeEternalStorage.setProxyStorage(proxyStorage.address);
     rewardByTime = await RewardByTimeNew.at(rewardByTimeEternalStorage.address);
 
@@ -191,7 +193,8 @@ contract('RewardByTime upgraded [all features]', function (accounts) {
         payoutKey2,
         payoutKey3
       ]);
-      await keysManager.removeMiningKey(miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
+      result = await keysManager.removeMiningKey(miningKey2, {from: votingToChangeKeys});
+      result.logs[0].event.should.equal("MiningKeyChanged");
       await poaNetworkConsensus.setSystemAddress(coinbase);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
@@ -256,8 +259,8 @@ contract('RewardByTime upgraded [all features]', function (accounts) {
       (await rewardByTime.lastTime.call()).should.be.bignumber.equal(100 + threshold * 7);
       (await rewardByTime.keyIndex.call()).should.be.bignumber.equal(1);
 
-      await keysManager.addMiningKey(miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
-      await keysManager.addPayoutKey(payoutKey2, miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
+      await addMiningKey(miningKey2);
+      await addPayoutKey(payoutKey2, miningKey2);
       await poaNetworkConsensus.setSystemAddress(coinbase);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
@@ -297,3 +300,13 @@ contract('RewardByTime upgraded [all features]', function (accounts) {
     });
   });
 });
+
+async function addMiningKey(_key) {
+  const {logs} = await keysManager.addMiningKey(_key, {from: votingToChangeKeys});
+  logs[0].event.should.be.equal("MiningKeyChanged");
+}
+
+async function addPayoutKey(_key, _miningKey) {
+  const {logs} = await keysManager.addPayoutKey(_key, _miningKey, {from: votingToChangeKeys});
+  logs[0].event.should.be.equal("PayoutKeyChanged");
+}

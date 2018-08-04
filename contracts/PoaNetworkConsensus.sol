@@ -54,16 +54,6 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         require(msg.sender == getKeysManager());
         _;
     }
-    
-    modifier isNewValidator(address _someone) {
-        require(!validatorsState[_someone].isValidator);
-        _;
-    }
-
-    modifier isNotNewValidator(address _someone) {
-        require(validatorsState[_someone].isValidator);
-        _;
-    }
 
     constructor(address _masterOfCeremony, address[] validators) public {
         // TODO: When you deploy this contract, make sure you hardcode items below
@@ -138,55 +128,39 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     function addValidator(address _validator, bool _shouldFireEvent)
         public
         onlyKeysManager
-        isNewValidator(_validator)
+        returns(bool)
     {
-        require(_validator != address(0));
-        validatorsState[_validator] = ValidatorState({
-            isValidator: true,
-            isValidatorFinalized: false,
-            index: pendingList.length
-        });
-        pendingList.push(_validator);
-        finalized = false;
-        if (_shouldFireEvent) {
-            emit InitiateChange(blockhash(block.number - 1), pendingList);
+        if (_addValidatorAllowed(_validator)) {
+            _addValidator(_validator, _shouldFireEvent);
+            return true;
         }
+        return false;
     }
 
     function removeValidator(
         address _validator,
         bool _shouldFireEvent
-    ) public onlyKeysManager isNotNewValidator(_validator) {
-        require(pendingList.length > 0);
-        uint256 removedIndex = validatorsState[_validator].index;
-        // Can not remove the last validator.
-        uint256 lastIndex = pendingList.length - 1;
-        address lastValidator = pendingList[lastIndex];
-        // Override the removed validator with the last one.
-        pendingList[removedIndex] = lastValidator;
-        // Update the index of the last validator.
-        validatorsState[lastValidator].index = removedIndex;
-        pendingList.length--;
-        validatorsState[_validator].index = 0;
-        validatorsState[_validator].isValidator = false;
-        validatorsState[_validator].isValidatorFinalized = false;
-        finalized = false;
-        if (_shouldFireEvent) {
-            if (_validator == _moc) {
-                _isMoCRemovedPending = true;
-            }
-            emit InitiateChange(blockhash(block.number - 1), pendingList);
+    ) public onlyKeysManager returns(bool) {
+        if (_removeValidatorAllowed(_validator)) {
+            _removeValidator(_validator, _shouldFireEvent);
+            return true;
         }
+        return false;
     }
 
-    function swapValidatorKey(address _newKey, address _oldKey) public onlyKeysManager {
-        require(isValidator(_oldKey));
-        removeValidator(_oldKey, false);
-        addValidator(_newKey, false);
+    function swapValidatorKey(address _newKey, address _oldKey)
+        public
+        onlyKeysManager
+        returns(bool)
+    {
+        if (!_removeValidatorAllowed(_oldKey) || !_addValidatorAllowed(_newKey)) return false;
+        _removeValidator(_oldKey, false);
+        _addValidator(_newKey, false);
         if (_oldKey == _moc) {
             _mocPending = _newKey;
         }
         emit InitiateChange(blockhash(block.number - 1), pendingList);
+        return true;
     }
 
     function setProxyStorage(address _newAddress) public {
@@ -225,5 +199,52 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
             return 0;
         }
         return currentValidators.length - 1; // exclude MoC
+    }
+
+    function _addValidatorAllowed(address _validator) private view returns(bool) {
+        if (_validator == address(0)) return false;
+        if (validatorsState[_validator].isValidator) return false;
+        return true;
+    }
+
+    function _addValidator(address _validator, bool _shouldFireEvent) private {
+        validatorsState[_validator] = ValidatorState({
+            isValidator: true,
+            isValidatorFinalized: false,
+            index: pendingList.length
+        });
+        pendingList.push(_validator);
+        finalized = false;
+        if (_shouldFireEvent) {
+            emit InitiateChange(blockhash(block.number - 1), pendingList);
+        }
+    }
+
+    function _removeValidatorAllowed(address _validator) private view returns(bool) {
+        if (pendingList.length == 0) return false;
+        if (!validatorsState[_validator].isValidator) return false;
+        return true;
+    }
+
+    function _removeValidator(address _validator, bool _shouldFireEvent) private {
+        uint256 removedIndex = validatorsState[_validator].index;
+        // Can not remove the last validator.
+        uint256 lastIndex = pendingList.length - 1;
+        address lastValidator = pendingList[lastIndex];
+        // Override the removed validator with the last one.
+        pendingList[removedIndex] = lastValidator;
+        // Update the index of the last validator.
+        validatorsState[lastValidator].index = removedIndex;
+        pendingList.length--;
+        validatorsState[_validator].index = 0;
+        validatorsState[_validator].isValidator = false;
+        validatorsState[_validator].isValidatorFinalized = false;
+        finalized = false;
+        if (_shouldFireEvent) {
+            if (_validator == _moc) {
+                _isMoCRemovedPending = true;
+            }
+            emit InitiateChange(blockhash(block.number - 1), pendingList);
+        }
     }
 }

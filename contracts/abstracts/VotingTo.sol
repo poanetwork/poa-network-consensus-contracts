@@ -4,10 +4,12 @@ import "../libs/SafeMath.sol";
 import "../interfaces/IBallotsStorage.sol";
 import "../interfaces/IKeysManager.sol";
 import "../interfaces/IProxyStorage.sol";
+import "../abstracts/EnumBallotTypes.sol";
+import "../abstracts/EnumThresholdTypes.sol";
 import "../eternal-storage/EternalStorage.sol";
 
 
-contract VotingTo is EternalStorage {
+contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
     using SafeMath for uint256;
 
     bytes32 internal constant OWNER = keccak256("owner");
@@ -24,16 +26,6 @@ contract VotingTo is EternalStorage {
     string internal constant START_TIME = "startTime";
     string internal constant VOTERS = "voters";
     string internal constant VOTING_STATE = "votingState";
-
-    enum BallotTypes {
-        Invalid,
-        KeyAdding,
-        KeyRemoval,
-        KeySwap,
-        MinThreshold,
-        ProxyAddress,
-        ManageEmissionFunds
-    }
 
     event BallotCreated(
         uint256 indexed id,
@@ -60,7 +52,7 @@ contract VotingTo is EternalStorage {
     }
 
     modifier onlyValidVotingKey(address _votingKey) {
-        IKeysManager keysManager = IKeysManager(getKeysManager());
+        IKeysManager keysManager = IKeysManager(_getKeysManager());
         require(keysManager.isVotingActive(_votingKey));
         _;
     }
@@ -70,62 +62,20 @@ contract VotingTo is EternalStorage {
         view
         returns(bool)
     {
-        IKeysManager keysManager = IKeysManager(getKeysManager());
-        uint8 maxDeep = maxOldMiningKeysDeepCheck();
+        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        uint8 maxDeep = keysManager.maxOldMiningKeysDeepCheck();
         for (uint8 i = 0; i < maxDeep; i++) {
             address oldMiningKey = keysManager.getMiningKeyHistory(_miningKey);
             if (oldMiningKey == address(0)) {
                 return false;
             }
-            if (hasMiningKeyAlreadyVoted(_id, oldMiningKey)) {
+            if (_hasMiningKeyAlreadyVoted(_id, oldMiningKey)) {
                 return true;
             } else {
                 _miningKey = oldMiningKey;
             }
         }
         return false;
-    }
-
-    function getBallotsStorage() public view returns(address) {
-        return IProxyStorage(proxyStorage()).getBallotsStorage();
-    }
-
-    function getCreator(uint256 _id) public view returns(address) {
-        return addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, CREATOR))
-        ];
-    }
-
-    function getEndTime(uint256 _id) public view returns(uint256) {
-        return uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, END_TIME))
-        ];
-    }
-
-    function getGlobalMinThresholdOfVoters() public view returns(uint256) {
-        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
-        return ballotsStorage.getBallotThreshold(1);
-    }
-
-    function getIsFinalized(uint256 _id) public view returns(bool) {
-        return boolStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, IS_FINALIZED))
-        ];
-    }
-
-    function getKeysManager() public view returns(address) {
-        return IProxyStorage(proxyStorage()).getKeysManager();
-    }
-
-    function getMemo(uint256 _id) public view returns(string) {
-        return stringStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, MEMO))
-        ];
-    }
-
-    function getMiningByVotingKey(address _votingKey) public view returns(address) {
-        IKeysManager keysManager = IKeysManager(getKeysManager());
-        return keysManager.getMiningKeyByVoting(_votingKey);
     }
 
     function getMinThresholdOfVoters(uint256 _id) public view returns(uint256) {
@@ -140,24 +90,8 @@ contract VotingTo is EternalStorage {
         ]);
     }
 
-    function getStartTime(uint256 _id) public view returns(uint256) {
-        return uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, START_TIME))
-        ];
-    }
-
     function getTime() public view returns(uint256) {
         return now;
-    }
-
-    function hasMiningKeyAlreadyVoted(uint256 _id, address _miningKey)
-        public
-        view
-        returns(bool)
-    {
-        return boolStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, VOTERS, _miningKey))
-        ];
     }
 
     function hasAlreadyVoted(uint256 _id, address _votingKey)
@@ -165,8 +99,9 @@ contract VotingTo is EternalStorage {
         view
         returns(bool)
     {
-        address miningKey = getMiningByVotingKey(_votingKey);
-        return hasMiningKeyAlreadyVoted(_id, miningKey);
+        if (_votingKey == address(0)) return false;
+        address miningKey = _getMiningByVotingKey(_votingKey);
+        return _hasMiningKeyAlreadyVoted(_id, miningKey);
     }
 
     function initDisabled() public view returns(bool) {
@@ -174,7 +109,7 @@ contract VotingTo is EternalStorage {
     }
 
     function isActive(uint256 _id) public view returns(bool) {
-        return getStartTime(_id) <= getTime() && getTime() <= getEndTime(_id);
+        return _getStartTime(_id) <= getTime() && getTime() <= _getEndTime(_id);
     }
 
     function isValidVote(uint256 _id, address _votingKey)
@@ -182,14 +117,10 @@ contract VotingTo is EternalStorage {
         view
         returns(bool)
     {
-        address miningKey = getMiningByVotingKey(_votingKey);
-        bool notVoted = !hasMiningKeyAlreadyVoted(_id, miningKey);
+        address miningKey = _getMiningByVotingKey(_votingKey);
+        bool notVoted = !_hasMiningKeyAlreadyVoted(_id, miningKey);
         bool oldKeysNotVoted = !areOldMiningKeysVoted(_id, miningKey);
         return notVoted && isActive(_id) && oldKeysNotVoted;
-    }
-
-    function maxOldMiningKeysDeepCheck() public pure returns(uint8) {
-        return 25;
     }
 
     function nextBallotId() public view returns(uint256) {
@@ -213,12 +144,70 @@ contract VotingTo is EternalStorage {
         _setEndTime(ballotId, _endTime);
         _setIsFinalized(ballotId, false);
         _setQuorumState(ballotId, _quorumState);
-        _setMinThresholdOfVoters(ballotId, getGlobalMinThresholdOfVoters());
+        _setMinThresholdOfVoters(ballotId, _getGlobalMinThresholdOfVoters());
         _setCreator(ballotId, _creatorMiningKey);
         _setMemo(ballotId, _memo);
         _setNextBallotId(ballotId.add(1));
         emit BallotCreated(ballotId, _ballotType, msg.sender);
         return ballotId;
+    }
+
+    function _getBallotsStorage() internal view returns(address) {
+        return IProxyStorage(proxyStorage()).getBallotsStorage();
+    }
+
+    function _getCreator(uint256 _id) internal view returns(address) {
+        return addressStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, CREATOR))
+        ];
+    }
+
+    function _getEndTime(uint256 _id) internal view returns(uint256) {
+        return uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, END_TIME))
+        ];
+    }
+
+    function _getGlobalMinThresholdOfVoters() internal view returns(uint256) {
+        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
+        return ballotsStorage.getBallotThreshold(uint8(ThresholdTypes.Keys));
+    }
+
+    function _getIsFinalized(uint256 _id) internal view returns(bool) {
+        return boolStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, IS_FINALIZED))
+        ];
+    }
+
+    function _getKeysManager() internal view returns(address) {
+        return IProxyStorage(proxyStorage()).getKeysManager();
+    }
+
+    function _getMemo(uint256 _id) internal view returns(string) {
+        return stringStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, MEMO))
+        ];
+    }
+
+    function _getMiningByVotingKey(address _votingKey) internal view returns(address) {
+        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        return keysManager.getMiningKeyByVoting(_votingKey);
+    }
+
+    function _getStartTime(uint256 _id) internal view returns(uint256) {
+        return uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, START_TIME))
+        ];
+    }
+
+    function _hasMiningKeyAlreadyVoted(uint256 _id, address _miningKey)
+        internal
+        view
+        returns(bool)
+    {
+        return boolStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, VOTERS, _miningKey))
+        ];
     }
 
     function _setCreator(uint256 _ballotId, address _value) internal {

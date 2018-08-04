@@ -41,34 +41,17 @@ contract VotingToChangeProxyAddress is IVotingToChangeProxyAddress, VotingToChan
         bool canBeFinalizedNow,
         bool hasAlreadyVoted
     ) {
-        startTime = getStartTime(_id);
-        endTime = getEndTime(_id);
-        totalVoters = getTotalVoters(_id);
-        progress = getProgress(_id);
-        isFinalized = getIsFinalized(_id);
-        proposedValue = getProposedValue(_id);
-        contractType = getContractType(_id);
-        creator = getCreator(_id);
-        memo = getMemo(_id);
+        startTime = _getStartTime(_id);
+        endTime = _getEndTime(_id);
+        totalVoters = _getTotalVoters(_id);
+        progress = _getProgress(_id);
+        isFinalized = _getIsFinalized(_id);
+        proposedValue = _getProposedValue(_id);
+        contractType = _getContractType(_id);
+        creator = _getCreator(_id);
+        memo = _getMemo(_id);
         canBeFinalizedNow = _canBeFinalizedNow(_id);
         hasAlreadyVoted = this.hasAlreadyVoted(_id, _votingKey);
-    }
-
-    function getContractType(uint256 _id) public view returns(uint256) {
-        return uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, CONTRACT_TYPE))
-        ];
-    }
-    
-    function getGlobalMinThresholdOfVoters() public view returns(uint256) {
-        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
-        return ballotsStorage.getProxyThreshold();
-    }
-
-    function getProposedValue(uint256 _id) public view returns(address) {
-        return addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, PROPOSED_VALUE))
-        ];
     }
 
     function migrateBasicOne(
@@ -89,17 +72,34 @@ contract VotingToChangeProxyAddress is IVotingToChangeProxyAddress, VotingToChan
             _memo,
             _voters
         );
-        IVotingToChangeProxyAddress prev =
-            IVotingToChangeProxyAddress(_prevVotingToChange);
+        IVotingToChangeProxyAddressPrev prev =
+            IVotingToChangeProxyAddressPrev(_prevVotingToChange);
         _setProposedValue(_id, prev.getProposedValue(_id));
         _setContractType(_id, prev.getContractType(_id));
     }
 
-    function _finalizeBallotInner(uint256 _id) internal {
-        IProxyStorage(proxyStorage()).setContractAddress(
-            getContractType(_id),
-            getProposedValue(_id)
+    function _finalizeBallotInner(uint256 _id) internal returns(bool) {
+        return IProxyStorage(proxyStorage()).setContractAddress(
+            _getContractType(_id),
+            _getProposedValue(_id)
         );
+    }
+
+    function _getContractType(uint256 _id) internal view returns(uint256) {
+        return uintStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, CONTRACT_TYPE))
+        ];
+    }
+
+    function _getGlobalMinThresholdOfVoters() internal view returns(uint256) {
+        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
+        return ballotsStorage.getProxyThreshold();
+    }
+
+    function _getProposedValue(uint256 _id) internal view returns(address) {
+        return addressStorage[
+            keccak256(abi.encodePacked(VOTING_STATE, _id, PROPOSED_VALUE))
+        ];
     }
 
     function _setContractType(uint256 _ballotId, uint256 _value) private {

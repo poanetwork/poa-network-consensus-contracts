@@ -5,10 +5,10 @@ import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IKeysManager.sol";
 import "./eternal-storage/EternalStorage.sol";
-import "./abstracts/ThresholdTypesEnum.sol";
+import "./abstracts/EnumThresholdTypes.sol";
 
 
-contract ValidatorMetadata is EternalStorage, ThresholdTypesEnum {
+contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
     using SafeMath for uint256;
 
     bytes32 internal constant INIT_METADATA_DISABLED = keccak256("initMetadataDisabled");

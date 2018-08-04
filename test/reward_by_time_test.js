@@ -13,9 +13,11 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
+let keysManager;
+let votingToChangeKeys;
+let rewardByTime, rewardByTimeEternalStorage;
 contract('RewardByTime [all features]', function (accounts) {
-  let poaNetworkConsensus, proxyStorage, keysManager;
-  let rewardByTime, rewardByTimeEternalStorage;
+  let poaNetworkConsensus, proxyStorage;
   let blockRewardAmount, emissionFundsAmount, emissionFundsAddress;
   let threshold;
   let coinbase;
@@ -27,7 +29,6 @@ contract('RewardByTime [all features]', function (accounts) {
   let payoutKey2;
   let payoutKey3;
   let systemAddress;
-  let votingToChangeKeys;
   
   beforeEach(async () => {
     coinbase = accounts[0];
@@ -67,12 +68,12 @@ contract('RewardByTime [all features]', function (accounts) {
       accounts[9]
     );
 
-    await keysManager.addMiningKey(miningKey, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addMiningKey(miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addMiningKey(miningKey3, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addPayoutKey(payoutKey, miningKey, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addPayoutKey(payoutKey2, miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addPayoutKey(payoutKey3, miningKey3, {from: votingToChangeKeys}).should.be.fulfilled;
+    await addMiningKey(miningKey);
+    await addMiningKey(miningKey2);
+    await addMiningKey(miningKey3);
+    await addPayoutKey(payoutKey, miningKey);
+    await addPayoutKey(payoutKey2, miningKey2);
+    await addPayoutKey(payoutKey3, miningKey3);
     await poaNetworkConsensus.setSystemAddress(coinbase);
     await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
     await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
@@ -185,7 +186,8 @@ contract('RewardByTime [all features]', function (accounts) {
         payoutKey2,
         payoutKey3
       ]);
-      await keysManager.removeMiningKey(miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
+      result = await keysManager.removeMiningKey(miningKey2, {from: votingToChangeKeys});
+      result.logs[0].event.should.equal("MiningKeyChanged");
       await poaNetworkConsensus.setSystemAddress(coinbase);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
@@ -250,8 +252,8 @@ contract('RewardByTime [all features]', function (accounts) {
       (await rewardByTime.lastTime.call()).should.be.bignumber.equal(100 + threshold * 7);
       (await rewardByTime.keyIndex.call()).should.be.bignumber.equal(1);
 
-      await keysManager.addMiningKey(miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
-      await keysManager.addPayoutKey(payoutKey2, miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
+      await addMiningKey(miningKey2);
+      await addPayoutKey(payoutKey2, miningKey2);
       await poaNetworkConsensus.setSystemAddress(coinbase);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
@@ -297,7 +299,7 @@ contract('RewardByTime [all features]', function (accounts) {
       const rewardByTimeNew = await RewardByTimeNew.new();
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorageStubAddress);
       await rewardByTimeEternalStorage.upgradeTo(rewardByTimeNew.address, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
-      await rewardByTimeEternalStorage.upgradeTo(rewardByTimeNew.address, {from: proxyStorageStubAddress}).should.be.fulfilled;
+      await upgradeTo(rewardByTimeNew.address, {from: proxyStorageStubAddress});
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorage.address);
     });
     it('should change implementation address', async () => {
@@ -306,7 +308,7 @@ contract('RewardByTime [all features]', function (accounts) {
       const newImplementation = rewardByTimeNew.address;
       (await rewardByTimeEternalStorage.implementation.call()).should.be.equal(oldImplementation);
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorageStubAddress);
-      await rewardByTimeEternalStorage.upgradeTo(newImplementation, {from: proxyStorageStubAddress});
+      await upgradeTo(newImplementation, {from: proxyStorageStubAddress});
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorage.address);
       rewardByTimeNew = await RewardByTimeNew.at(rewardByTimeEternalStorage.address);
       (await rewardByTimeNew.implementation.call()).should.be.equal(newImplementation);
@@ -318,7 +320,7 @@ contract('RewardByTime [all features]', function (accounts) {
       const newVersion = oldVersion.add(1);
       (await rewardByTimeEternalStorage.version.call()).should.be.bignumber.equal(oldVersion);
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorageStubAddress);
-      await rewardByTimeEternalStorage.upgradeTo(rewardByTimeNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(rewardByTimeNew.address, {from: proxyStorageStubAddress});
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorage.address);
       rewardByTimeNew = await RewardByTimeNew.at(rewardByTimeEternalStorage.address);
       (await rewardByTimeNew.version.call()).should.be.bignumber.equal(newVersion);
@@ -327,7 +329,7 @@ contract('RewardByTime [all features]', function (accounts) {
     it('new implementation should work', async () => {
       let rewardByTimeNew = await RewardByTimeNew.new();
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorageStubAddress);
-      await rewardByTimeEternalStorage.upgradeTo(rewardByTimeNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(rewardByTimeNew.address, {from: proxyStorageStubAddress});
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorage.address);
       rewardByTimeNew = await RewardByTimeNew.at(rewardByTimeEternalStorage.address);
       (await rewardByTimeNew.initialized.call()).should.be.equal(false);
@@ -337,10 +339,25 @@ contract('RewardByTime [all features]', function (accounts) {
     it('new implementation should use the same proxyStorage address', async () => {
       let rewardByTimeNew = await RewardByTimeNew.new();
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorageStubAddress);
-      await rewardByTimeEternalStorage.upgradeTo(rewardByTimeNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(rewardByTimeNew.address, {from: proxyStorageStubAddress});
       rewardByTimeNew = await RewardByTimeNew.at(rewardByTimeEternalStorage.address);
       (await rewardByTimeNew.proxyStorage.call()).should.be.equal(proxyStorageStubAddress);
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorage.address);
     });
   });
 });
+
+async function addMiningKey(_key) {
+  const {logs} = await keysManager.addMiningKey(_key, {from: votingToChangeKeys});
+  logs[0].event.should.be.equal("MiningKeyChanged");
+}
+
+async function addPayoutKey(_key, _miningKey) {
+  const {logs} = await keysManager.addPayoutKey(_key, _miningKey, {from: votingToChangeKeys});
+  logs[0].event.should.be.equal("PayoutKeyChanged");
+}
+
+async function upgradeTo(implementation, options) {
+  const {logs} = await rewardByTimeEternalStorage.upgradeTo(implementation, options);
+  logs[0].event.should.be.equal("Upgraded");
+}

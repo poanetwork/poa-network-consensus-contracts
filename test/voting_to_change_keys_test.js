@@ -18,7 +18,7 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
-let keysManager, poaNetworkConsensusMock, voting;
+let keysManager, poaNetworkConsensusMock, voting, votingEternalStorage;
 let votingKey, votingKey2, votingKey3, miningKeyForVotingKey;
 let VOTING_START_DATE, VOTING_END_DATE;
 contract('Voting to change keys [all features]', function (accounts) {
@@ -47,7 +47,7 @@ contract('Voting to change keys [all features]', function (accounts) {
     const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
 
     voting = await VotingToChangeKeysMock.new();
-    const votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, voting.address);
+    votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, voting.address);
 
     await proxyStorageMock.initializeAddresses(
       keysManagerEternalStorage.address,
@@ -70,9 +70,10 @@ contract('Voting to change keys [all features]', function (accounts) {
   describe('#createBallot', async () => {
     it('happy path', async () => {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
-      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      await keysManager.swapMiningKey(accounts[3], accounts[1]).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey, accounts[3]).should.be.fulfilled;
+      await addMiningKey(accounts[1]);
+      let result = await keysManager.swapMiningKey(accounts[3], accounts[1]);
+      result.logs[0].event.should.equal("MiningKeyChanged");
+      await addVotingKey(votingKey, accounts[3]);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
       const id = await voting.nextBallotId.call();
@@ -110,13 +111,11 @@ contract('Voting to change keys [all features]', function (accounts) {
         {from: votingKey}
       ).should.be.fulfilled;
 
-      const startTime = await voting.getStartTime.call(id.toNumber());
-      const endTime = await voting.getEndTime.call(id.toNumber());
-      const keysManagerFromContract = await voting.getKeysManager.call();
+      const ballotInfo = await voting.getBallotInfo.call(id);
 
-      startTime.should.be.bignumber.equal(VOTING_START_DATE);
-      endTime.should.be.bignumber.equal(VOTING_END_DATE);
-      keysManagerFromContract.should.be.equal(keysManager.address);
+      ballotInfo[0].should.be.bignumber.equal(VOTING_START_DATE);
+      ballotInfo[1].should.be.bignumber.equal(VOTING_END_DATE);
+      (await voting.getKeysManager.call()).should.be.equal(keysManager.address);
       logs[0].event.should.be.equal("BallotCreated");
       logs[0].args.id.should.be.bignumber.equal(0);
       logs[0].args.creator.should.be.equal(votingKey);
@@ -134,9 +133,9 @@ contract('Voting to change keys [all features]', function (accounts) {
     })
     it('should not let add votingKey for MoC', async () => {
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
-      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
-      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
+      await addMiningKey(accounts[1]);
+      await addVotingKey(votingKey, accounts[1]);
+      await addMiningKey(accounts[2]);
       await proxyStorageMock.setVotingContractMock(voting.address);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
@@ -145,9 +144,9 @@ contract('Voting to change keys [all features]', function (accounts) {
     })
     it('should not let add votingKey for 0x0', async () => {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
-      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
-      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
+      await addMiningKey(accounts[1]);
+      await addVotingKey(votingKey, accounts[1]);
+      await addMiningKey(accounts[2]);
       await proxyStorageMock.setVotingContractMock(voting.address);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
@@ -156,9 +155,9 @@ contract('Voting to change keys [all features]', function (accounts) {
     })
     it('should not let add payoutKey for 0x0', async () => {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
-      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
-      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
+      await addMiningKey(accounts[1]);
+      await addVotingKey(votingKey, accounts[1]);
+      await addMiningKey(accounts[2]);
       await proxyStorageMock.setVotingContractMock(voting.address);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
@@ -167,8 +166,8 @@ contract('Voting to change keys [all features]', function (accounts) {
     })
     it('should not let create more ballots than the limit', async () => {
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
-      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
+      await addMiningKey(accounts[1]);
+      await addVotingKey(votingKey, accounts[1]);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[3], 1, accounts[2], 1, "memo", {from: votingKey});
@@ -184,9 +183,9 @@ contract('Voting to change keys [all features]', function (accounts) {
     let id;
     beforeEach(async ()=> {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
-      await keysManager.addMiningKey(miningKeyForVotingKey).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey, miningKeyForVotingKey).should.be.fulfilled;
-      await keysManager.addPayoutKey(accounts[6], miningKeyForVotingKey).should.be.fulfilled;
+      await addMiningKey(miningKeyForVotingKey);
+      await addVotingKey(votingKey, miningKeyForVotingKey);
+      await addPayoutKey(accounts[6], miningKeyForVotingKey);
       await proxyStorageMock.setVotingContractMock(voting.address);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
@@ -214,15 +213,25 @@ contract('Voting to change keys [all features]', function (accounts) {
       ).should.be.fulfilled;
       
       (await voting.getKeysManager.call()).should.be.equal(keysManager.address);
-      (await voting.getStartTime.call(id)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await voting.getEndTime.call(id)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await voting.getAffectedKey.call(id)).should.be.equal(accounts[3]);
-      (await voting.getAffectedKeyType.call(id)).should.be.bignumber.equal(1);
-      (await voting.getMiningKey.call(id)).should.be.equal('0x0000000000000000000000000000000000000000');
-      (await voting.getMemo.call(id)).should.be.equal('memo');
-      (await voting.getNewVotingKey.call(id)).should.be.equal(accounts[4]);
-      (await voting.getNewPayoutKey.call(id)).should.be.equal(accounts[5]);
-      (await voting.getBallotType.call(id)).should.be.bignumber.equal(1);
+
+      const ballotInfo = await voting.getBallotInfo.call(id);
+
+      ballotInfo.should.be.deep.equal([
+        new web3.BigNumber(VOTING_START_DATE), // startTime
+        new web3.BigNumber(VOTING_END_DATE), // endTime
+        accounts[3], // affectedKey
+        new web3.BigNumber(1), // affectedKeyType
+        accounts[4], // newVotingKey
+        accounts[5], // newPayoutKey
+        '0x0000000000000000000000000000000000000000', // miningKey
+        new web3.BigNumber(0), // totalVoters
+        new web3.BigNumber(0), // progress
+        false, // isFinalized
+        new web3.BigNumber(1), // ballotType
+        miningKeyForVotingKey, // creator
+        "memo", // memo
+        false // canBeFinalizedNow
+      ]);
       
       logs[0].event.should.be.equal("BallotCreated");
       logs[0].args.id.should.be.bignumber.equal(0);
@@ -265,11 +274,12 @@ contract('Voting to change keys [all features]', function (accounts) {
 
     it('should create validator with all keys after finalization', async () => {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
-      await keysManager.removePayoutKey(miningKeyForVotingKey).should.be.fulfilled;
-      await keysManager.addMiningKey(accounts[3]).should.be.fulfilled;
-      await keysManager.addVotingKey(accounts[4], accounts[3]).should.be.fulfilled;
-      await keysManager.addMiningKey(accounts[5]).should.be.fulfilled;
-      await keysManager.addVotingKey(accounts[6], accounts[5]).should.be.fulfilled;
+      const {logs} = await keysManager.removePayoutKey(miningKeyForVotingKey);
+      logs[0].event.should.be.equal("PayoutKeyChanged");
+      await addMiningKey(accounts[3]);
+      await addVotingKey(accounts[4], accounts[3]);
+      await addMiningKey(accounts[5]);
+      await addVotingKey(accounts[6], accounts[5]);
       await proxyStorageMock.setVotingContractMock(voting.address);
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
@@ -296,7 +306,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       (await keysManager.miningKeyByPayout.call(accounts[9])).should.be.equal('0x0000000000000000000000000000000000000000');
 
       await voting.setTime(VOTING_END_DATE+1);
-      await voting.finalize(id, {from: votingKey}).should.be.fulfilled;
+      await finalize(id, true, {from: votingKey});
 
       (await poaNetworkConsensusMock.isValidator.call(accounts[7])).should.be.equal(true);
       (await keysManager.isMiningActive.call(accounts[7])).should.be.equal(true);
@@ -311,11 +321,12 @@ contract('Voting to change keys [all features]', function (accounts) {
 
     it('should allow removing new validator if finalizeChange did not happen', async () => {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
-      await keysManager.removePayoutKey(miningKeyForVotingKey).should.be.fulfilled;
-      await keysManager.addMiningKey(accounts[3]).should.be.fulfilled;
-      await keysManager.addVotingKey(accounts[4], accounts[3]).should.be.fulfilled;
-      await keysManager.addMiningKey(accounts[5]).should.be.fulfilled;
-      await keysManager.addVotingKey(accounts[6], accounts[5]).should.be.fulfilled;
+      const {logs} = await keysManager.removePayoutKey(miningKeyForVotingKey);
+      logs[0].event.should.be.equal("PayoutKeyChanged");
+      await addMiningKey(accounts[3]);
+      await addVotingKey(accounts[4], accounts[3]);
+      await addMiningKey(accounts[5]);
+      await addVotingKey(accounts[6], accounts[5]);
       await proxyStorageMock.setVotingContractMock(voting.address);
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
@@ -342,7 +353,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       (await keysManager.miningKeyByPayout.call(accounts[9])).should.be.equal('0x0000000000000000000000000000000000000000');
 
       await voting.setTime(VOTING_END_DATE+1);
-      await voting.finalize(id, {from: votingKey}).should.be.fulfilled;
+      await finalize(id, true, {from: votingKey});
 
       (await poaNetworkConsensusMock.isValidator.call(accounts[7])).should.be.equal(true);
       (await keysManager.isMiningActive.call(accounts[7])).should.be.equal(true);
@@ -372,7 +383,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       await voting.vote(id, choice.accept, {from: accounts[6]}).should.be.fulfilled;
 
       await voting.setTime(VOTING_END_DATE+1);
-      await voting.finalize(id, {from: votingKey}).should.be.fulfilled;
+      await finalize(id, true, {from: votingKey});
 
       (await poaNetworkConsensusMock.isValidator.call(accounts[7])).should.be.equal(false);
       (await keysManager.isMiningActive.call(accounts[7])).should.be.equal(false);
@@ -395,8 +406,8 @@ contract('Voting to change keys [all features]', function (accounts) {
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
-      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
+      await addMiningKey(accounts[1]);
+      await addVotingKey(votingKey, accounts[1]);
       id = await voting.nextBallotId.call();
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[3], 1, accounts[1], 1, "memo", {from: votingKey});
     })
@@ -404,7 +415,7 @@ contract('Voting to change keys [all features]', function (accounts) {
     it('should let a validator to vote', async () => {
       await voting.setTime(VOTING_START_DATE);
       const {logs} = await voting.vote(id, choice.accept, {from: votingKey}).should.be.fulfilled;
-      let progress = await voting.getProgress.call(id);
+      let progress = (await voting.getBallotInfo.call(id))[8];
       progress.should.be.bignumber.equal(1);
       let totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(1);
@@ -416,7 +427,7 @@ contract('Voting to change keys [all features]', function (accounts) {
     it('reject vote should be accepted', async () => {
       await voting.setTime(VOTING_START_DATE);
       const {logs} = await voting.vote(id, choice.reject, {from: votingKey}).should.be.fulfilled;
-      let progress = await voting.getProgress.call(id);
+      let progress = (await voting.getBallotInfo.call(id))[8];
       progress.should.be.bignumber.equal(-1);
       let totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(1);
@@ -428,25 +439,25 @@ contract('Voting to change keys [all features]', function (accounts) {
     it('should allow multiple voters to vote', async () => {
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(id, choice.reject, {from: votingKey}).should.be.fulfilled;
-      await keysManager.addVotingKey(accounts[3], accounts[1]).should.be.fulfilled;
+      await addVotingKey(accounts[3], accounts[1]);
       await voting.vote(id, choice.reject, {from: accounts[3]}).should.be.rejectedWith(ERROR_MSG);
 
       // add new voter
-      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
-      await keysManager.addVotingKey(accounts[4], accounts[2]).should.be.fulfilled;
+      await addMiningKey(accounts[2]);
+      await addVotingKey(accounts[4], accounts[2]);
       await voting.vote(id, choice.reject, {from: accounts[4]}).should.be.fulfilled;
 
-      let progress = await voting.getProgress.call(id);
+      let progress = (await voting.getBallotInfo.call(id))[8];
       progress.should.be.bignumber.equal(-2);
 
       let totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(2);
 
-      await keysManager.addMiningKey(accounts[3]).should.be.fulfilled;
-      await keysManager.addVotingKey(accounts[5], accounts[3]).should.be.fulfilled;
+      await addMiningKey(accounts[3]);
+      await addVotingKey(accounts[5], accounts[3]);
       await voting.vote(id, choice.accept, {from: accounts[5]}).should.be.fulfilled;
 
-      progress = await voting.getProgress.call(id);
+      progress = (await voting.getBallotInfo.call(id))[8];
       progress.should.be.bignumber.equal(-1);
 
       totalVoters = await voting.getTotalVoters.call(id);
@@ -493,14 +504,14 @@ contract('Voting to change keys [all features]', function (accounts) {
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
-      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
+      await addMiningKey(accounts[1]);
+      await addVotingKey(votingKey, accounts[1]);
 
-      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey2, accounts[2]).should.be.fulfilled;
+      await addMiningKey(accounts[2]);
+      await addVotingKey(votingKey2, accounts[2]);
 
-      await keysManager.addMiningKey(accounts[4]).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey3, accounts[4]).should.be.fulfilled;
+      await addMiningKey(accounts[4]);
+      await addVotingKey(votingKey3, accounts[4]);
       await proxyStorageMock.setVotingContractMock(voting.address);
 
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
@@ -508,11 +519,9 @@ contract('Voting to change keys [all features]', function (accounts) {
     })
     
     it('happy path - no action since it did not meet minimum number of totalVoters', async () => {
-      // Ballot to Add Payout Key for miner account[1]
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, payoutKeyToAdd, 3, accounts[1], 1, "memo", {from: votingKey});
       let activeBallotsLength = await voting.activeBallotsLength.call();
       votingId = await voting.activeBallots.call(activeBallotsLength.toNumber() - 1);
-      // console.log(votingId);
       await voting.finalize(votingId, { from: votingKey }).should.be.rejectedWith(ERROR_MSG);
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(votingId, choice.reject, {from: votingKey}).should.be.fulfilled;
@@ -523,25 +532,33 @@ contract('Voting to change keys [all features]', function (accounts) {
       await voting.vote(votingId, choice.accept, { from: votingKey }).should.be.rejectedWith(ERROR_MSG);
       activeBallotsLength = await voting.activeBallotsLength.call();
       activeBallotsLength.should.be.bignumber.equal(0);
-      true.should.be.equal(await voting.getIsFinalized.call(votingId));
+      true.should.be.equal((await voting.getBallotInfo.call(votingId))[9]); // isFinalized
       // Finalized(msg.sender);
       logs[0].event.should.be.equal("BallotFinalized");
       logs[0].args.voter.should.be.equal(votingKey);
 
-      (await voting.getStartTime.call(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await voting.getEndTime.call(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await voting.getAffectedKey.call(votingId)).should.be.equal(payoutKeyToAdd);
-      (await voting.getAffectedKeyType.call(votingId)).should.be.bignumber.equal(3);
-      (await voting.getMiningKey.call(votingId)).should.be.equal(accounts[1]);
-      (await voting.getTotalVoters.call(votingId)).should.be.bignumber.equal(1);
-      (await voting.getProgress.call(votingId)).should.be.bignumber.equal(-1);
-      (await voting.getIsFinalized.call(votingId)).should.be.equal(true);
+      const ballotInfo = await voting.getBallotInfo.call(votingId);
+
+      ballotInfo.should.be.deep.equal([
+        new web3.BigNumber(VOTING_START_DATE), // startTime
+        new web3.BigNumber(VOTING_END_DATE), // endTime
+        payoutKeyToAdd, // affectedKey
+        new web3.BigNumber(3), // affectedKeyType
+        "0x0000000000000000000000000000000000000000", // newVotingKey
+        "0x0000000000000000000000000000000000000000", // newPayoutKey
+        accounts[1], // miningKey
+        new web3.BigNumber(1), // totalVoters
+        new web3.BigNumber(-1), // progress
+        true, // isFinalized
+        new web3.BigNumber(1), // ballotType
+        miningKeyForVotingKey, // creator
+        "memo", // memo
+        false // canBeFinalizedNow
+      ]);
+
       (await voting.getQuorumState.call(votingId)).should.be.bignumber.equal(3);
-      (await voting.getBallotType.call(votingId)).should.be.bignumber.equal(1);
       (await voting.getIndex.call(votingId)).should.be.bignumber.equal(0);
       (await voting.getMinThresholdOfVoters.call(votingId)).should.be.bignumber.equal(3);
-      (await voting.getCreator.call(votingId)).should.be.equal(miningKeyForVotingKey);
-      (await voting.getMemo.call(votingId)).should.be.equal("memo");
       
       true.should.be.equal(
         await voting.hasAlreadyVoted.call(votingId, votingKey)
@@ -578,7 +595,7 @@ contract('Voting to change keys [all features]', function (accounts) {
     it('finalize addition of VotingKey', async () => {
       let miningKey = accounts[7];
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
-      await keysManager.addMiningKey(miningKey).should.be.fulfilled;
+      await addMiningKey(miningKey);
       await proxyStorageMock.setVotingContractMock(voting.address);
 
       // Ballot to Add Voting Key for miner account[1]
@@ -662,7 +679,7 @@ contract('Voting to change keys [all features]', function (accounts) {
     it('finalize removal of MiningKey', async () => {
       let miningKey = accounts[6];
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
-      await keysManager.addMiningKey(miningKey).should.be.fulfilled;
+      await addMiningKey(miningKey);
       await proxyStorageMock.setVotingContractMock(voting.address);
       // Ballot to Add Voting Key for miner account[1]
       // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
@@ -692,8 +709,8 @@ contract('Voting to change keys [all features]', function (accounts) {
       let miningKey = accounts[7];
       let votingKeyToAdd = accounts[8];
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
-      await keysManager.addMiningKey(miningKey).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKeyToAdd, miningKey).should.be.fulfilled;
+      await addMiningKey(miningKey);
+      await addVotingKey(votingKeyToAdd, miningKey);
       await proxyStorageMock.setVotingContractMock(voting.address);
 
       // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
@@ -718,8 +735,8 @@ contract('Voting to change keys [all features]', function (accounts) {
       let miningKey = accounts[7];
       let affectedKey = accounts[8];
       await proxyStorageMock.setVotingContractMock(accounts[0]);
-      await keysManager.addMiningKey(miningKey).should.be.fulfilled;
-      await keysManager.addPayoutKey(affectedKey, miningKey).should.be.fulfilled;
+      await addMiningKey(miningKey);
+      await addPayoutKey(affectedKey, miningKey);
       await proxyStorageMock.setVotingContractMock(voting.address);
 
       // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
@@ -745,8 +762,8 @@ contract('Voting to change keys [all features]', function (accounts) {
       let miningKey = accounts[7];
       let affectedKey = accounts[8];
       await proxyStorageMock.setVotingContractMock(accounts[0]);
-      await keysManager.addMiningKey(miningKey).should.be.fulfilled;
-      await keysManager.addVotingKey(affectedKey, miningKey).should.be.fulfilled;
+      await addMiningKey(miningKey);
+      await addVotingKey(affectedKey, miningKey);
       await proxyStorageMock.setVotingContractMock(voting.address);
 
       // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
@@ -772,8 +789,8 @@ contract('Voting to change keys [all features]', function (accounts) {
       let miningKey = accounts[7];
       let affectedKey = accounts[8];
       await proxyStorageMock.setVotingContractMock(accounts[0]);
-      await keysManager.addMiningKey(miningKey).should.be.fulfilled;
-      await keysManager.addPayoutKey(affectedKey, miningKey).should.be.fulfilled;
+      await addMiningKey(miningKey);
+      await addPayoutKey(affectedKey, miningKey);
       await proxyStorageMock.setVotingContractMock(voting.address);
 
       // Ballot to Add Voting Key for miner account[1]
@@ -800,7 +817,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       let miningKey = accounts[6];
       let affectedKey = accounts[5];
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
-      await keysManager.addMiningKey(miningKey).should.be.fulfilled;
+      await addMiningKey(miningKey);
       await proxyStorageMock.setVotingContractMock(voting.address);
       // Ballot to Add Voting Key for miner account[1]
       // uint256 _affectedKeyType, [enum KeyTypes {Invalid, MiningKey, VotingKey, PayoutKey}]
@@ -840,7 +857,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       let miningKey = accounts[6];
       let affectedKey = accounts[5];
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
-      await keysManager.addMiningKey(miningKey).should.be.fulfilled;
+      await addMiningKey(miningKey);
       await proxyStorageMock.setVotingContractMock(voting.address);
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
@@ -856,20 +873,20 @@ contract('Voting to change keys [all features]', function (accounts) {
       await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(votingId, choice.accept, {from: votingKey3}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 1);
-      false.should.be.equal(await voting.getIsFinalized.call(votingId));
-      await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
+      false.should.be.equal((await voting.getBallotInfo.call(votingId))[9]); // isFinalized
+      await finalize(votingId, true, {from: votingKey});
       new web3.BigNumber(3).should.be.bignumber.equal(await voting.getBallotType.call(votingId));
-      true.should.be.equal(await voting.getIsFinalized.call(votingId));
+      true.should.be.equal((await voting.getBallotInfo.call(votingId))[9]); // isFinalized
       await voting.finalize(votingId, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
       await voting.finalize(votingIdForSecond, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
       new web3.BigNumber(2).should.be.bignumber.equal(await voting.getBallotType.call(votingIdForSecond));
-      false.should.be.equal(await voting.getIsFinalized.call(votingIdForSecond));
+      false.should.be.equal((await voting.getBallotInfo.call(votingIdForSecond))[9]); // isFinalized
       await voting.vote(votingIdForSecond, choice.reject, {from: votingKey}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 3);
-      await voting.finalize(votingIdForSecond, {from: votingKey}).should.be.fulfilled;
+      await finalize(votingIdForSecond, true, {from: votingKey});
 
-      new web3.BigNumber(-1).should.be.bignumber.equal(await voting.getProgress.call(votingIdForSecond))
-      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getProgress.call(votingId))
+      new web3.BigNumber(-1).should.be.bignumber.equal((await voting.getBallotInfo.call(votingIdForSecond))[8]) // progress
+      new web3.BigNumber(1).should.be.bignumber.equal((await voting.getBallotInfo.call(votingId))[8]) // progress
     })
 
     it('allowed at once after all validators gave their votes', async () => {
@@ -886,7 +903,7 @@ contract('Voting to change keys [all features]', function (accounts) {
         {from: votingKey3}
       ).should.be.fulfilled;
 
-      (await voting.getIsFinalized.call(0)).should.be.equal(false);
+      false.should.be.equal((await voting.getBallotInfo.call(0))[9]); // isFinalized
 
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(0, choice.reject, {from: votingKey}).should.be.fulfilled;
@@ -896,13 +913,13 @@ contract('Voting to change keys [all features]', function (accounts) {
       await voting.setTime(VOTING_START_DATE+1);
       await voting.finalize(0, {from: votingKey2}).should.be.rejectedWith(ERROR_MSG);
 
-      (await voting.getIsFinalized.call(0)).should.be.equal(false);
+      false.should.be.equal((await voting.getBallotInfo.call(0))[9]); // isFinalized
 
       await voting.setTime(VOTING_START_DATE+172800+1);
       (await voting.getTime.call()).should.be.bignumber.below(VOTING_END_DATE);
-      await voting.finalize(0, {from: votingKey2}).should.be.fulfilled;
+      await finalize(0, true, {from: votingKey2});
 
-      (await voting.getIsFinalized.call(0)).should.be.equal(true);
+      true.should.be.equal((await voting.getBallotInfo.call(0))[9]); // isFinalized
 
       await voting.setTime(VOTING_END_DATE+1);
       await voting.finalize(0, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
@@ -921,7 +938,7 @@ contract('Voting to change keys [all features]', function (accounts) {
         {from: votingKey3}
       ).should.be.fulfilled;
 
-      (await voting.getIsFinalized.call(1)).should.be.equal(false);
+      false.should.be.equal((await voting.getBallotInfo.call(1))[9]); // isFinalized
 
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(1, choice.reject, {from: votingKey}).should.be.fulfilled;
@@ -931,19 +948,19 @@ contract('Voting to change keys [all features]', function (accounts) {
       (await voting.getTime.call()).should.be.bignumber.below(VOTING_END_DATE);
       await voting.finalize(1, {from: votingKey2}).should.be.rejectedWith(ERROR_MSG);
 
-      (await voting.getIsFinalized.call(1)).should.be.equal(false);
+      false.should.be.equal((await voting.getBallotInfo.call(1))[9]); // isFinalized
 
       await voting.setTime(VOTING_END_DATE+1);
-      await voting.finalize(1, {from: votingKey2}).should.be.fulfilled;
-      (await voting.getIsFinalized.call(1)).should.be.equal(true);
+      await finalize(1, true, {from: votingKey2});
+      true.should.be.equal((await voting.getBallotInfo.call(1))[9]); // isFinalized
     });
   })
 
   describe('#migrate', async () => {
     it('should copy a ballot to the new contract', async () => {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
-      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
+      await addMiningKey(accounts[1]);
+      await addVotingKey(votingKey, accounts[1]);
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
 
@@ -962,33 +979,44 @@ contract('Voting to change keys [all features]', function (accounts) {
       ).should.be.fulfilled;
 
       let votingNew = await VotingToChangeKeysMock.new();
-      const votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingNew.address);
+      votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingNew.address);
       votingNew = await VotingToChangeKeysMock.at(votingEternalStorage.address);
+
+      let ballotInfo = await voting.getBallotInfo.call(id);
 
       await votingNew.migrateBasicOne(
         id,
         voting.address,
         await voting.getQuorumState.call(id),
         await voting.getIndex.call(id),
-        await voting.getCreator.call(id),
-        await voting.getMemo.call(id),
+        ballotInfo[11], // creator
+        ballotInfo[12], // memo
         [accounts[3], accounts[4], accounts[5]]
       );
 
-      (await votingNew.getStartTime.call(id)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await votingNew.getEndTime.call(id)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await votingNew.getAffectedKey.call(id)).should.be.equal(accounts[3]);
-      (await votingNew.getAffectedKeyType.call(id)).should.be.bignumber.equal(1);
-      (await votingNew.getMiningKey.call(id)).should.be.equal(accounts[2]);
-      (await votingNew.getTotalVoters.call(id)).should.be.bignumber.equal(0);
-      (await votingNew.getProgress.call(id)).should.be.bignumber.equal(0);
-      (await votingNew.getIsFinalized.call(id)).should.be.equal(false);
+      ballotInfo = await votingNew.getBallotInfo.call(id);
+
+      ballotInfo.should.be.deep.equal([
+        new web3.BigNumber(VOTING_START_DATE), // startTime
+        new web3.BigNumber(VOTING_END_DATE), // endTime
+        accounts[3], // affectedKey
+        new web3.BigNumber(1), // affectedKeyType
+        "0x0000000000000000000000000000000000000000", // newVotingKey
+        "0x0000000000000000000000000000000000000000", // newPayoutKey
+        accounts[2], // miningKey
+        new web3.BigNumber(0), // totalVoters
+        new web3.BigNumber(0), // progress
+        false, // isFinalized
+        new web3.BigNumber(1), // ballotType
+        accounts[1], // creator
+        "memo", // memo
+        false // canBeFinalizedNow
+      ]);
+
       (await votingNew.getQuorumState.call(id)).should.be.bignumber.equal(1);
-      (await votingNew.getBallotType.call(id)).should.be.bignumber.equal(1);
       (await votingNew.getIndex.call(id)).should.be.bignumber.equal(0);
       (await votingNew.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(3);
-      (await votingNew.getCreator.call(id)).should.be.equal(accounts[1]);
-      (await votingNew.getMemo.call(id)).should.be.equal("memo");
+
       (await votingNew.hasMiningKeyAlreadyVoted.call(id, accounts[1])).should.be.equal(false);
       (await votingNew.hasMiningKeyAlreadyVoted.call(id, accounts[2])).should.be.equal(false);
       (await votingNew.hasMiningKeyAlreadyVoted.call(id, accounts[3])).should.be.equal(true);
@@ -1023,17 +1051,17 @@ contract('Voting to change keys [all features]', function (accounts) {
       voting = await VotingToChangeKeysMock.at(votingEternalStorage.address);
       await voting.init(172800).should.be.fulfilled;
     });
-    it('may be called only by ProxyStorage', async () => {
+    it('may only be called by ProxyStorage', async () => {
       let votingNew = await VotingToChangeKeysNew.new();
       await votingEternalStorage.upgradeTo(votingNew.address, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
-      await votingEternalStorage.upgradeTo(votingNew.address, {from: proxyStorageStubAddress}).should.be.fulfilled;
+      await upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
     });
     it('should change implementation address', async () => {
       let votingNew = await VotingToChangeKeysNew.new();
       let oldImplementation = await voting.implementation.call();
       let newImplementation = votingNew.address;
       (await votingEternalStorage.implementation.call()).should.be.equal(oldImplementation);
-      await votingEternalStorage.upgradeTo(newImplementation, {from: proxyStorageStubAddress});
+      await upgradeTo(newImplementation, {from: proxyStorageStubAddress});
       votingNew = await VotingToChangeKeysNew.at(votingEternalStorage.address);
       (await votingNew.implementation.call()).should.be.equal(newImplementation);
       (await votingEternalStorage.implementation.call()).should.be.equal(newImplementation);
@@ -1043,14 +1071,14 @@ contract('Voting to change keys [all features]', function (accounts) {
       let oldVersion = await voting.version.call();
       let newVersion = oldVersion.add(1);
       (await votingEternalStorage.version.call()).should.be.bignumber.equal(oldVersion);
-      await votingEternalStorage.upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
       votingNew = await VotingToChangeKeysNew.at(votingEternalStorage.address);
       (await votingNew.version.call()).should.be.bignumber.equal(newVersion);
       (await votingEternalStorage.version.call()).should.be.bignumber.equal(newVersion);
     });
     it('new implementation should work', async () => {
       let votingNew = await VotingToChangeKeysNew.new();
-      await votingEternalStorage.upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
       votingNew = await VotingToChangeKeysNew.at(votingEternalStorage.address);
       (await votingNew.initialized.call()).should.be.equal(false);
       await votingNew.initialize();
@@ -1058,7 +1086,7 @@ contract('Voting to change keys [all features]', function (accounts) {
     });
     it('new implementation should use the same proxyStorage address', async () => {
       let votingNew = await VotingToChangeKeysNew.new();
-      await votingEternalStorage.upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
       votingNew = await VotingToChangeKeysNew.at(votingEternalStorage.address);
       (await votingNew.proxyStorage.call()).should.be.equal(proxyStorageStubAddress);
     });
@@ -1066,8 +1094,8 @@ contract('Voting to change keys [all features]', function (accounts) {
       const payoutKeyToAdd = accounts[0];
 
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
-      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
+      await addMiningKey(accounts[1]);
+      await addVotingKey(votingKey, accounts[1]);
       await proxyStorageMock.setVotingContractMock(voting.address);
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
@@ -1085,28 +1113,36 @@ contract('Voting to change keys [all features]', function (accounts) {
       await voting.vote(votingId, choice.reject, {from: votingKey}).should.be.fulfilled;
 
       await voting.setTime(VOTING_END_DATE + 1);
-      await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
+      await finalize(votingId, true, {from: votingKey});
 
       await votingEternalStorage.setProxyStorage(proxyStorageStubAddress);
 
       let votingNew = await VotingToChangeKeysNew.new();
-      await votingEternalStorage.upgradeTo(votingNew.address, {from: proxyStorageStubAddress}).should.be.fulfilled;
+      await upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
       votingNew = await VotingToChangeKeysNew.at(votingEternalStorage.address);
 
-      (await votingNew.getStartTime.call(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await votingNew.getEndTime.call(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await votingNew.getAffectedKey.call(votingId)).should.be.equal(payoutKeyToAdd);
-      (await votingNew.getAffectedKeyType.call(votingId)).should.be.bignumber.equal(3);
-      (await votingNew.getMiningKey.call(votingId)).should.be.equal(accounts[1]);
-      (await votingNew.getTotalVoters.call(votingId)).should.be.bignumber.equal(1);
-      (await votingNew.getProgress.call(votingId)).should.be.bignumber.equal(-1);
-      (await votingNew.getIsFinalized.call(votingId)).should.be.equal(true);
+      const ballotInfo = await votingNew.getBallotInfo.call(votingId);
+
+      ballotInfo.should.be.deep.equal([
+        new web3.BigNumber(VOTING_START_DATE), // startTime
+        new web3.BigNumber(VOTING_END_DATE), // endTime
+        payoutKeyToAdd, // affectedKey
+        new web3.BigNumber(3), // affectedKeyType
+        "0x0000000000000000000000000000000000000000", // newVotingKey
+        "0x0000000000000000000000000000000000000000", // newPayoutKey
+        accounts[1], // miningKey
+        new web3.BigNumber(1), // totalVoters
+        new web3.BigNumber(-1), // progress
+        true, // isFinalized
+        new web3.BigNumber(1), // ballotType
+        miningKeyForVotingKey, // creator
+        "memo", // memo
+        false // canBeFinalizedNow
+      ]);
+
       (await votingNew.getQuorumState.call(votingId)).should.be.bignumber.equal(3);
-      (await votingNew.getBallotType.call(votingId)).should.be.bignumber.equal(1);
       (await votingNew.getIndex.call(votingId)).should.be.bignumber.equal(0);
       (await votingNew.getMinThresholdOfVoters.call(votingId)).should.be.bignumber.equal(3);
-      (await votingNew.getCreator.call(votingId)).should.be.equal(miningKeyForVotingKey);
-      (await votingNew.getMemo.call(votingId)).should.be.equal("memo");
     });
   });
 });
@@ -1138,7 +1174,7 @@ async function deployAndTestBallot({_affectedKey, _affectedKeyType, _miningKey, 
   await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
   await voting.vote(votingId, choice.accept, {from: votingKey3}).should.be.fulfilled;
   (await voting.getTotalVoters.call(votingId)).should.be.bignumber.equal(3);
-  false.should.be.equal(await voting.getIsFinalized.call(votingId));
+  false.should.be.equal((await voting.getBallotInfo.call(votingId))[9]); // isFinalized
 
   let secondVotingId = null;
   if (_affectedKeyType == 1 && _ballotType == 2) { // mining key removal
@@ -1161,30 +1197,67 @@ async function deployAndTestBallot({_affectedKey, _affectedKeyType, _miningKey, 
     await voting.vote(secondVotingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
     await voting.vote(secondVotingId, choice.accept, {from: votingKey3}).should.be.fulfilled;
     (await voting.getTotalVoters.call(secondVotingId)).should.be.bignumber.equal(3);
-    false.should.be.equal(await voting.getIsFinalized.call(secondVotingId));
+    false.should.be.equal((await voting.getBallotInfo.call(secondVotingId))[9]); // isFinalized
   }
 
   await voting.setTime(VOTING_END_DATE + 1);
-  const {logs} = await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
-  true.should.be.equal(await voting.getIsFinalized.call(votingId));
+  await finalize(votingId, true, {from: votingKey});
+  true.should.be.equal((await voting.getBallotInfo.call(votingId))[9]); // isFinalized
 
   if (secondVotingId !== null) {
-    await voting.finalize(secondVotingId, {from: votingKey}).should.be.fulfilled;
-    true.should.be.equal(await voting.getIsFinalized.call(secondVotingId));
+    await finalize(secondVotingId, false, {from: votingKey});
+    false.should.be.equal((await voting.getBallotInfo.call(secondVotingId))[9]); // isFinalized
   }
 
-  (await voting.getStartTime.call(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
-  (await voting.getEndTime.call(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
-  (await voting.getAffectedKey.call(votingId)).should.be.equal(_affectedKey);
-  (await voting.getAffectedKeyType.call(votingId)).should.be.bignumber.equal(_affectedKeyType);
-  (await voting.getMiningKey.call(votingId)).should.be.equal(_miningKey);
-  (await voting.getTotalVoters.call(votingId)).should.be.bignumber.equal(3);
-  (await voting.getProgress.call(votingId)).should.be.bignumber.equal(1);
-  (await voting.getIsFinalized.call(votingId)).should.be.equal(true);
+  const ballotInfo = await voting.getBallotInfo.call(votingId);
+
+  ballotInfo.should.be.deep.equal([
+    new web3.BigNumber(VOTING_START_DATE), // startTime
+    new web3.BigNumber(VOTING_END_DATE), // endTime
+    _affectedKey, // affectedKey
+    new web3.BigNumber(_affectedKeyType), // affectedKeyType
+    "0x0000000000000000000000000000000000000000", // newVotingKey
+    "0x0000000000000000000000000000000000000000", // newPayoutKey
+    _miningKey, // miningKey
+    new web3.BigNumber(3), // totalVoters
+    new web3.BigNumber(1), // progress
+    true, // isFinalized
+    new web3.BigNumber(_ballotType), // ballotType
+    miningKeyForVotingKey, // creator
+    "memo", // memo
+    false // canBeFinalizedNow
+  ]);
+
   (await voting.getQuorumState.call(votingId)).should.be.bignumber.equal(2);
-  (await voting.getBallotType.call(votingId)).should.be.bignumber.equal(_ballotType);
   (await voting.getIndex.call(votingId)).should.be.bignumber.equal(0);
   (await voting.getMinThresholdOfVoters.call(votingId)).should.be.bignumber.equal(3);
-  (await voting.getCreator.call(votingId)).should.be.equal(miningKeyForVotingKey);
-  (await voting.getMemo.call(votingId)).should.be.equal("memo");
+}
+
+async function addMiningKey(_key) {
+  const {logs} = await keysManager.addMiningKey(_key);
+  logs[0].event.should.be.equal("MiningKeyChanged");
+}
+
+async function addVotingKey(_key, _miningKey) {
+  const {logs} = await keysManager.addVotingKey(_key, _miningKey);
+  logs[0].event.should.be.equal("VotingKeyChanged");
+}
+
+async function addPayoutKey(_key, _miningKey) {
+  const {logs} = await keysManager.addPayoutKey(_key, _miningKey);
+  logs[0].event.should.be.equal("PayoutKeyChanged");
+}
+
+async function finalize(_id, _shouldBeSuccessful, options) {
+  const result = await voting.finalize(_id, options);
+  if (_shouldBeSuccessful) {
+    result.logs[0].event.should.be.equal("BallotFinalized");
+  } else {
+    result.logs.length.should.be.equal(0);
+  }
+}
+
+async function upgradeTo(implementation, options) {
+  const {logs} = await votingEternalStorage.upgradeTo(implementation, options);
+  logs[0].event.should.be.equal("Upgraded");
 }
