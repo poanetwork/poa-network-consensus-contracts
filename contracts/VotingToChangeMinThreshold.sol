@@ -2,10 +2,9 @@ pragma solidity ^0.4.24;
 
 import "./interfaces/IVotingToChangeMinThreshold.sol";
 import "./abstracts/VotingToChange.sol";
-import "./abstracts/ThresholdTypesEnum.sol";
 
 
-contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChange, ThresholdTypesEnum {
+contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChange {
     bytes32 internal constant MIN_POSSIBLE_THRESHOLD = keccak256("minPossibleThreshold");
 
     string internal constant PROPOSED_VALUE = "proposedValue";
@@ -16,9 +15,9 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
         uint256 _proposedValue,
         string _memo
     ) public {
-        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
+        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
         require(_proposedValue >= minPossibleThreshold());
-        require(_proposedValue != getGlobalMinThresholdOfVoters());
+        require(_proposedValue != _getGlobalMinThresholdOfVoters());
         require(_proposedValue <= ballotsStorage.getProxyThreshold());
         uint256 ballotId = _createBallot(
             uint256(BallotTypes.MinThreshold),
@@ -41,20 +40,16 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
         bool canBeFinalizedNow,
         bool hasAlreadyVoted
     ) {
-        startTime = getStartTime(_id);
-        endTime = getEndTime(_id);
-        totalVoters = getTotalVoters(_id);
-        progress = getProgress(_id);
-        isFinalized = getIsFinalized(_id);
-        proposedValue = getProposedValue(_id);
-        creator = getCreator(_id);
-        memo = getMemo(_id);
+        startTime = _getStartTime(_id);
+        endTime = _getEndTime(_id);
+        totalVoters = _getTotalVoters(_id);
+        progress = _getProgress(_id);
+        isFinalized = _getIsFinalized(_id);
+        proposedValue = _getProposedValue(_id);
+        creator = _getCreator(_id);
+        memo = _getMemo(_id);
         canBeFinalizedNow = _canBeFinalizedNow(_id);
         hasAlreadyVoted = this.hasAlreadyVoted(_id, _votingKey);
-    }
-
-    function getProposedValue(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, PROPOSED_VALUE))];
     }
 
     function init(
@@ -84,8 +79,8 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
             _memo,
             _voters
         );
-        IVotingToChangeMinThreshold prev =
-            IVotingToChangeMinThreshold(_prevVotingToChange);
+        IVotingToChangeMinThresholdPrev prev =
+            IVotingToChangeMinThresholdPrev(_prevVotingToChange);
         _setProposedValue(_id, prev.getProposedValue(_id));
     }
 
@@ -93,9 +88,13 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
         return uintStorage[MIN_POSSIBLE_THRESHOLD];
     }
 
-    function _finalizeBallotInner(uint256 _id) internal {
-        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
-        ballotsStorage.setThreshold(getProposedValue(_id), uint8(ThresholdTypes.Keys));
+    function _finalizeBallotInner(uint256 _id) internal returns(bool) {
+        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
+        return ballotsStorage.setThreshold(_getProposedValue(_id), uint8(ThresholdTypes.Keys));
+    }
+
+    function _getProposedValue(uint256 _id) internal view returns(uint256) {
+        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, PROPOSED_VALUE))];
     }
 
     function _setProposedValue(uint256 _ballotId, uint256 _value) private {

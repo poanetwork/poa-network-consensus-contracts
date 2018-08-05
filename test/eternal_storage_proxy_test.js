@@ -112,7 +112,8 @@ contract('EternalStorageProxy [all features]', function (accounts) {
     });
     it('may only be called by ProxyStorage', async () => {
       await instance.upgradeTo(accounts[3]).should.be.rejectedWith(ERROR_MSG);
-      await instance.upgradeTo(accounts[3], {from: accounts[1]}).should.be.fulfilled;
+      const {logs} = await instance.upgradeTo(accounts[3], {from: accounts[1]});
+      logs[0].event.should.be.equal("Upgraded");
     });
     it('should not change implementation address if it is the same', async () => {
       const result = await instance.upgradeTo(
@@ -122,10 +123,11 @@ contract('EternalStorageProxy [all features]', function (accounts) {
       result.logs.length.should.be.equal(0);
     });
     it('should not change implementation address if it is 0x0', async () => {
-      await instance.upgradeTo(
+      const result = await instance.upgradeTo(
         '0x0000000000000000000000000000000000000000',
         {from: accounts[1]}
-      ).should.be.rejectedWith(ERROR_MSG);
+      );
+      result.logs.length.should.be.equal(0);
     });
     it('should change implementation address', async () => {
       const {logs} = await instance.upgradeTo(
@@ -139,10 +141,11 @@ contract('EternalStorageProxy [all features]', function (accounts) {
     });
     it('should increment version', async () => {
       (await instance.version.call()).should.be.bignumber.equal(0);
-      await instance.upgradeTo(
+      const {logs} = await instance.upgradeTo(
         accounts[3],
         {from: accounts[1]}
-      ).should.be.fulfilled;
+      );
+      logs[0].event.should.be.equal("Upgraded");
       (await instance.version.call()).should.be.bignumber.equal(1);
     });
   });

@@ -6,7 +6,7 @@ interface IProxyStorage {
         address, address, address, address, address, address, address, address
     ) external;
 
-    function setContractAddress(uint256, address) external;
+    function setContractAddress(uint256, address) external returns(bool);
     function isValidator(address) external view returns(bool);
     function getBallotsStorage() external view returns(address);
     function getKeysManager() external view returns(address);

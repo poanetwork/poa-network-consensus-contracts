@@ -12,6 +12,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
     bytes32 internal constant MIN_BALLOT_DURATION = keccak256("minBallotDuration");
 
     string internal constant INDEX = "index";
+    string internal constant FINALIZE_CALLED = "finalizeCalled";
     string internal constant PROGRESS = "progress";
     string internal constant TOTAL_VOTERS = "totalVoters";
     string internal constant VALIDATOR_ACTIVE_BALLOTS = "validatorActiveBallots";
@@ -45,21 +46,8 @@ contract VotingToChange is IVotingToChange, VotingTo {
         _finalizeBallot(_id);
     }
 
-    function getBallotLimitPerValidator() public view returns(uint256) {
-        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
-        return ballotsStorage.getBallotLimitPerValidator();
-    }
-
     function getIndex(uint256 _id) public view returns(uint256) {
         return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, INDEX))];
-    }
-
-    function getProgress(uint256 _id) public view returns(int) {
-        return intStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, PROGRESS))];
-    }
-
-    function getTotalVoters(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, TOTAL_VOTERS))];
     }
 
     function init(uint256 _minBallotDuration) public {
@@ -74,8 +62,8 @@ contract VotingToChange is IVotingToChange, VotingTo {
         require(_prevVotingToChange != address(0));
         require(!migrateDisabled());
 
-        IVotingToChange prev =
-            IVotingToChange(_prevVotingToChange);
+        IVotingToChangePrev prev =
+            IVotingToChangePrev(_prevVotingToChange);
         IPoaNetworkConsensusForVotingToChange poa =
             IPoaNetworkConsensusForVotingToChange(
                 IProxyStorage(proxyStorage()).getPoaConsensus()
@@ -118,23 +106,19 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
-        require(!getIsFinalized(_id));
-        address miningKey = getMiningByVotingKey(msg.sender);
+        require(!_getIsFinalized(_id));
+        address miningKey = _getMiningByVotingKey(msg.sender);
         require(isValidVote(_id, msg.sender));
         if (_choice == uint(ActionChoice.Accept)) {
-            _setProgress(_id, getProgress(_id) + 1);
+            _setProgress(_id, _getProgress(_id) + 1);
         } else if (_choice == uint(ActionChoice.Reject)) {
-            _setProgress(_id, getProgress(_id) - 1);
+            _setProgress(_id, _getProgress(_id) - 1);
         } else {
             revert();
         }
         _votersAdd(_id, miningKey);
-        _setTotalVoters(_id, getTotalVoters(_id).add(1));
+        _setTotalVoters(_id, _getTotalVoters(_id).add(1));
         emit Vote(_id, _choice, msg.sender, getTime(), miningKey);
-    }
-
-    function withinLimit(address _miningKey) public view returns(bool) {
-        return validatorActiveBallots(_miningKey) < getBallotLimitPerValidator();
     }
 
     function _activeBallotsAdd(uint256 _id) internal {
@@ -157,11 +141,11 @@ contract VotingToChange is IVotingToChange, VotingTo {
 
     function _canBeFinalizedNow(uint256 _id) internal view returns(bool) {
         uint256 currentTime = getTime();
-        uint256 startTime = getStartTime(_id);
+        uint256 startTime = _getStartTime(_id);
 
         if (_id >= nextBallotId()) return false;
         if (startTime > currentTime) return false;
-        if (getIsFinalized(_id)) return false;
+        if (_getIsFinalized(_id)) return false;
         
         uint256 validatorsLength = IPoaNetworkConsensus(
             IProxyStorage(proxyStorage()).getPoaConsensus()
@@ -171,7 +155,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
             return false;
         }
         
-        if (getTotalVoters(_id) < validatorsLength) {
+        if (_getTotalVoters(_id) < validatorsLength) {
             return !isActive(_id);
         }
 
@@ -191,8 +175,8 @@ contract VotingToChange is IVotingToChange, VotingTo {
         returns(uint256)
     {
         require(initDisabled());
-        address creatorMiningKey = getMiningByVotingKey(msg.sender);
-        require(withinLimit(creatorMiningKey));
+        address creatorMiningKey = _getMiningByVotingKey(msg.sender);
+        require(_withinLimit(creatorMiningKey));
         uint256 ballotId = super._createBallot(
             _ballotType,
             _startTime,
@@ -222,7 +206,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function _decreaseValidatorLimit(uint256 _id) internal {
-        address miningKey = getCreator(_id);
+        address miningKey = _getCreator(_id);
         uint256 ballotsCount = validatorActiveBallots(miningKey);
         if (ballotsCount > 0) {
             _setValidatorActiveBallots(miningKey, ballotsCount - 1);
@@ -230,19 +214,46 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function _finalizeBallot(uint256 _id) internal {
-        if (getProgress(_id) > 0 && getTotalVoters(_id) >= getMinThresholdOfVoters(_id)) {
-            _setQuorumState(_id, uint8(QuorumStates.Accepted));
-            _finalizeBallotInner(_id);
+        if (!_getFinalizeCalled(_id)) {
+            _decreaseValidatorLimit(_id);
+            _setFinalizeCalled(_id);
+        }
+
+        if (_getProgress(_id) > 0 && _getTotalVoters(_id) >= getMinThresholdOfVoters(_id)) {
+            if (_finalizeBallotInner(_id)) {
+                _setQuorumState(_id, uint8(QuorumStates.Accepted));
+            } else {
+                return;
+            }
         } else {
             _setQuorumState(_id, uint8(QuorumStates.Rejected));
         }
+
         _deactiveBallot(_id);
-        _decreaseValidatorLimit(_id);
         _setIsFinalized(_id, true);
         emit BallotFinalized(_id, msg.sender);
     }
 
-    function _finalizeBallotInner(uint256 _id) internal;
+    function _finalizeBallotInner(uint256 _id) internal returns(bool);
+
+    function _getBallotLimitPerValidator() internal view returns(uint256) {
+        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
+        return ballotsStorage.getBallotLimitPerValidator();
+    }
+
+    function _getFinalizeCalled(uint256 _id) internal view returns(bool) {
+        return boolStorage[
+            keccak256(abi.encodePacked(FINALIZE_CALLED, _id))
+        ];
+    }
+
+    function _getProgress(uint256 _id) internal view returns(int) {
+        return intStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, PROGRESS))];
+    }
+
+    function _getTotalVoters(uint256 _id) internal view returns(uint256) {
+        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, TOTAL_VOTERS))];
+    }
 
     function _increaseValidatorLimit(address _miningKey) internal {
         _setValidatorActiveBallots(_miningKey, validatorActiveBallots(_miningKey).add(1));
@@ -266,7 +277,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
     ) internal onlyOwner {
         require(_prevVotingToChange != address(0));
         require(!migrateDisabled());
-        IVotingToChange prev = IVotingToChange(_prevVotingToChange);
+        IVotingToChangePrev prev = IVotingToChangePrev(_prevVotingToChange);
         _setStartTime(_id, prev.getStartTime(_id));
         _setEndTime(_id, prev.getEndTime(_id));
         _setTotalVoters(_id, prev.getTotalVoters(_id));
@@ -289,6 +300,12 @@ contract VotingToChange is IVotingToChange, VotingTo {
         ] = _value;
     }
 
+    function _setFinalizeCalled(uint256 _id) internal {
+        boolStorage[
+            keccak256(abi.encodePacked(FINALIZE_CALLED, _id))
+        ] = true;
+    }
+
     function _setProgress(uint256 _ballotId, int256 _value) internal {
         intStorage[
             keccak256(abi.encodePacked(VOTING_STATE, _ballotId, PROGRESS))
@@ -305,5 +322,9 @@ contract VotingToChange is IVotingToChange, VotingTo {
         uintStorage[
             keccak256(abi.encodePacked(VALIDATOR_ACTIVE_BALLOTS, _miningKey))
         ] = _count;
+    }
+
+    function _withinLimit(address _miningKey) internal view returns(bool) {
+        return validatorActiveBallots(_miningKey) < _getBallotLimitPerValidator();
     }
 }

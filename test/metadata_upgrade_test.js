@@ -78,16 +78,17 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
 
     let metadataNew = await ValidatorMetadataNew.new();
     await metadataEternalStorage.setProxyStorage(accounts[6]);
-    await metadataEternalStorage.upgradeTo(metadataNew.address, {from: accounts[6]});
+    const {logs} = await metadataEternalStorage.upgradeTo(metadataNew.address, {from: accounts[6]});
+    logs[0].event.should.be.equal("Upgraded");
     await metadataEternalStorage.setProxyStorage(proxyStorageMock.address);
     metadata = await ValidatorMetadataNew.at(metadataEternalStorage.address);
 
-    await keysManager.addMiningKey(miningKey).should.be.fulfilled;
-    await keysManager.addVotingKey(votingKey, miningKey).should.be.fulfilled;
-    await keysManager.addMiningKey(miningKey2).should.be.fulfilled;
-    await keysManager.addVotingKey(votingKey2, miningKey2).should.be.fulfilled;
-    await keysManager.addMiningKey(miningKey3).should.be.fulfilled;
-    await keysManager.addVotingKey(votingKey3, miningKey3).should.be.fulfilled;
+    await addMiningKey(miningKey);
+    await addVotingKey(votingKey, miningKey);
+    await addMiningKey(miningKey2);
+    await addVotingKey(votingKey2, miningKey2);
+    await addMiningKey(miningKey3);
+    await addVotingKey(votingKey3, miningKey3);
     await metadata.setTime(55555);
   })
 
@@ -401,4 +402,14 @@ function pad(hex) {
     hex = hex + '0';
   }
   return hex;
+}
+
+async function addMiningKey(_key) {
+  const {logs} = await keysManager.addMiningKey(_key);
+  logs[0].event.should.be.equal("MiningKeyChanged");
+}
+
+async function addVotingKey(_key, _miningKey) {
+  const {logs} = await keysManager.addVotingKey(_key, _miningKey);
+  logs[0].event.should.be.equal("VotingKeyChanged");
 }

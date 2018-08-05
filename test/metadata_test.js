@@ -78,12 +78,12 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     
     metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
     
-    await keysManager.addMiningKey(miningKey).should.be.fulfilled;
-    await keysManager.addVotingKey(votingKey, miningKey).should.be.fulfilled;
-    await keysManager.addMiningKey(miningKey2).should.be.fulfilled;
-    await keysManager.addVotingKey(votingKey2, miningKey2).should.be.fulfilled;
-    await keysManager.addMiningKey(miningKey3).should.be.fulfilled;
-    await keysManager.addVotingKey(votingKey3, miningKey3).should.be.fulfilled;
+    await addMiningKey(miningKey);
+    await addVotingKey(votingKey, miningKey);
+    await addMiningKey(miningKey2);
+    await addVotingKey(votingKey2, miningKey2);
+    await addMiningKey(miningKey3);
+    await addVotingKey(votingKey3, miningKey3);
     await metadata.setTime(55555);
   })
 
@@ -393,17 +393,17 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       metadataEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, metadata.address);
       metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
     });
-    it('may be called only by ProxyStorage', async () => {
+    it('may only be called by ProxyStorage', async () => {
       let metadataNew = await ValidatorMetadataNew.new();
       await metadataEternalStorage.upgradeTo(metadataNew.address, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress}).should.be.fulfilled;
+      await upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
     });
     it('should change implementation address', async () => {
       let metadataNew = await ValidatorMetadataNew.new();
       let oldImplementation = await metadata.implementation.call();
       let newImplementation = metadataNew.address;
       (await metadataEternalStorage.implementation.call()).should.be.equal(oldImplementation);
-      await metadataEternalStorage.upgradeTo(newImplementation, {from: proxyStorageStubAddress});
+      await upgradeTo(newImplementation, {from: proxyStorageStubAddress});
       metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
       (await metadataNew.implementation.call()).should.be.equal(newImplementation);
       (await metadataEternalStorage.implementation.call()).should.be.equal(newImplementation);
@@ -413,14 +413,14 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       let oldVersion = await metadata.version.call();
       let newVersion = oldVersion.add(1);
       (await metadataEternalStorage.version.call()).should.be.bignumber.equal(oldVersion);
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
       metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
       (await metadataNew.version.call()).should.be.bignumber.equal(newVersion);
       (await metadataEternalStorage.version.call()).should.be.bignumber.equal(newVersion);
     });
     it('new implementation should work', async () => {
       let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
       metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
       (await metadataNew.initialized.call()).should.be.equal(false);
       await metadataNew.initialize();
@@ -428,7 +428,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     });
     it('new implementation should use the same proxyStorage address', async () => {
       let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
       metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
       (await metadataNew.proxyStorage.call()).should.be.equal(proxyStorageStubAddress);
     });
@@ -438,7 +438,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
       await metadataEternalStorage.setProxyStorage(proxyStorageStubAddress);
       let metadataNew = await ValidatorMetadataNew.new();
-      await metadataEternalStorage.upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
+      await upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
       metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
       const validators = await metadataNew.validators.call(miningKey);
       validators.should.be.deep.equal([
@@ -468,4 +468,19 @@ function pad(hex) {
     hex = hex + '0';
   }
   return hex;
+}
+
+async function addMiningKey(_key) {
+  const {logs} = await keysManager.addMiningKey(_key);
+  logs[0].event.should.be.equal("MiningKeyChanged");
+}
+
+async function addVotingKey(_key, _miningKey) {
+  const {logs} = await keysManager.addVotingKey(_key, _miningKey);
+  logs[0].event.should.be.equal("VotingKeyChanged");
+}
+
+async function upgradeTo(implementation, options) {
+  const {logs} = await metadataEternalStorage.upgradeTo(implementation, options);
+  logs[0].event.should.be.equal("Upgraded");
 }

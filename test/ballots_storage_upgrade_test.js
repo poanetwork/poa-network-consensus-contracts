@@ -11,9 +11,10 @@ require('chai')
     .use(require('chai-bignumber')(web3.BigNumber))
     .should();
 
+let keysManager;
 let masterOfCeremony, poaNetworkConsensus, proxyStorage, ballotsStorage;
+let ballotsEternalStorage;
 contract('BallotsStorage upgraded [all features]', function (accounts) {
-  let keysManager;
   let votingToChangeKeys;
   let votingToChangeMinThreshold;
   let votingToChangeProxy;
@@ -38,7 +39,7 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     await proxyStorage.init(poaNetworkConsensus.address).should.be.fulfilled;
     
     ballotsStorage = await BallotsStorage.new();
-    const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorage.address, ballotsStorage.address);
+    ballotsEternalStorage = await EternalStorageProxy.new(proxyStorage.address, ballotsStorage.address);
     ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
     await ballotsStorage.init([3, 2], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
     await ballotsStorage.init([3, 2]).should.be.fulfilled;
@@ -64,7 +65,8 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
 
     let ballotsStorageNew = await BallotsStorageNew.new();
     await ballotsEternalStorage.setProxyStorage(accounts[6]);
-    await ballotsEternalStorage.upgradeTo(ballotsStorageNew.address, {from: accounts[6]});
+    const {logs} = await ballotsEternalStorage.upgradeTo(ballotsStorageNew.address, {from: accounts[6]});
+    logs[0].event.should.be.equal("Upgraded");
     await ballotsEternalStorage.setProxyStorage(proxyStorage.address);
     ballotsStorage = await BallotsStorageNew.at(ballotsEternalStorage.address);
   })
@@ -100,26 +102,27 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
   describe('#setThreshold', async () => {
     it('can only be called from votingToChangeThreshold address', async () => {
       await ballotsStorage.setThreshold(4, 1, {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
-      await ballotsStorage.setThreshold(4, 1, {from: accounts[3]}).should.be.fulfilled;
+      await setThreshold(4, 1, true, {from: accounts[3]});
     })
     it('cannot be set for Invalid threshold', async () => {
-      await ballotsStorage.setThreshold(5, 0, {from: accounts[3]}).should.be.rejectedWith(ERROR_MSG);
-      await ballotsStorage.setThreshold(5, -10, {from: accounts[3]}).should.be.rejectedWith(ERROR_MSG);
-      await ballotsStorage.setThreshold(5, -1, {from: accounts[3]}).should.be.rejectedWith(ERROR_MSG);
-      await ballotsStorage.setThreshold(5, 3, {from: accounts[3]}).should.be.rejectedWith(ERROR_MSG);
+      await setThreshold(3, 1, false, {from: accounts[3]});
+      await setThreshold(5, 0, false, {from: accounts[3]});
+      await setThreshold(5, -10, false, {from: accounts[3]});
+      await setThreshold(5, -1, false, {from: accounts[3]});
+      await setThreshold(5, 3, false, {from: accounts[3]});
     })
     it('new value cannot be equal to 0', async () => {
-      await ballotsStorage.setThreshold(0, 1, {from: accounts[3]}).should.be.rejectedWith(ERROR_MSG);
-      await ballotsStorage.setThreshold(0, 2, {from: accounts[3]}).should.be.rejectedWith(ERROR_MSG);
-      await ballotsStorage.setThreshold(4, 1, {from: accounts[3]}).should.be.fulfilled;
-      await ballotsStorage.setThreshold(4, 2, {from: accounts[3]}).should.be.fulfilled;
+      await setThreshold(0, 1, false, {from: accounts[3]});
+      await setThreshold(0, 2, false, {from: accounts[3]});
+      await setThreshold(4, 1, true, {from: accounts[3]});
+      await setThreshold(4, 2, true, {from: accounts[3]});
     })
     it('sets new value for Keys threshold', async () => {
-      await ballotsStorage.setThreshold(5, 1, {from: accounts[3]}).should.be.fulfilled; 
+      await setThreshold(5, 1, true, {from: accounts[3]});
       new web3.BigNumber(5).should.be.bignumber.equal(await ballotsStorage.getBallotThreshold.call(1));
     })
     it('sets new value for MetadataChange threshold', async () => {
-      await ballotsStorage.setThreshold(6, 2, {from: accounts[3]}).should.be.fulfilled;
+      await setThreshold(6, 2, true, {from: accounts[3]});
       new web3.BigNumber(6).should.be.bignumber.equal(await ballotsStorage.getBallotThreshold.call(2));
     })
   })
@@ -127,11 +130,11 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     it('return value is correct', async () => {
       new web3.BigNumber(1).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold.call())
       await proxyStorage.setKeysManagerMock(masterOfCeremony);
-      await poaNetworkConsensus.addValidator(accounts[1], true);
-      await poaNetworkConsensus.addValidator(accounts[2], true);
-      await poaNetworkConsensus.addValidator(accounts[3], true);
-      await poaNetworkConsensus.addValidator(accounts[4], true);
-      await poaNetworkConsensus.addValidator(accounts[5], true);
+      await addValidator(accounts[1]);
+      await addValidator(accounts[2]);
+      await addValidator(accounts[3]);
+      await addValidator(accounts[4]);
+      await addValidator(accounts[5]);
       await proxyStorage.setKeysManagerMock(keysManager.address);
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
@@ -143,12 +146,12 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     it('return value is correct if MoC is removed', async () => {
       new web3.BigNumber(1).should.be.bignumber.equal(await ballotsStorage.getProxyThreshold.call())
       await proxyStorage.setKeysManagerMock(masterOfCeremony);
-      await poaNetworkConsensus.addValidator(accounts[1], true);
-      await poaNetworkConsensus.addValidator(accounts[2], true);
-      await poaNetworkConsensus.addValidator(accounts[3], true);
-      await poaNetworkConsensus.addValidator(accounts[4], true);
-      await poaNetworkConsensus.addValidator(accounts[5], true);
-      await poaNetworkConsensus.addValidator(accounts[6], true);
+      await addValidator(accounts[1]);
+      await addValidator(accounts[2]);
+      await addValidator(accounts[3]);
+      await addValidator(accounts[4]);
+      await addValidator(accounts[5]);
+      await addValidator(accounts[6]);
       await proxyStorage.setKeysManagerMock(keysManager.address);
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
@@ -167,7 +170,8 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000010', {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000011', {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000012', {from: masterOfCeremony}).should.be.fulfilled;
-      await keysManager.removeMiningKey(masterOfCeremony, {from: votingToChangeKeys});
+      const {logs} = await keysManager.removeMiningKey(masterOfCeremony, {from: votingToChangeKeys});
+      logs[0].event.should.equal("MiningKeyChanged");
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       (await poaNetworkConsensus.isMasterOfCeremonyRemoved.call()).should.be.equal(true);
       (await poaNetworkConsensus.getCurrentValidatorsLength.call()).should.be.bignumber.equal(6);
@@ -186,8 +190,8 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       let limit = await ballotsStorage.getBallotLimitPerValidator.call();
       limit.should.be.bignumber.equal(200);
 
-      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
+      await addMiningKey(accounts[1]);
+      await addMiningKey(accounts[2]);
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       limit = await ballotsStorage.getBallotLimitPerValidator.call();
@@ -197,8 +201,8 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       let limit = await ballotsStorage.getBallotLimitPerValidator.call();
       limit.should.be.bignumber.equal(200);
 
-      await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-      await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
+      await addMiningKey(accounts[1]);
+      await addMiningKey(accounts[2]);
       await poaNetworkConsensus.setSystemAddress(accounts[0]);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       (await poaNetworkConsensus.getCurrentValidatorsLength.call()).should.be.bignumber.equal(3);
@@ -215,7 +219,8 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000010', {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000011', {from: masterOfCeremony}).should.be.fulfilled;
       await keysManager.initiateKeys('0x0000000000000000000000000000000000000012', {from: masterOfCeremony}).should.be.fulfilled;
-      await keysManager.removeMiningKey(masterOfCeremony, {from: votingToChangeKeys});
+      const {logs} = await keysManager.removeMiningKey(masterOfCeremony, {from: votingToChangeKeys});
+      logs[0].event.should.equal("MiningKeyChanged");
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       (await poaNetworkConsensus.isMasterOfCeremonyRemoved.call()).should.be.equal(true);
       (await poaNetworkConsensus.getCurrentValidatorsLength.call()).should.be.bignumber.equal(2);
@@ -225,3 +230,22 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     });
   })
 })
+
+async function addValidator(_validator) {
+  const {logs} = await poaNetworkConsensus.addValidator(_validator, true);
+  logs[0].event.should.be.equal("InitiateChange");
+}
+
+async function addMiningKey(_key) {
+  const {logs} = await keysManager.addMiningKey(_key);
+  logs[0].event.should.be.equal("MiningKeyChanged");
+}
+
+async function setThreshold(_newValue, _thresholdType, _shouldBeSuccessful, options) {
+  const result = await ballotsStorage.setThreshold(_newValue, _thresholdType, options);
+  if (_shouldBeSuccessful) {
+    result.logs[0].event.should.be.equal("ThresholdChanged");
+  } else {
+    result.logs.length.should.be.equal(0);
+  }
+}

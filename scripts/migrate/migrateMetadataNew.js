@@ -139,9 +139,11 @@ async function migrateAndCheck(privateKey) {
 		success = true;
 	} catch (err) {
 		if (ONLY_CHECK) {
-			console.log('Something is wrong: ' + err.message);
+			console.log('Something is wrong:');
+			console.log(err);
 		} else {
-			console.log('Cannot migrate ValidatorMetadata: ' + err.message);
+			console.log('Cannot migrate ValidatorMetadata:');
+			console.log(err);
 		}
 	}
 

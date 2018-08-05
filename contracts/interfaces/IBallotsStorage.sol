@@ -2,7 +2,8 @@ pragma solidity ^0.4.24;
 
 
 interface IBallotsStorage {
-    function setThreshold(uint256, uint8) external;
+    function setThreshold(uint256, uint8) external returns(bool);
+    function areKeysBallotParamsValid(uint256, address, uint256, address) external view returns(bool);
     function getBallotThreshold(uint8) external view returns(uint256);
     function getVotingToChangeThreshold() external view returns(address);
     function getProxyThreshold() external view returns(uint256);

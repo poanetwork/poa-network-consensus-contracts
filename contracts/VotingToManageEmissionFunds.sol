@@ -52,7 +52,7 @@ contract VotingToManageEmissionFunds is VotingTo {
             _endTime,
             _memo,
             uint8(QuorumStates.InProgress),
-            getMiningByVotingKey(msg.sender)
+            _getMiningByVotingKey(msg.sender)
         );
         _setSendVotes(ballotId, 0);
         _setBurnVotes(ballotId, 0);
@@ -81,9 +81,9 @@ contract VotingToManageEmissionFunds is VotingTo {
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
         require(_id < nextBallotId());
         require(_id == nextBallotId().sub(1));
-        require(getStartTime(_id) <= getTime());
+        require(_getStartTime(_id) <= getTime());
         require(!isActive(_id));
-        require(!getIsFinalized(_id));
+        require(!_getIsFinalized(_id));
         require(!previousBallotFinalized());
         _finalize(_id);
     }
@@ -105,11 +105,11 @@ contract VotingToManageEmissionFunds is VotingTo {
         uint256 sendVotes,
         address receiver
     ) {
-        startTime = getStartTime(_id);
-        endTime = getEndTime(_id);
-        isFinalized = getIsFinalized(_id);
-        creator = getCreator(_id);
-        memo = getMemo(_id);
+        startTime = _getStartTime(_id);
+        endTime = _getEndTime(_id);
+        isFinalized = _getIsFinalized(_id);
+        creator = _getCreator(_id);
+        memo = _getMemo(_id);
         hasAlreadyVoted = this.hasAlreadyVoted(_id, _votingKey);
         amount = getAmount(_id);
         burnVotes = getBurnVotes(_id);
@@ -178,7 +178,7 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
 
     function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
-        require(!getIsFinalized(_id));
+        require(!_getIsFinalized(_id));
         require(isValidVote(_id, msg.sender));
         if (_choice == uint(ActionChoice.Send)) {
             _setSendVotes(_id, getSendVotes(_id).add(1));
@@ -189,7 +189,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         } else {
             revert();
         }
-        address miningKey = getMiningByVotingKey(msg.sender);
+        address miningKey = _getMiningByVotingKey(msg.sender);
         _votersAdd(_id, miningKey);
         emit Vote(_id, _choice, msg.sender, getTime(), miningKey);
 

@@ -4,7 +4,7 @@ let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let Voting = artifacts.require('./mockContracts/VotingToChangeMinThresholdMock');
 let VotingNew = artifacts.require('./upgradeContracts/VotingToChangeMinThresholdNew');
 let VotingForKeys = artifacts.require('./mockContracts/VotingToChangeKeysMock');
-let BallotsStorage = artifacts.require('./BallotsStorage');
+let BallotsStorage = artifacts.require('./mockContracts/BallotsStorageMock');
 let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
@@ -20,7 +20,7 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
-let keysManager, poaNetworkConsensusMock, ballotsStorage, voting;
+let keysManager, poaNetworkConsensusMock, ballotsStorage, voting, votingEternalStorage;
 let votingKey, votingKey2, votingKey3, miningKeyForVotingKey;
 let VOTING_START_DATE, VOTING_END_DATE;
 contract('VotingToChangeMinThreshold upgraded [all features]', function (accounts) {
@@ -51,14 +51,15 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     
     voting = await Voting.new();
-    const votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, voting.address);
+    votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, voting.address);
     voting = await Voting.at(votingEternalStorage.address);
     await voting.init(172800, 0).should.be.rejectedWith(ERROR_MSG);
     await voting.init(172800, 3).should.be.fulfilled;
 
     const votingNew = await VotingNew.new();
     await votingEternalStorage.setProxyStorage(accounts[6]);
-    await votingEternalStorage.upgradeTo(votingNew.address, {from: accounts[6]});
+    const {logs} = await votingEternalStorage.upgradeTo(votingNew.address, {from: accounts[6]});
+    logs[0].event.should.be.equal("Upgraded");
     await votingEternalStorage.setProxyStorage(proxyStorageMock.address);
     voting = await VotingNew.at(votingEternalStorage.address);
     
@@ -77,18 +78,18 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
     await ballotsStorage.init([3, 2]).should.be.fulfilled;
 
     await proxyStorageMock.setVotingContractMock(accounts[0]);
-    await keysManager.addMiningKey(accounts[1]).should.be.fulfilled;
-    await keysManager.addVotingKey(votingKey, accounts[1]).should.be.fulfilled;
+    await addMiningKey(miningKeyForVotingKey);
+    await addVotingKey(votingKey, miningKeyForVotingKey);
 
-    await keysManager.addMiningKey(accounts[2]).should.be.fulfilled;
-    await keysManager.addVotingKey(votingKey2, accounts[2]).should.be.fulfilled;
+    await addMiningKey(accounts[2]);
+    await addVotingKey(votingKey2, accounts[2]);
 
-    await keysManager.addMiningKey(accounts[4]).should.be.fulfilled;
-    await keysManager.addVotingKey(votingKey3, accounts[4]).should.be.fulfilled;
+    await addMiningKey(accounts[4]);
+    await addVotingKey(votingKey3, accounts[4]);
 
-    await keysManager.addMiningKey(accounts[7]).should.be.fulfilled;
-    await keysManager.addMiningKey(accounts[8]).should.be.fulfilled;
-    await keysManager.addMiningKey(accounts[9]).should.be.fulfilled;
+    await addMiningKey(accounts[7]);
+    await addMiningKey(accounts[8]);
+    await addMiningKey(accounts[9]);
 
     await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
     await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
@@ -103,20 +104,26 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
     })
     it('happy path', async () => {
       const {logs} = await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, 4, "memo", {from: votingKey});
-      const startTime = await voting.getStartTime.call(id.toNumber());
-      const endTime = await voting.getEndTime.call(id.toNumber());
       const keysManagerFromContract = await voting.getKeysManager.call();
-      startTime.should.be.bignumber.equal(VOTING_START_DATE);
-      endTime.should.be.bignumber.equal(VOTING_END_DATE);
-      (await voting.getTotalVoters.call(id)).should.be.bignumber.equal(0);
-      (await voting.getProgress.call(id)).should.be.bignumber.equal(0);
-      (await voting.getIsFinalized.call(id)).should.be.equal(false);
+      const ballotInfo = await voting.getBallotInfo.call(id, votingKey);
+
+      ballotInfo.should.be.deep.equal([
+        new web3.BigNumber(VOTING_START_DATE), // startTime
+        new web3.BigNumber(VOTING_END_DATE), // endTime
+        new web3.BigNumber(0), // totalVoters
+        new web3.BigNumber(0), // progress
+        false, // isFinalized
+        new web3.BigNumber(4), // proposedValue
+        miningKeyForVotingKey, // creator
+        "memo", // memo
+        false, // canBeFinalizedNow
+        false // hasAlreadyVoted
+      ]);
+
       (await voting.getQuorumState.call(id)).should.be.bignumber.equal(1);
       (await voting.getIndex.call(id)).should.be.bignumber.equal(0);
       (await voting.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(3);
-      (await voting.getProposedValue.call(id)).should.be.bignumber.equal(4);
-      (await voting.getCreator.call(id)).should.be.equal(miningKeyForVotingKey);
-      (await voting.getMemo.call(id)).should.be.equal("memo");
+
       keysManagerFromContract.should.be.equal(keysManager.address);
       logs[0].event.should.be.equal("BallotCreated");
       logs[0].args.id.should.be.bignumber.equal(0);
@@ -155,7 +162,7 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
     it('should let a validator to vote', async () => {
       await voting.setTime(VOTING_START_DATE);
       const {logs} = await voting.vote(id, choice.accept, {from: votingKey}).should.be.fulfilled;
-      let progress = await voting.getProgress.call(id);
+      let progress = (await voting.getBallotInfo.call(id, votingKey))[3];
       progress.should.be.bignumber.equal(1);
       let totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(1);
@@ -168,7 +175,7 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
     it('reject vote should be accepted', async () => {
       await voting.setTime(VOTING_START_DATE);
       const {logs} = await voting.vote(id, choice.reject, {from: votingKey}).should.be.fulfilled;
-      let progress = await voting.getProgress.call(id);
+      let progress = (await voting.getBallotInfo.call(id, votingKey))[3];
       progress.should.be.bignumber.equal(-1);
       let totalVoters = await voting.getTotalVoters.call(id);
       totalVoters.should.be.bignumber.equal(1);
@@ -186,7 +193,7 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       // add new voter
       await voting.vote(id, choice.reject, {from: votingKey2}).should.be.fulfilled;
 
-      let progress = await voting.getProgress.call(id);
+      let progress = (await voting.getBallotInfo.call(id, votingKey))[3];
       progress.should.be.bignumber.equal(-2);
 
       let totalVoters = await voting.getTotalVoters.call(id);
@@ -194,7 +201,7 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
 
       await voting.vote(id, choice.accept, {from: votingKey3}).should.be.fulfilled;
 
-      progress = await voting.getProgress.call(id);
+      progress = (await voting.getBallotInfo.call(id, votingKey))[3];
       progress.should.be.bignumber.equal(-1);
 
       totalVoters = await voting.getTotalVoters.call(id);
@@ -246,28 +253,32 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       await voting.vote(votingId, choice.accept, {from: votingKey}).should.be.fulfilled;
       // await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 1);
-      const {logs} = await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
+      const {logs} = await voting.finalize(votingId, {from: votingKey});
       activeBallotsLength = await voting.activeBallotsLength.call();
       activeBallotsLength.should.be.bignumber.equal(0);
-      true.should.be.equal(await voting.getIsFinalized.call(votingId));
+      true.should.be.equal((await voting.getBallotInfo.call(votingId, votingKey))[4]); // isFinalized
       // Finalized(msg.sender);
       logs[0].event.should.be.equal("BallotFinalized");
       logs[0].args.voter.should.be.equal(votingKey);
-      (await voting.getStartTime.call(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await voting.getEndTime.call(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await voting.getTotalVoters.call(votingId)).should.be.bignumber.equal(1);
-      (await voting.getProgress.call(votingId)).should.be.bignumber.equal(1);
-      (await voting.getIsFinalized.call(votingId)).should.be.equal(true);
+
+      const ballotInfo = await voting.getBallotInfo.call(votingId, votingKey);
+
+      ballotInfo.should.be.deep.equal([
+        new web3.BigNumber(VOTING_START_DATE), // startTime
+        new web3.BigNumber(VOTING_END_DATE), // endTime
+        new web3.BigNumber(1), // totalVoters
+        new web3.BigNumber(1), // progress
+        true, // isFinalized
+        new web3.BigNumber(proposedValue), // proposedValue
+        miningKeyForVotingKey, // creator
+        "memo", // memo
+        false, // canBeFinalizedNow
+        true // hasAlreadyVoted
+      ]);
+
       (await voting.getQuorumState.call(votingId)).should.be.bignumber.equal(3);
       (await voting.getIndex.call(votingId)).should.be.bignumber.equal(0);
       (await voting.getMinThresholdOfVoters.call(votingId)).should.be.bignumber.equal(3);
-      (await voting.getProposedValue.call(votingId)).should.be.bignumber.equal(proposedValue);
-      (await voting.getCreator.call(votingId)).should.be.equal(miningKeyForVotingKey);
-      (await voting.getMemo.call(votingId)).should.be.equal("memo");
-
-      true.should.be.equal(
-        await voting.hasAlreadyVoted.call(votingId, votingKey)
-      );
 
       const minThresholdOfVoters = await ballotsStorage.getBallotThreshold.call(1);
       minThresholdOfVoters.should.be.bignumber.equal(3);
@@ -284,30 +295,34 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(votingId, choice.reject, {from: votingKey3}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 1);
-      const {logs} = await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
+      const {logs} = await voting.finalize(votingId, {from: votingKey});
 
       activeBallotsLength = await voting.activeBallotsLength.call();
       activeBallotsLength.should.be.bignumber.equal(0);
-      true.should.be.equal(await voting.getIsFinalized.call(votingId));
+      true.should.be.equal((await voting.getBallotInfo.call(votingId, votingKey))[4]); // isFinalized
       // Finalized(msg.sender);
       logs[0].event.should.be.equal("BallotFinalized");
       logs[0].args.voter.should.be.equal(votingKey);
 
-      (await voting.getStartTime.call(votingId)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await voting.getEndTime.call(votingId)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await voting.getTotalVoters.call(votingId)).should.be.bignumber.equal(3);
-      (await voting.getProgress.call(votingId)).should.be.bignumber.equal(1);
-      (await voting.getIsFinalized.call(votingId)).should.be.equal(true);
+      const ballotInfo = await voting.getBallotInfo.call(votingId, votingKey);
+
+      ballotInfo.should.be.deep.equal([
+        new web3.BigNumber(VOTING_START_DATE), // startTime
+        new web3.BigNumber(VOTING_END_DATE), // endTime
+        new web3.BigNumber(3), // totalVoters
+        new web3.BigNumber(1), // progress
+        true, // isFinalized
+        new web3.BigNumber(proposedValue), // proposedValue
+        miningKeyForVotingKey, // creator
+        "memo", // memo
+        false, // canBeFinalizedNow
+        true // hasAlreadyVoted
+      ]);
+
       (await voting.getQuorumState.call(votingId)).should.be.bignumber.equal(2);
       (await voting.getIndex.call(votingId)).should.be.bignumber.equal(0);
       (await voting.getMinThresholdOfVoters.call(votingId)).should.be.bignumber.equal(3);
-      (await voting.getProposedValue.call(votingId)).should.be.bignumber.equal(proposedValue);
-      (await voting.getCreator.call(votingId)).should.be.equal(miningKeyForVotingKey);
-      (await voting.getMemo.call(votingId)).should.be.equal("memo");
 
-      true.should.be.equal(
-        await voting.hasAlreadyVoted.call(votingId, votingKey)
-      );
       true.should.be.equal(
         await voting.hasAlreadyVoted.call(votingId, votingKey2)
       );
@@ -335,8 +350,8 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, proposedValue1, "memo",{from: votingKey});
 
       await proxyStorageMock.setVotingContractMock(accounts[0]);
-      await keysManager.addMiningKey("0xa6Bf70bd230867c870eF13631D7EFf1AE8Ab85c9").should.be.fulfilled;
-      await keysManager.addMiningKey("0xa6Bf70bd230867c870eF13631D7EFf1AE8Ab85d9").should.be.fulfilled;
+      await addMiningKey("0xa6Bf70bd230867c870eF13631D7EFf1AE8Ab85c9");
+      await addMiningKey("0xa6Bf70bd230867c870eF13631D7EFf1AE8Ab85d9");
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
 
@@ -351,27 +366,30 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(votingId, choice.accept, {from: votingKey3}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 1);
-      false.should.be.equal(await voting.getIsFinalized.call(votingId));
-      await voting.finalize(votingId, {from: votingKey}).should.be.fulfilled;
+      false.should.be.equal((await voting.getBallotInfo.call(votingId, votingKey))[4]); // isFinalized
+      await finalize(votingId, true, {from: votingKey});
       await voting.vote(votingId, choice.accept, { from: votingKey }).should.be.rejectedWith(ERROR_MSG);
       new web3.BigNumber(4).should.be.bignumber.equal(await voting.getProposedValue.call(votingId));
-      true.should.be.equal(await voting.getIsFinalized.call(votingId));
+      true.should.be.equal((await voting.getBallotInfo.call(votingId, votingKey))[4]); // isFinalized
       await voting.finalize(votingId, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
       await voting.finalize(votingIdForSecond, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
       new web3.BigNumber(5).should.be.bignumber.equal(await voting.getProposedValue.call(votingIdForSecond));
-      false.should.be.equal(await voting.getIsFinalized.call(votingIdForSecond));
+      false.should.be.equal((await voting.getBallotInfo.call(votingIdForSecond, votingKey))[4]); // isFinalized
       await voting.vote(votingIdForSecond, choice.reject, {from: votingKey}).should.be.fulfilled;
       await voting.setTime(VOTING_END_DATE + 3);
-      await voting.finalize(votingIdForSecond, {from: votingKey}).should.be.fulfilled;
+      await finalize(votingIdForSecond, true, {from: votingKey});
 
-      new web3.BigNumber(-1).should.be.bignumber.equal(await voting.getProgress.call(votingIdForSecond))
-      new web3.BigNumber(1).should.be.bignumber.equal(await voting.getProgress.call(votingId))
+      new web3.BigNumber(-1).should.be.bignumber.equal((await voting.getBallotInfo.call(votingIdForSecond, votingKey))[3]) // progress
+      new web3.BigNumber(1).should.be.bignumber.equal((await voting.getBallotInfo.call(votingId, votingKey))[3]) // progress
     });
 
     it('allowed at once after all validators gave their votes', async () => {
-      await keysManager.removeMiningKey(accounts[7]).should.be.fulfilled;
-      await keysManager.removeMiningKey(accounts[8]).should.be.fulfilled;
-      await keysManager.removeMiningKey(accounts[9]).should.be.fulfilled;
+      let result = await keysManager.removeMiningKey(accounts[7]);
+      result.logs[0].event.should.equal("MiningKeyChanged");
+      result = await keysManager.removeMiningKey(accounts[8]);
+      result.logs[0].event.should.equal("MiningKeyChanged");
+      result = await keysManager.removeMiningKey(accounts[9]);
+      result.logs[0].event.should.equal("MiningKeyChanged");
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
 
       await voting.setMinPossibleThreshold(2);
@@ -383,7 +401,7 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
         {from: votingKey3}
       ).should.be.fulfilled;
 
-      (await voting.getIsFinalized.call(0)).should.be.equal(false);
+      false.should.be.equal((await voting.getBallotInfo.call(0, votingKey3))[4]); // isFinalized
 
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(0, choice.reject, {from: votingKey}).should.be.fulfilled;
@@ -393,13 +411,13 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       await voting.setTime(VOTING_START_DATE+1);
       await voting.finalize(0, {from: votingKey2}).should.be.rejectedWith(ERROR_MSG);
 
-      (await voting.getIsFinalized.call(0)).should.be.equal(false);
+      false.should.be.equal((await voting.getBallotInfo.call(0, votingKey2))[4]); // isFinalized
 
       await voting.setTime(VOTING_START_DATE+172800+1);
       (await voting.getTime.call()).should.be.bignumber.below(VOTING_END_DATE);
-      await voting.finalize(0, {from: votingKey2}).should.be.fulfilled;
+      await finalize(0, true, {from: votingKey2});
 
-      (await voting.getIsFinalized.call(0)).should.be.equal(true);
+      true.should.be.equal((await voting.getBallotInfo.call(0, votingKey2))[4]); // isFinalized
 
       await voting.setTime(VOTING_END_DATE+1);
       await voting.finalize(0, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
@@ -415,7 +433,7 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
         {from: votingKey3}
       ).should.be.fulfilled;
 
-      (await voting.getIsFinalized.call(1)).should.be.equal(false);
+      false.should.be.equal((await voting.getBallotInfo.call(1, votingKey3))[4]); // isFinalized
 
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(1, choice.reject, {from: votingKey}).should.be.fulfilled;
@@ -425,11 +443,56 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       (await voting.getTime.call()).should.be.bignumber.below(VOTING_END_DATE);
       await voting.finalize(1, {from: votingKey2}).should.be.rejectedWith(ERROR_MSG);
 
-      (await voting.getIsFinalized.call(1)).should.be.equal(false);
+      false.should.be.equal((await voting.getBallotInfo.call(1, votingKey2))[4]); // isFinalized
 
       await voting.setTime(VOTING_END_DATE+1);
-      await voting.finalize(1, {from: votingKey2}).should.be.fulfilled;
-      (await voting.getIsFinalized.call(1)).should.be.equal(true);
+      await finalize(1, true, {from: votingKey2});
+      true.should.be.equal((await voting.getBallotInfo.call(1, votingKey2))[4]); // isFinalized
+    });
+
+    it('should decrease validator limit only once when calling finalize more than once', async () => {
+      let result = await keysManager.removeMiningKey(accounts[7]);
+      result.logs[0].event.should.equal("MiningKeyChanged");
+      result = await keysManager.removeMiningKey(accounts[8]);
+      result.logs[0].event.should.equal("MiningKeyChanged");
+      result = await keysManager.removeMiningKey(accounts[9]);
+      result.logs[0].event.should.equal("MiningKeyChanged");
+      await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
+
+      await voting.setMinPossibleThreshold(2);
+      await ballotsStorage.setThresholdMock(1, 1);
+
+      votingId = await voting.nextBallotId.call();
+      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, 2, "memo", {from: votingKey});
+      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, 2, "memo", {from: votingKey});
+      (await voting.validatorActiveBallots.call(miningKeyForVotingKey)).should.be.bignumber.equal(2);
+      
+      await voting.setTime(VOTING_START_DATE);
+      await voting.vote(votingId, choice.accept, {from: votingKey}).should.be.fulfilled;
+      await voting.vote(votingId, choice.accept, {from: votingKey2}).should.be.fulfilled;
+
+      await ballotsStorage.setThresholdMock(2, 1);
+      await voting.setTime(VOTING_END_DATE + 1);
+
+      result = await voting.finalize(votingId, {from: votingKey});
+      result.logs.length.should.be.equal(0);
+      (await voting.validatorActiveBallots.call(miningKeyForVotingKey)).should.be.bignumber.equal(1);
+      (await voting.getIsFinalized.call(votingId)).should.be.equal(false);
+      (await voting.getQuorumState.call(votingId)).should.be.bignumber.equal(1);
+
+      result = await voting.finalize(votingId, {from: votingKey});
+      result.logs.length.should.be.equal(0);
+      (await voting.validatorActiveBallots.call(miningKeyForVotingKey)).should.be.bignumber.equal(1);
+      (await voting.getIsFinalized.call(votingId)).should.be.equal(false);
+      (await voting.getQuorumState.call(votingId)).should.be.bignumber.equal(1);
+
+      await ballotsStorage.setThresholdMock(1, 1);
+
+      result = await voting.finalize(votingId, {from: votingKey});
+      result.logs[0].event.should.equal("BallotFinalized");
+      (await voting.validatorActiveBallots.call(miningKeyForVotingKey)).should.be.bignumber.equal(1);
+      (await voting.getIsFinalized.call(votingId)).should.be.equal(true);
+      (await voting.getQuorumState.call(votingId)).should.be.bignumber.equal(2);
     });
   });
 
@@ -441,30 +504,40 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, 4, "memo", {from: votingKey}).should.be.fulfilled;
 
       let votingNew = await Voting.new();
-      const votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingNew.address);
+      votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingNew.address);
       votingNew = await Voting.at(votingEternalStorage.address);
+
+      let ballotInfo = await voting.getBallotInfo.call(id, votingKey);
 
       await votingNew.migrateBasicOne(
         id,
         voting.address,
         await voting.getQuorumState.call(id),
         await voting.getIndex.call(id),
-        await voting.getCreator.call(id),
-        await voting.getMemo.call(id),
+        ballotInfo[6], // creator
+        ballotInfo[7], // memo
         [votingKey, votingKey2, votingKey3]
       );
 
-      (await votingNew.getStartTime.call(id)).should.be.bignumber.equal(VOTING_START_DATE);
-      (await votingNew.getEndTime.call(id)).should.be.bignumber.equal(VOTING_END_DATE);
-      (await votingNew.getTotalVoters.call(id)).should.be.bignumber.equal(0);
-      (await votingNew.getProgress.call(id)).should.be.bignumber.equal(0);
-      (await votingNew.getIsFinalized.call(id)).should.be.equal(false);
+      ballotInfo = await votingNew.getBallotInfo.call(id, votingKey);
+
+      ballotInfo.should.be.deep.equal([
+        new web3.BigNumber(VOTING_START_DATE), // startTime
+        new web3.BigNumber(VOTING_END_DATE), // endTime
+        new web3.BigNumber(0), // totalVoters
+        new web3.BigNumber(0), // progress
+        false, // isFinalized
+        new web3.BigNumber(4), // proposedValue
+        accounts[1], // creator
+        "memo", // memo
+        false, // canBeFinalizedNow
+        false // hasAlreadyVoted
+      ]);
+
       (await votingNew.getQuorumState.call(id)).should.be.bignumber.equal(1);
       (await votingNew.getIndex.call(id)).should.be.bignumber.equal(0);
       (await votingNew.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(3);
-      (await votingNew.getCreator.call(id)).should.be.equal(accounts[1]);
-      (await votingNew.getMemo.call(id)).should.be.equal("memo");
-      (await votingNew.getProposedValue.call(id)).should.be.bignumber.equal(4);
+
       (await votingNew.hasMiningKeyAlreadyVoted.call(id, votingKey)).should.be.equal(true);
       (await votingNew.hasMiningKeyAlreadyVoted.call(id, votingKey2)).should.be.equal(true);
       (await votingNew.hasMiningKeyAlreadyVoted.call(id, votingKey3)).should.be.equal(true);
@@ -487,3 +560,22 @@ contract('VotingToChangeMinThreshold upgraded [all features]', function (account
     });
   });
 })
+
+async function addMiningKey(_key) {
+  const {logs} = await keysManager.addMiningKey(_key);
+  logs[0].event.should.be.equal("MiningKeyChanged");
+}
+
+async function addVotingKey(_key, _miningKey) {
+  const {logs} = await keysManager.addVotingKey(_key, _miningKey);
+  logs[0].event.should.be.equal("VotingKeyChanged");
+}
+
+async function finalize(_id, _shouldBeSuccessful, options) {
+  const result = await voting.finalize(_id, options);
+  if (_shouldBeSuccessful) {
+    result.logs[0].event.should.be.equal("BallotFinalized");
+  } else {
+    result.logs.length.should.be.equal(0);
+  }
+}

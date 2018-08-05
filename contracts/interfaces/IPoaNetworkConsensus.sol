@@ -2,10 +2,10 @@ pragma solidity ^0.4.24;
 
 
 interface IPoaNetworkConsensus {
-    function addValidator(address, bool) external;
+    function addValidator(address, bool) external returns(bool);
     function finalizeChange() external;
-    function removeValidator(address, bool) external;
-    function swapValidatorKey(address, address) external;
+    function removeValidator(address, bool) external returns(bool);
+    function swapValidatorKey(address, address) external returns(bool);
     function isMasterOfCeremonyRemoved() external view returns(bool);
     function isValidator(address) external view returns(bool);
     function getCurrentValidatorsLength() external view returns(uint256);

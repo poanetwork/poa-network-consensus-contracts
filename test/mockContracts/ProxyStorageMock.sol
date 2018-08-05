@@ -5,18 +5,18 @@ import '../../contracts/ProxyStorage.sol';
 
 contract ProxyStorageMock is ProxyStorage {
     function setVotingContractMock(address _newAddress) public {
-        addressStorage[keccak256("votingToChangeKeysEternalStorage")] = _newAddress;
+        addressStorage[VOTING_TO_CHANGE_KEYS_ETERNAL_STORAGE] = _newAddress;
     }
 
     function setVotingToChangeMinThresholdMock(address _newAddress) public {
-        addressStorage[keccak256("votingToChangeMinThresholdEternalStorage")] = _newAddress;
+        addressStorage[VOTING_TO_CHANGE_MIN_THRESHOLD_ETERNAL_STORAGE] = _newAddress;
     }
 
     function setVotingToChangeProxyMock(address _newAddress) public {
-        addressStorage[keccak256("votingToChangeProxyEternalStorage")] = _newAddress;
+        addressStorage[VOTING_TO_CHANGE_PROXY_ETERNAL_STORAGE] = _newAddress;
     }
 
     function setKeysManagerMock(address _newAddress) public {
-        addressStorage[keccak256("keysManagerEternalStorage")] = _newAddress;
+        addressStorage[KEYS_MANAGER_ETERNAL_STORAGE] = _newAddress;
     }
 }

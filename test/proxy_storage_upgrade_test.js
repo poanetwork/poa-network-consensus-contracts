@@ -41,11 +41,12 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
 
     const proxyStorageNew = await ProxyStorageNew.new();
     await proxyStorageEternalStorage.setProxyStorage(accounts[6]);
-    await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[6]});
+    const {logs} = await proxyStorageEternalStorage.upgradeTo(proxyStorageNew.address, {from: accounts[6]});
+    logs[0].event.should.be.equal("Upgraded");
     await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
     proxyStorage = await ProxyStorageNew.at(proxyStorageEternalStorage.address);
 
-	keysManager = await KeysManager.new();
+    keysManager = await KeysManager.new();
     keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorage.address, keysManager.address);
     keysManager = await KeysManager.at(keysManagerEternalStorage.address);
 
@@ -180,18 +181,18 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
     it('can only be called from votingToChangeProxy address', async () => {
       await proxyStorage.setContractAddress(1, accounts[2], {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
-      await proxyStorage.setContractAddress(1, accounts[2], {from: accounts[4]}).should.be.fulfilled;
+      await setContractAddress(1, accounts[2], true, {from: accounts[4]});
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
     })
     it('cannot be set to 0x0 address', async () => {
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
-      await proxyStorage.setContractAddress(1, '0x0000000000000000000000000000000000000000', {from: accounts[4]}).should.be.rejectedWith(ERROR_MSG);
+      await setContractAddress(1, '0x0000000000000000000000000000000000000000', false, {from: accounts[4]});
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
     })
     it('sets keysManager', async () => {
       let keysManagerNew = await KeysManager.new();
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
-      await proxyStorage.setContractAddress(1, keysManagerNew.address, {from: accounts[4]}).should.be.fulfilled;
+      await setContractAddress(1, keysManagerNew.address, true, {from: accounts[4]});
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       
       let eternalProxyAddress = await proxyStorage.getKeysManager.call();
@@ -204,7 +205,7 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
     it('sets votingToChangeKeys', async () => {
       let votingToChangeKeysNew = await VotingToChangeKeys.new();
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
-      await proxyStorage.setContractAddress(2, votingToChangeKeysNew.address, {from: accounts[4]}).should.be.fulfilled;
+      await setContractAddress(2, votingToChangeKeysNew.address, true, {from: accounts[4]});
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       
       let eternalProxyAddress = await proxyStorage.getVotingToChangeKeys.call();
@@ -217,7 +218,7 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
     it('sets votingToChangeMinThreshold', async () => {
       let votingToChangeMinThresholdNew = await VotingToChangeMinThreshold.new();
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
-      await proxyStorage.setContractAddress(3, votingToChangeMinThresholdNew.address, {from: accounts[4]}).should.be.fulfilled;
+      await setContractAddress(3, votingToChangeMinThresholdNew.address, true, {from: accounts[4]});
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       
       let eternalProxyAddress = await proxyStorage.getVotingToChangeMinThreshold.call();
@@ -234,7 +235,7 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
       let ballotsStorageNew = await BallotsStorage.new();
 
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
-      await proxyStorage.setContractAddress(5, ballotsStorageNew.address, {from: accounts[4]}).should.be.fulfilled;
+      await setContractAddress(5, ballotsStorageNew.address, true, {from: accounts[4]});
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       
       let eternalProxyAddress = await proxyStorage.getBallotsStorage.call();
@@ -246,7 +247,7 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
     })
     it('sets poaConsensus', async () => {
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
-      await proxyStorage.setContractAddress(6, accounts[5], {from: accounts[4]}).should.be.fulfilled;
+      await setContractAddress(6, accounts[5], true, {from: accounts[4]});
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       accounts[5].should.be.equal(
         await proxyStorage.getPoaConsensus.call()
@@ -256,7 +257,7 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
       let validatorMetadataNew = await ValidatorMetadata.new();
       
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
-      await proxyStorage.setContractAddress(7, validatorMetadataNew.address, {from: accounts[4]}).should.be.fulfilled;
+      await setContractAddress(7, validatorMetadataNew.address, true, {from: accounts[4]});
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       
       let eternalProxyAddress = await proxyStorage.getValidatorMetadata.call();
@@ -271,7 +272,7 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
       const newVersion = oldVersion.add(1);
       let proxyStorageNew = await ProxyStorageMock.new();
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
-      await proxyStorage.setContractAddress(8, proxyStorageNew.address, {from: accounts[4]}).should.be.fulfilled;
+      await setContractAddress(8, proxyStorageNew.address, true, {from: accounts[4]});
       await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
       
       proxyStorageNew.address.should.be.equal(
@@ -290,3 +291,12 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
     })
   })
 })
+
+async function setContractAddress(_contractType, _contractAddress, _shouldBeSuccessful, options) {
+  const result = await proxyStorage.setContractAddress(_contractType, _contractAddress, options);
+  if (_shouldBeSuccessful) {
+    result.logs[0].event.should.be.equal("AddressSet");
+  } else {
+    result.logs.length.should.be.equal(0);
+  }
+}

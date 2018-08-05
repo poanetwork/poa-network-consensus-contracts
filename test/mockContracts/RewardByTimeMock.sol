@@ -4,15 +4,13 @@ import '../../contracts/RewardByTime.sol';
 
 
 contract RewardByTimeMock is RewardByTime {
-    address internal systemAddress;
-    uint256 public time;
-
     modifier onlySystem {
-        require(msg.sender == systemAddress);
+        require(msg.sender == addressStorage[keccak256("systemAddress")]);
         _;
     }
 
     function getTime() public view returns(uint256) {
+        uint256 time = uintStorage[keccak256("mockTime")];
         if (time == 0) {
             return now;
         } else {
@@ -21,10 +19,10 @@ contract RewardByTimeMock is RewardByTime {
     }
 
     function setSystemAddress(address _address) public {
-        systemAddress = _address;
+        addressStorage[keccak256("systemAddress")] = _address;
     }
 
-    function setTime(uint256 _time) public {
-        time = _time;
+    function setTime(uint256 _newTime) public {
+        uintStorage[keccak256("mockTime")] = _newTime;
     }
 }

@@ -215,9 +215,11 @@ async function migrateAndCheck(privateKey) {
 		console.log('');
 	} catch (err) {
 		if (ONLY_CHECK) {
-			console.log('Something is wrong: ' + err.message);
+			console.log('Something is wrong:');
+			console.log(err);
 		} else {
-			console.log('Cannot migrate KeysManager: ' + err.message);
+			console.log('Cannot migrate KeysManager:');
+			console.log(err);
 		}
 		process.exit(1);
 	}

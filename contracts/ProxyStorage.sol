@@ -175,40 +175,46 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     function setContractAddress(uint256 _contractType, address _contractAddress)
         public
         onlyVotingToChangeProxy
+        returns(bool)
     {
-        require(mocInitialized());
-        require(initDisabled());
-        require(_contractAddress != address(0));
+        if (!mocInitialized()) return false;
+        if (!initDisabled()) return false;
+        if (_contractAddress == address(0)) return false;
+        bool success = false;
         if (_contractType == uint8(ContractTypes.KeysManager)) {
-            IEternalStorageProxy(
+            success = IEternalStorageProxy(
                 getKeysManager()
             ).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.VotingToChangeKeys)) {
-            IEternalStorageProxy(
+            success = IEternalStorageProxy(
                 getVotingToChangeKeys()
             ).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.VotingToChangeMinThreshold)) {
-            IEternalStorageProxy(
+            success = IEternalStorageProxy(
                 getVotingToChangeMinThreshold()
             ).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.VotingToChangeProxy)) {
-            IEternalStorageProxy(
+            success = IEternalStorageProxy(
                 getVotingToChangeProxy()
             ).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.BallotsStorage)) {
-            IEternalStorageProxy(
+            success = IEternalStorageProxy(
                 getBallotsStorage()
             ).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.PoaConsensus)) {
             _setPoaConsensus(_contractAddress);
+            success = true;
         } else if (_contractType == uint8(ContractTypes.ValidatorMetadata)) {
-            IEternalStorageProxy(
+            success = IEternalStorageProxy(
                 getValidatorMetadata()
             ).upgradeTo(_contractAddress);
         } else if (_contractType == uint8(ContractTypes.ProxyStorage)) {
-            IEternalStorageProxy(this).upgradeTo(_contractAddress);
+            success = IEternalStorageProxy(this).upgradeTo(_contractAddress);
         }
-        emit AddressSet(_contractType, _contractAddress);
+        if (success) {
+            emit AddressSet(_contractType, _contractAddress);
+        }
+        return success;
     }
     // solhint-enable code-complexity
 

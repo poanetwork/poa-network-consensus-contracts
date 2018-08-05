@@ -13,8 +13,10 @@ require('chai')
   .use(require('chai-bignumber')(web3.BigNumber))
   .should();
 
+let keysManager;
+let votingToChangeKeys;
 contract('RewardByBlock upgraded [all features]', function (accounts) {
-  let poaNetworkConsensus, proxyStorage, keysManager;
+  let poaNetworkConsensus, proxyStorage;
   let rewardByBlock, rewardByBlockEternalStorage;
   let blockRewardAmount, emissionFundsAmount, emissionFundsAddress;
   let coinbase;
@@ -26,7 +28,6 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
   let payoutKey2;
   let payoutKey3;
   let systemAddress;
-  let votingToChangeKeys;
   
   beforeEach(async () => {
     coinbase = accounts[0];
@@ -67,12 +68,12 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
       accounts[9]
     );
 
-    await keysManager.addMiningKey(miningKey, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addMiningKey(miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addMiningKey(miningKey3, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addPayoutKey(payoutKey, miningKey, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addPayoutKey(payoutKey2, miningKey2, {from: votingToChangeKeys}).should.be.fulfilled;
-    await keysManager.addPayoutKey(payoutKey3, miningKey3, {from: votingToChangeKeys}).should.be.fulfilled;
+    await addMiningKey(miningKey);
+    await addMiningKey(miningKey2);
+    await addMiningKey(miningKey3);
+    await addPayoutKey(payoutKey, miningKey);
+    await addPayoutKey(payoutKey2, miningKey2);
+    await addPayoutKey(payoutKey3, miningKey3);
     await poaNetworkConsensus.setSystemAddress(coinbase);
     await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
     await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
@@ -83,7 +84,8 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
 
     const rewardByBlockNew = await RewardByBlockNew.new();
     await rewardByBlockEternalStorage.setProxyStorage(accounts[8]);
-    await rewardByBlockEternalStorage.upgradeTo(rewardByBlockNew.address, {from: accounts[8]});
+    const {logs} = await rewardByBlockEternalStorage.upgradeTo(rewardByBlockNew.address, {from: accounts[8]});
+    logs[0].event.should.be.equal("Upgraded");
     await rewardByBlockEternalStorage.setProxyStorage(proxyStorage.address);
     rewardByBlock = await RewardByBlockNew.at(rewardByBlockEternalStorage.address);
 
@@ -127,7 +129,8 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
     });
 
     it('should revert if mining key does not exist', async () => {
-      await keysManager.removeMiningKey(miningKey3, {from: votingToChangeKeys}).should.be.fulfilled;
+      const {logs} = await keysManager.removeMiningKey(miningKey3, {from: votingToChangeKeys});
+      logs[0].event.should.equal("MiningKeyChanged");
       await rewardByBlock.setSystemAddress(systemAddress);
       await rewardByBlock.reward(
         [miningKey3],
@@ -155,10 +158,11 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
     });
 
     it('should assign reward to mining key if payout key is 0', async () => {
-      await keysManager.removePayoutKey(
+      const result = await keysManager.removePayoutKey(
         miningKey,
         {from: votingToChangeKeys}
-      ).should.be.fulfilled;
+      );
+      result.logs[0].event.should.be.equal("PayoutKeyChanged");
 
       await rewardByBlock.setSystemAddress(systemAddress);
       const {logs} = await rewardByBlock.reward(
@@ -279,3 +283,13 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
     });
   });
 });
+
+async function addMiningKey(_key) {
+  const {logs} = await keysManager.addMiningKey(_key, {from: votingToChangeKeys});
+  logs[0].event.should.be.equal("MiningKeyChanged");
+}
+
+async function addPayoutKey(_key, _miningKey) {
+  const {logs} = await keysManager.addPayoutKey(_key, _miningKey, {from: votingToChangeKeys});
+  logs[0].event.should.be.equal("PayoutKeyChanged");
+}
