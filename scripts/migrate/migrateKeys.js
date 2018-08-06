@@ -126,8 +126,8 @@ async function migrateAndCheck(privateKey) {
 			}
 
 			const votingForKeysOldInstance = new web3.eth.Contract(VOTING_TO_CHANGE_KEYS_OLD_ABI, VOTING_TO_CHANGE_KEYS_OLD_ADDRESS);
-			const maxOldMiningKeysDeepCheck = await votingForKeysOldInstance.methods.maxOldMiningKeysDeepCheck().call();
-			maxOldMiningKeysDeepCheck.should.be.bignumber.equal(25);
+			(await votingForKeysOldInstance.methods.maxOldMiningKeysDeepCheck().call()).should.be.bignumber.equal(25);
+			(await keysManagerNewInstance.methods.maxOldMiningKeysDeepCheck().call()).should.be.bignumber.equal(25);
 
 			console.log(`  Migrate each of ${miningKeys.length} mining key(s)...`);
 			for (let i = 0; i < miningKeys.length; i++) {
@@ -137,8 +137,7 @@ async function migrateAndCheck(privateKey) {
 					continue;
 				}
 				const migrateMiningKey = keysManagerNewInstance.methods.migrateMiningKey(
-					miningKey,
-					maxOldMiningKeysDeepCheck
+					miningKey
 				);
 				await utils.call(migrateMiningKey, sender, contractNewAddress, key, chainId);
 			}

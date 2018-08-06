@@ -8,7 +8,7 @@ interface IKeysManager {
     function createKeys(address, address, address) external;
     function initiateKeys(address) external;
     function migrateInitialKey(address) external;
-    function migrateMiningKey(address, uint8) external;
+    function migrateMiningKey(address) external;
     function removeMiningKey(address) external returns(bool);
     function removeVotingKey(address) external returns(bool);
     function removePayoutKey(address) external returns(bool);

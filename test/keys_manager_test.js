@@ -764,15 +764,14 @@ contract('KeysManager [all features]', function (accounts) {
       
       // mining #1
       await newKeysManager.migrateMiningKey(
-        '0x0000000000000000000000000000000000000000',
-        25
+        '0x0000000000000000000000000000000000000000'
       ).should.be.rejectedWith(ERROR_MSG);
-      await newKeysManager.migrateMiningKey(accounts[9], 25).should.be.rejectedWith(ERROR_MSG);
-      let {logs} = await newKeysManager.migrateMiningKey(miningKey, 25).should.be.fulfilled;
+      await newKeysManager.migrateMiningKey(accounts[9]).should.be.rejectedWith(ERROR_MSG);
+      let {logs} = await newKeysManager.migrateMiningKey(miningKey).should.be.fulfilled;
       logs[0].event.should.equal("Migrated");
       logs[0].args.key.should.be.equal(miningKey);
       logs[0].args.name.should.be.equal("miningKey");
-      await newKeysManager.migrateMiningKey(miningKey, 25).should.be.rejectedWith(ERROR_MSG);
+      await newKeysManager.migrateMiningKey(miningKey).should.be.rejectedWith(ERROR_MSG);
 
       let initialKeys = await newKeysManager.initialKeysCount.call();
       initialKeys.should.be.bignumber.equal(1);
@@ -804,7 +803,7 @@ contract('KeysManager [all features]', function (accounts) {
       )
 
       // mining #2
-      await newKeysManager.migrateMiningKey(miningKey3, 25).should.be.fulfilled;
+      await newKeysManager.migrateMiningKey(miningKey3).should.be.fulfilled;
       const validatorKey2 = await newKeysManager.validatorKeys.call(miningKey3);
       validatorKey2.should.be.deep.equal([
         "0x0000000000000000000000000000000000000000",
@@ -835,7 +834,7 @@ contract('KeysManager [all features]', function (accounts) {
       true.should.be.equal(
         await newKeysManager.successfulValidatorClone.call(masterOfCeremony)
       );
-      await newKeysManager.migrateMiningKey(masterOfCeremony, 25).should.be.rejectedWith(ERROR_MSG);
+      await newKeysManager.migrateMiningKey(masterOfCeremony).should.be.rejectedWith(ERROR_MSG);
     })
   });
 

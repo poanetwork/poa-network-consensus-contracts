@@ -26,8 +26,8 @@ contract PoaNetworkConsensusMock is PoaNetworkConsensus {
         _moc = _newAddress;
     }
 
-    function setIsMasterOfCeremonyInitializedMock(bool _status) public {
-        isMasterOfCeremonyInitialized = _status;
+    function setWasProxyStorageSetMock(bool _status) public {
+        wasProxyStorageSet = _status;
     }
 
     function setCurrentValidatorsLength(uint256 _newNumber) public {

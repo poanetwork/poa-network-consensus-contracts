@@ -43,7 +43,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     bool internal _isMoCRemovedPending = false;
 
     bool public finalized = false;
-    bool public isMasterOfCeremonyInitialized = false;
+    bool public wasProxyStorageSet = false;
 
     modifier onlySystemAndNotFinalized() {
         require(msg.sender == systemAddress && !finalized);
@@ -65,7 +65,9 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
             currentValidators.push(validators[y]);
         }
         for (uint256 i = 0; i < currentValidators.length; i++) {
-            validatorsState[currentValidators[i]] = ValidatorState({
+            address validator = currentValidators[i];
+            require(!validatorsState[validator].isValidator);
+            validatorsState[validator] = ValidatorState({
                 isValidator: true,
                 isValidatorFinalized: true,
                 index: i
@@ -166,10 +168,10 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     function setProxyStorage(address _newAddress) public {
         // any miner can change the address
         require(isValidator(msg.sender) || msg.sender == _owner);
-        require(!isMasterOfCeremonyInitialized);
+        require(!wasProxyStorageSet);
         require(_newAddress != address(0));
         proxyStorage = IProxyStorage(_newAddress);
-        isMasterOfCeremonyInitialized = true;
+        wasProxyStorageSet = true;
         emit MoCInitializedProxyStorage(proxyStorage);
     }
 
