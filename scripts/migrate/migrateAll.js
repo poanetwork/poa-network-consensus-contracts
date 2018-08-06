@@ -58,7 +58,7 @@ async function main() {
 
 		console.log('  PoaNetworkConsensus checking...');
 		false.should.be.equal(
-			await poaNewInstance.methods.isMasterOfCeremonyInitialized().call()
+			await poaNewInstance.methods.wasProxyStorageSet().call()
 		);
 		mocAddress.should.be.equal(
 			await poaNewInstance.methods.masterOfCeremony().call()
@@ -110,7 +110,7 @@ async function main() {
 			await proxyStorageInstance.methods.getPoaConsensus().call()
 		);
 		true.should.be.equal(
-			await poaNewInstance.methods.isMasterOfCeremonyInitialized().call()
+			await poaNewInstance.methods.wasProxyStorageSet().call()
 		);
 		process.env.PROXY_STORAGE_NEW_ADDRESS.should.be.equal(
 			await poaNewInstance.methods.proxyStorage().call()

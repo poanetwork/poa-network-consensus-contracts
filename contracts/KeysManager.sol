@@ -204,8 +204,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function migrateMiningKey(
-        address _miningKey,
-        uint8 _maxMiningKeyHistoryDeep
+        address _miningKey
     ) public onlyOwner {
         require(previousKeysManager() != address(0));
         IKeysManager previous = IKeysManager(previousKeysManager());
@@ -224,7 +223,8 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setMiningKeyByPayout(payoutKey, _miningKey);
         _setSuccessfulValidatorClone(true, _miningKey);
         address currentMiningKey = _miningKey;
-        for (uint8 i = 0; i < _maxMiningKeyHistoryDeep; i++) {
+        uint8 maxMiningKeyHistoryDeep = maxOldMiningKeysDeepCheck();
+        for (uint8 i = 0; i < maxMiningKeyHistoryDeep; i++) {
             address oldMiningKey = previous.getMiningKeyHistory(currentMiningKey);
             if (oldMiningKey == 0) {
                 break;
