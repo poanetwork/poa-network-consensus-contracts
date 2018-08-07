@@ -151,19 +151,23 @@ contract('RewardByTime [all features]', function (accounts) {
         let receivers = [];
         await rewardByTime.setTime(time);
         result = await rewardByTime.reward({from: systemAddress}).should.be.fulfilled;
-        result.logs[0].event.should.be.equal('Rewarded');
+        if (receiversCount > 0) {
+          result.logs[0].event.should.be.equal('Rewarded');
+        }
         let i, n;
         for (i = keyIndex, n = 0; n < receiversCount; i++, n++) {
           receivers.push(keysArray[i % keysArray.length]);
           result.logs[0].args.rewards[n].toString().should.be.equal(blockRewardAmount.toString());
         }
-        receivers.push(emissionFundsAddress);
-        result.logs[0].args.receivers.should.be.deep.equal(receivers);
-        result.logs[0].args.rewards[n].toString().should.be.equal((emissionFundsAmount * receiversCount).toString());
-        lastTime = lastTime + threshold * receiversCount;
-        keyIndex = i % keysArray.length;
-        (await rewardByTime.lastTime.call()).should.be.bignumber.equal(lastTime);
-        (await rewardByTime.keyIndex.call()).should.be.bignumber.equal(keyIndex);
+        if (receiversCount > 0) {
+          receivers.push(emissionFundsAddress);
+          result.logs[0].args.receivers.should.be.deep.equal(receivers);
+          result.logs[0].args.rewards[n].toString().should.be.equal((emissionFundsAmount * receiversCount).toString());
+          lastTime = lastTime + threshold * receiversCount;
+          keyIndex = i % keysArray.length;
+          (await rewardByTime.lastTime.call()).should.be.bignumber.equal(lastTime);
+          (await rewardByTime.keyIndex.call()).should.be.bignumber.equal(keyIndex);
+        }
       }
     });
 

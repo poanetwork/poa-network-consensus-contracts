@@ -195,15 +195,6 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       await metadata.initMetadata(...validatorData).should.be.rejectedWith(ERROR_MSG);
     });
   });
-  
-  describe('#getMiningByVotingKey', async () => {
-    it('happy path', async () => {
-      let actual = await metadata.getMiningByVotingKey.call(votingKey);
-      miningKey.should.be.equal(actual);
-      actual = await metadata.getMiningByVotingKey.call(accounts[4]);
-      '0x0000000000000000000000000000000000000000'.should.be.equal(actual);
-    })
-  })
 
   describe('#changeRequest', async () => {
     beforeEach(async () => {
