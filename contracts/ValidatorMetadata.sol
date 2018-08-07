@@ -222,14 +222,21 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
         view
         returns(bool)
     {
-        uint256 count;
-        address[] memory voters;
-        (count, voters) = confirmations(_miningKey);
-        for (uint256 i = 0; i < count; i++) {
-            if (voters[i] == _voterMiningKey) {
+        IKeysManager keysManager = IKeysManager(getKeysManager());
+        address historyVoterMiningKey = _voterMiningKey;
+        uint8 maxDeep = keysManager.maxOldMiningKeysDeepCheck();
+
+        for (uint8 i = 0; i < maxDeep; i++) {
+            if (_isValidatorAlreadyVoted(_miningKey, historyVoterMiningKey)) {
                 return true;
             }
+            address oldMiningKey = keysManager.getMiningKeyHistory(historyVoterMiningKey);
+            if (oldMiningKey == address(0)) {
+                break;
+            }
+            historyVoterMiningKey = oldMiningKey;
         }
+
         return false;
     }
 
@@ -239,20 +246,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
     {
         address voterMiningKey = _getMiningByVotingKey(msg.sender);
         require(voterMiningKey != _miningKey);
-
-        IKeysManager keysManager = IKeysManager(getKeysManager());
-        address historyVoterMiningKey = voterMiningKey;
-        uint8 maxDeep = keysManager.maxOldMiningKeysDeepCheck();
-
-        for (uint8 i = 0; i < maxDeep; i++) {
-            require(!isValidatorAlreadyVoted(_miningKey, historyVoterMiningKey));
-            address oldMiningKey = keysManager.getMiningKeyHistory(historyVoterMiningKey);
-            if (oldMiningKey == address(0)) {
-                break;
-            }
-            historyVoterMiningKey = oldMiningKey;
-        }
-        
+        require(!isValidatorAlreadyVoted(_miningKey, voterMiningKey));
         _confirmationsVoterAdd(_miningKey, voterMiningKey);
         emit Confirmed(_miningKey, msg.sender, voterMiningKey);
     }
@@ -414,6 +408,22 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
     function _getMiningByVotingKey(address _votingKey) private view returns(address) {
         IKeysManager keysManager = IKeysManager(getKeysManager());
         return keysManager.getMiningKeyByVoting(_votingKey);
+    }
+
+    function _isValidatorAlreadyVoted(address _miningKey, address _voterMiningKey)
+        private
+        view
+        returns(bool)
+    {
+        uint256 count;
+        address[] memory voters;
+        (count, voters) = confirmations(_miningKey);
+        for (uint256 i = 0; i < count; i++) {
+            if (voters[i] == _voterMiningKey) {
+                return true;
+            }
+        }
+        return false;
     }
 
     function _deletePendingChange(address _miningKey) private {
