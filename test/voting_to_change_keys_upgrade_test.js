@@ -4,6 +4,7 @@ let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let VotingToChangeKeysMock = artifacts.require('./mockContracts/VotingToChangeKeysMock');
 let VotingToChangeKeysNew = artifacts.require('./upgradeContracts/VotingToChangeKeysNew');
 let BallotsStorage = artifacts.require('./BallotsStorage');
+let ValidatorMetadata = artifacts.require('./ValidatorMetadata');
 let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
@@ -46,7 +47,10 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
     let ballotsStorage = await BallotsStorage.new();
     const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
     ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
-    
+
+    const validatorMetadata = await ValidatorMetadata.new();
+    const validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, validatorMetadata.address);
+
     voting = await VotingToChangeKeysMock.new();
     votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, voting.address);
     voting = await VotingToChangeKeysMock.at(votingEternalStorage.address);
@@ -58,7 +62,7 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       accounts[0],
       accounts[0],
       ballotsEternalStorage.address,
-      accounts[0],
+      validatorMetadataEternalStorage.address,
       accounts[0]
     );
 

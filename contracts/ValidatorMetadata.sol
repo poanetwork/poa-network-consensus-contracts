@@ -4,11 +4,12 @@ import "./libs/SafeMath.sol";
 import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IProxyStorage.sol";
 import "./interfaces/IKeysManager.sol";
+import "./interfaces/IValidatorMetadata.sol";
 import "./eternal-storage/EternalStorage.sol";
 import "./abstracts/EnumThresholdTypes.sol";
 
 
-contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
+contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMetadata {
     using SafeMath for uint256;
 
     bytes32 internal constant INIT_METADATA_DISABLED = keccak256("initMetadataDisabled");
@@ -28,14 +29,16 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
     string internal constant VOTERS = "voters";
     string internal constant ZIP_CODE = "zipcode";
 
+    event MetadataCleared(address indexed miningKey);
     event MetadataCreated(address indexed miningKey);
+    event MetadataMoved(address indexed oldMiningKey, address indexed newMiningKey);
     event ChangeRequestInitiated(address indexed miningKey);
     event CancelledRequest(address indexed miningKey);
     event Confirmed(address indexed miningKey, address votingSender, address votingSenderMiningKey);
     event FinalizedChange(address indexed miningKey);
 
     modifier onlyValidVotingKey(address _votingKey) {
-        IKeysManager keysManager = IKeysManager(getKeysManager());
+        IKeysManager keysManager = IKeysManager(_getKeysManager());
         require(keysManager.isVotingActive(_votingKey));
         _;
     }
@@ -49,6 +52,33 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
     modifier onlyOwner() {
         require(msg.sender == addressStorage[OWNER]);
         _;
+    }
+
+    modifier onlyKeysManager() {
+        require(msg.sender == _getKeysManager());
+        _;
+    }
+
+    function clearMetadata(address _miningKey)
+        external
+        onlyKeysManager
+    {
+        if (_ifChangeExist(_miningKey)) {
+            _deleteMetadata(true, _miningKey);
+        }
+        _deleteMetadata(false, _miningKey);
+        emit MetadataCleared(_miningKey);
+    }
+
+    function moveMetadata(address _oldMiningKey, address _newMiningKey)
+        external
+        onlyKeysManager
+    {
+        if (_ifChangeExist(_oldMiningKey)) {
+            _moveMetadata(true, _oldMiningKey, _newMiningKey);
+        }
+        _moveMetadata(false, _oldMiningKey, _newMiningKey);
+        emit MetadataMoved(_oldMiningKey, _newMiningKey);
     }
 
     function proxyStorage() public view returns (address) {
@@ -105,7 +135,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
         return boolStorage[INIT_METADATA_DISABLED];
     }
 
-    function initMetadata(
+    function initMetadata( // used for migration
         bytes32 _firstName,
         bytes32 _lastName,
         bytes32 _licenseId,
@@ -118,7 +148,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
         uint256 _minThreshold,
         address _miningKey
     ) public onlyOwner {
-        IKeysManager keysManager = IKeysManager(getKeysManager());
+        IKeysManager keysManager = IKeysManager(_getKeysManager());
         require(keysManager.isMiningActive(_miningKey));
         require(_getCreatedDate(false, _miningKey) == 0);
         require(_createdDate != 0);
@@ -212,7 +242,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
 
     function cancelPendingChange() public onlyValidVotingKey(msg.sender) returns(bool) {
         address miningKey = _getMiningByVotingKey(msg.sender);
-        _deletePendingChange(miningKey);
+        _deleteMetadata(true, miningKey);
         emit CancelledRequest(miningKey);
         return true;
     }
@@ -222,7 +252,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
         view
         returns(bool)
     {
-        IKeysManager keysManager = IKeysManager(getKeysManager());
+        IKeysManager keysManager = IKeysManager(_getKeysManager());
         address historyVoterMiningKey = _voterMiningKey;
         uint8 maxDeep = keysManager.maxOldMiningKeysDeepCheck();
 
@@ -252,7 +282,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
     }
 
     function finalize(address _miningKey) public onlyValidVotingKey(msg.sender) {
-        require(onlyIfChangeExist(_miningKey));
+        require(_ifChangeExist(_miningKey));
         uint256 count = _getConfirmationsVoters(_miningKey).length;
         uint256 minThreshold = _getMinThreshold(true, _miningKey);
         require(count >= minThreshold);
@@ -266,7 +296,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
         _setCreatedDate(false, _miningKey, _getCreatedDate(true, _miningKey));
         _setUpdatedDate(false, _miningKey, _getUpdatedDate(true, _miningKey));
         _setMinThreshold(false, _miningKey, _getMinThreshold(true, _miningKey));
-        _deletePendingChange(_miningKey);
+        _deleteMetadata(true, _miningKey);
         emit FinalizedChange(_miningKey);
     }
 
@@ -275,24 +305,16 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
     }
 
     function getMinThreshold() public view returns(uint256) {
-        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
+        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
         return ballotsStorage.getBallotThreshold(uint8(ThresholdTypes.MetadataChange));
-    }
-
-    function getBallotsStorage() public view returns(address) {
-        return IProxyStorage(proxyStorage()).getBallotsStorage();
-    }
-
-    function getKeysManager() public view returns(address) {
-        return IProxyStorage(proxyStorage()).getKeysManager();
-    }
-
-    function onlyIfChangeExist(address _miningKey) public view returns(bool) {
-        return _getCreatedDate(true, _miningKey) > 0;
     }
 
     function _storeName(bool _pending) private pure returns(string) {
         return _pending ? "pendingChanges" : "validators";
+    }
+
+    function _getBallotsStorage() private view returns(address) {
+        return IProxyStorage(proxyStorage()).getBallotsStorage();
     }
 
     function _getFirstName(bool _pending, address _miningKey)
@@ -405,9 +427,17 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
         ))];
     }
 
+    function _getKeysManager() private view returns(address) {
+        return IProxyStorage(proxyStorage()).getKeysManager();
+    }
+
     function _getMiningByVotingKey(address _votingKey) private view returns(address) {
-        IKeysManager keysManager = IKeysManager(getKeysManager());
+        IKeysManager keysManager = IKeysManager(_getKeysManager());
         return keysManager.getMiningKeyByVoting(_votingKey);
+    }
+
+    function _ifChangeExist(address _miningKey) private view returns(bool) {
+        return _getCreatedDate(true, _miningKey) > 0;
     }
 
     function _isValidatorAlreadyVoted(address _miningKey, address _voterMiningKey)
@@ -426,8 +456,8 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
         return false;
     }
 
-    function _deletePendingChange(address _miningKey) private {
-        string memory _store = _storeName(true);
+    function _deleteMetadata(bool _pending, address _miningKey) private {
+        string memory _store = _storeName(_pending);
         delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, FIRST_NAME))];
         delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, LAST_NAME))];
         delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, LICENSE_ID))];
@@ -438,6 +468,24 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes {
         delete uintStorage[keccak256(abi.encodePacked(_store, _miningKey, CREATED_DATE))];
         delete uintStorage[keccak256(abi.encodePacked(_store, _miningKey, UPDATED_DATE))];
         delete uintStorage[keccak256(abi.encodePacked(_store, _miningKey, MIN_THRESHOLD))];
+    }
+
+    function _moveMetadata(bool _pending, address _oldMiningKey, address _newMiningKey) private {
+        _setMetadata(
+            _pending,
+            _newMiningKey,
+            _getFirstName(_pending, _oldMiningKey),
+            _getLastName(_pending, _oldMiningKey),
+            _getLicenseId(_pending, _oldMiningKey),
+            _getFullAddress(_pending, _oldMiningKey),
+            _getState(_pending, _oldMiningKey),
+            _getZipcode(_pending, _oldMiningKey),
+            _getExpirationDate(_pending, _oldMiningKey),
+            _getCreatedDate(_pending, _oldMiningKey),
+            _getUpdatedDate(_pending, _oldMiningKey),
+            _getMinThreshold(_pending, _oldMiningKey)
+        );
+        _deleteMetadata(_pending, _oldMiningKey);
     }
 
     function _setFirstName(bool _pending, address _miningKey, bytes32 _firstName) private {

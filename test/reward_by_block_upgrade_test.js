@@ -4,6 +4,7 @@ const EternalStorageProxy = artifacts.require('./mockContracts/EternalStoragePro
 const KeysManager = artifacts.require('./mockContracts/KeysManagerMock');
 const PoaNetworkConsensus = artifacts.require('./mockContracts/PoaNetworkConsensusMock');
 const ProxyStorage = artifacts.require('./mockContracts/ProxyStorageMock');
+const ValidatorMetadata = artifacts.require('./ValidatorMetadata');
 const {getRandomInt} = require('./utils/helpers');
 
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
@@ -15,9 +16,9 @@ require('chai')
 
 let keysManager;
 let votingToChangeKeys;
+let rewardByBlock, rewardByBlockEternalStorage;
 contract('RewardByBlock upgraded [all features]', function (accounts) {
   let poaNetworkConsensus, proxyStorage;
-  let rewardByBlock, rewardByBlockEternalStorage;
   let blockRewardAmount, emissionFundsAmount, emissionFundsAddress;
   let coinbase;
   let masterOfCeremony;
@@ -57,6 +58,9 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
       "0x0000000000000000000000000000000000000000"
     ).should.be.fulfilled;
 
+    const validatorMetadata = await ValidatorMetadata.new();
+    const validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorage.address, validatorMetadata.address);
+
     await proxyStorage.initializeAddresses(
       keysManagerEternalStorage.address,
       votingToChangeKeys,
@@ -64,7 +68,7 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
       accounts[9],
       accounts[9],
       accounts[9],
-      accounts[9],
+      validatorMetadataEternalStorage.address,
       accounts[9]
     );
 
@@ -95,7 +99,7 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
   });
 
   describe('#reward', async () => {
-    it('may be called only by system address', async () => {
+    it('may only be called by system address', async () => {
       await rewardByBlock.reward([miningKey], [0]).should.be.rejectedWith(ERROR_MSG);
       await rewardByBlock.setSystemAddress(systemAddress);
       await rewardByBlock.reward([miningKey], [0], {from: systemAddress}).should.be.fulfilled;

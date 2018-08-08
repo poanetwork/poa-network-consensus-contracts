@@ -4,6 +4,7 @@ let BallotsStorage = artifacts.require('./BallotsStorage');
 let BallotsStorageNew = artifacts.require('./upgradeContracts/BallotsStorageNew');
 let VotingToChangeMinThresholdMock = artifacts.require('./mockContracts/VotingToChangeMinThresholdMock');
 let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
+let ValidatorMetadata = artifacts.require('./ValidatorMetadata');
 let EternalStorageProxy = artifacts.require('./EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 require('chai')
@@ -19,7 +20,6 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
   let votingToChangeMinThreshold;
   let votingToChangeProxy;
   let votingToManageEmissionFunds;
-  let validatorMetadataEternalStorage;
   let rewardByBlock;
 
   beforeEach(async () => {
@@ -28,7 +28,6 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     votingToChangeMinThreshold = accounts[3];
     votingToChangeProxy = accounts[4];
     votingToManageEmissionFunds = accounts[5];
-    validatorMetadataEternalStorage = accounts[7];
     rewardByBlock = accounts[8];
 
     poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []);
@@ -50,6 +49,9 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     await keysManager.init(
       "0x0000000000000000000000000000000000000000"
     ).should.be.fulfilled;
+
+    const validatorMetadata = await ValidatorMetadata.new();
+    const validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorage.address, validatorMetadata.address);
     
     await poaNetworkConsensus.setProxyStorage(proxyStorage.address);
     await proxyStorage.initializeAddresses(
@@ -59,7 +61,7 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       votingToChangeProxy,
       votingToManageEmissionFunds,
       ballotsEternalStorage.address,
-      validatorMetadataEternalStorage,
+      validatorMetadataEternalStorage.address,
       rewardByBlock
     );
 
