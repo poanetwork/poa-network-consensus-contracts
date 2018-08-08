@@ -221,73 +221,73 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange, EnumKeyTypes
 
     function _getAffectedKey(uint256 _id) internal view returns(address) {
         return addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, AFFECTED_KEY))
+            keccak256(abi.encode(VOTING_STATE, _id, AFFECTED_KEY))
         ];
     }
 
     function _getAffectedKeyType(uint256 _id) internal view returns(uint256) {
         return uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, AFFECTED_KEY_TYPE))
+            keccak256(abi.encode(VOTING_STATE, _id, AFFECTED_KEY_TYPE))
         ];
     }
 
     function _getBallotType(uint256 _id) internal view returns(uint256) {
         return uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, BALLOT_TYPE))
+            keccak256(abi.encode(VOTING_STATE, _id, BALLOT_TYPE))
         ];
     }
 
     function _getMiningKey(uint256 _id) internal view returns(address) {
         return addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, MINING_KEY))
+            keccak256(abi.encode(VOTING_STATE, _id, MINING_KEY))
         ];
     }
 
     function _getNewPayoutKey(uint256 _id) internal view returns(address) {
         return addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, NEW_PAYOUT_KEY))
+            keccak256(abi.encode(VOTING_STATE, _id, NEW_PAYOUT_KEY))
         ];
     }
 
     function _getNewVotingKey(uint256 _id) internal view returns(address) {
         return addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, NEW_VOTING_KEY))
+            keccak256(abi.encode(VOTING_STATE, _id, NEW_VOTING_KEY))
         ];
     }
 
     function _setAffectedKey(uint256 _ballotId, address _value) internal {
         addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, AFFECTED_KEY))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, AFFECTED_KEY))
         ] = _value;
     }
 
     function _setAffectedKeyType(uint256 _ballotId, uint256 _value) internal {
         uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, AFFECTED_KEY_TYPE))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, AFFECTED_KEY_TYPE))
         ] = _value;
     }
 
     function _setBallotType(uint256 _ballotId, uint256 _value) internal {
         uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, BALLOT_TYPE))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, BALLOT_TYPE))
         ] = _value;
     }
 
     function _setMiningKey(uint256 _ballotId, address _value) internal {
         addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, MINING_KEY))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, MINING_KEY))
         ] = _value;
     }
 
     function _setNewPayoutKey(uint256 _ballotId, address _value) internal {
         addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, NEW_PAYOUT_KEY))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, NEW_PAYOUT_KEY))
         ] = _value;
     }
 
     function _setNewVotingKey(uint256 _ballotId, address _value) internal {
         addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, NEW_VOTING_KEY))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, NEW_VOTING_KEY))
         ] = _value;
     }
 

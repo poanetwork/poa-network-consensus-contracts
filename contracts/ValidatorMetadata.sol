@@ -233,7 +233,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
             getMinThreshold()
         );
         _setMinThreshold(true, miningKey, _getMinThreshold(false, miningKey));
-        delete addressArrayStorage[keccak256(abi.encodePacked(
+        delete addressArrayStorage[keccak256(abi.encode(
             CONFIRMATIONS, miningKey, VOTERS
         ))];
         emit ChangeRequestInitiated(miningKey);
@@ -322,7 +322,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(abi.encodePacked(
+        return bytes32Storage[keccak256(abi.encode(
             _storeName(_pending), _miningKey, FIRST_NAME
         ))];
     }
@@ -332,7 +332,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(abi.encodePacked(
+        return bytes32Storage[keccak256(abi.encode(
             _storeName(_pending), _miningKey, LAST_NAME
         ))];
     }
@@ -342,7 +342,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(abi.encodePacked(
+        return bytes32Storage[keccak256(abi.encode(
             _storeName(_pending), _miningKey, LICENSE_ID
         ))];
     }
@@ -352,7 +352,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         view
         returns(string)
     {
-        return stringStorage[keccak256(abi.encodePacked(
+        return stringStorage[keccak256(abi.encode(
             _storeName(_pending), _miningKey, FULL_ADDRESS
         ))];
     }
@@ -362,7 +362,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(abi.encodePacked(
+        return bytes32Storage[keccak256(abi.encode(
             _storeName(_pending), _miningKey, STATE
         ))];
     }
@@ -372,7 +372,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         view
         returns(bytes32)
     {
-        return bytes32Storage[keccak256(abi.encodePacked(
+        return bytes32Storage[keccak256(abi.encode(
             _storeName(_pending), _miningKey, ZIP_CODE
         ))];
     }
@@ -382,7 +382,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         view
         returns(uint256)
     {
-        return uintStorage[keccak256(abi.encodePacked(
+        return uintStorage[keccak256(abi.encode(
             _storeName(_pending), _miningKey, EXPIRATION_DATE
         ))];
     }
@@ -392,7 +392,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         view
         returns(uint256)
     {
-        return uintStorage[keccak256(abi.encodePacked(
+        return uintStorage[keccak256(abi.encode(
             _storeName(_pending), _miningKey, CREATED_DATE
         ))];
     }
@@ -402,7 +402,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         view
         returns(uint256)
     {
-        return uintStorage[keccak256(abi.encodePacked(
+        return uintStorage[keccak256(abi.encode(
             _storeName(_pending), _miningKey, UPDATED_DATE
         ))];
     }
@@ -412,7 +412,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         view
         returns(uint256)
     {
-        return uintStorage[keccak256(abi.encodePacked(
+        return uintStorage[keccak256(abi.encode(
             _storeName(_pending), _miningKey, MIN_THRESHOLD
         ))];
     }
@@ -422,7 +422,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         view
         returns(address[] voters)
     {
-        voters = addressArrayStorage[keccak256(abi.encodePacked(
+        voters = addressArrayStorage[keccak256(abi.encode(
             CONFIRMATIONS, _miningKey, VOTERS
         ))];
     }
@@ -458,16 +458,16 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
 
     function _deleteMetadata(bool _pending, address _miningKey) private {
         string memory _store = _storeName(_pending);
-        delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, FIRST_NAME))];
-        delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, LAST_NAME))];
-        delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, LICENSE_ID))];
-        delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, STATE))];
-        delete stringStorage[keccak256(abi.encodePacked(_store, _miningKey, FULL_ADDRESS))];
-        delete bytes32Storage[keccak256(abi.encodePacked(_store, _miningKey, ZIP_CODE))];
-        delete uintStorage[keccak256(abi.encodePacked(_store, _miningKey, EXPIRATION_DATE))];
-        delete uintStorage[keccak256(abi.encodePacked(_store, _miningKey, CREATED_DATE))];
-        delete uintStorage[keccak256(abi.encodePacked(_store, _miningKey, UPDATED_DATE))];
-        delete uintStorage[keccak256(abi.encodePacked(_store, _miningKey, MIN_THRESHOLD))];
+        delete bytes32Storage[keccak256(abi.encode(_store, _miningKey, FIRST_NAME))];
+        delete bytes32Storage[keccak256(abi.encode(_store, _miningKey, LAST_NAME))];
+        delete bytes32Storage[keccak256(abi.encode(_store, _miningKey, LICENSE_ID))];
+        delete bytes32Storage[keccak256(abi.encode(_store, _miningKey, STATE))];
+        delete stringStorage[keccak256(abi.encode(_store, _miningKey, FULL_ADDRESS))];
+        delete bytes32Storage[keccak256(abi.encode(_store, _miningKey, ZIP_CODE))];
+        delete uintStorage[keccak256(abi.encode(_store, _miningKey, EXPIRATION_DATE))];
+        delete uintStorage[keccak256(abi.encode(_store, _miningKey, CREATED_DATE))];
+        delete uintStorage[keccak256(abi.encode(_store, _miningKey, UPDATED_DATE))];
+        delete uintStorage[keccak256(abi.encode(_store, _miningKey, MIN_THRESHOLD))];
     }
 
     function _moveMetadata(bool _pending, address _oldMiningKey, address _newMiningKey) private {
@@ -489,7 +489,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     }
 
     function _setFirstName(bool _pending, address _miningKey, bytes32 _firstName) private {
-        bytes32Storage[keccak256(abi.encodePacked(
+        bytes32Storage[keccak256(abi.encode(
             _storeName(_pending),
             _miningKey,
             FIRST_NAME
@@ -497,7 +497,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     }
 
     function _setLastName(bool _pending, address _miningKey, bytes32 _lastName) private {
-        bytes32Storage[keccak256(abi.encodePacked(
+        bytes32Storage[keccak256(abi.encode(
             _storeName(_pending),
             _miningKey,
             LAST_NAME
@@ -505,7 +505,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     }
 
     function _setLicenseId(bool _pending, address _miningKey, bytes32 _licenseId) private {
-        bytes32Storage[keccak256(abi.encodePacked(
+        bytes32Storage[keccak256(abi.encode(
             _storeName(_pending),
             _miningKey,
             LICENSE_ID
@@ -513,7 +513,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     }
 
     function _setState(bool _pending, address _miningKey, bytes32 _state) private {
-        bytes32Storage[keccak256(abi.encodePacked(
+        bytes32Storage[keccak256(abi.encode(
             _storeName(_pending),
             _miningKey,
             STATE
@@ -525,7 +525,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         address _miningKey,
         string _fullAddress
     ) private {
-        stringStorage[keccak256(abi.encodePacked(
+        stringStorage[keccak256(abi.encode(
             _storeName(_pending),
             _miningKey,
             FULL_ADDRESS
@@ -533,7 +533,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     }
 
     function _setZipcode(bool _pending, address _miningKey, bytes32 _zipcode) private {
-        bytes32Storage[keccak256(abi.encodePacked(
+        bytes32Storage[keccak256(abi.encode(
             _storeName(_pending),
             _miningKey,
             ZIP_CODE
@@ -545,7 +545,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         address _miningKey,
         uint256 _expirationDate
     ) private {
-        uintStorage[keccak256(abi.encodePacked(
+        uintStorage[keccak256(abi.encode(
             _storeName(_pending),
             _miningKey,
             EXPIRATION_DATE
@@ -557,7 +557,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         address _miningKey,
         uint256 _createdDate
     ) private {
-        uintStorage[keccak256(abi.encodePacked(
+        uintStorage[keccak256(abi.encode(
             _storeName(_pending),
             _miningKey,
             CREATED_DATE
@@ -569,7 +569,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         address _miningKey,
         uint256 _updatedDate
     ) private {
-        uintStorage[keccak256(abi.encodePacked(
+        uintStorage[keccak256(abi.encode(
             _storeName(_pending),
             _miningKey,
             UPDATED_DATE
@@ -607,7 +607,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         address _miningKey,
         uint256 _minThreshold
     ) private {
-        uintStorage[keccak256(abi.encodePacked(
+        uintStorage[keccak256(abi.encode(
             _storeName(_pending),
             _miningKey,
             MIN_THRESHOLD
@@ -615,7 +615,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     }
 
     function _confirmationsVoterAdd(address _miningKey, address _voterMiningKey) private {
-        addressArrayStorage[keccak256(abi.encodePacked(
+        addressArrayStorage[keccak256(abi.encode(
             CONFIRMATIONS, _miningKey, VOTERS
         ))].push(_voterMiningKey);
     }

@@ -80,9 +80,9 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
     ) public onlyOwner {
         require(!initDisabled());
         require(_thresholds.length == uint256(ThresholdTypes.MetadataChange));
-        require(_thresholds.length <= 255);
+        require(_thresholds.length < 255);
         for (uint8 thresholdType = uint8(ThresholdTypes.Keys); thresholdType <= _thresholds.length; thresholdType++) {
-            uint256 thresholdValue = _thresholds[thresholdType - 1];
+            uint256 thresholdValue = _thresholds[thresholdType - uint8(ThresholdTypes.Keys)];
             require(thresholdValue > 0);
             _setThreshold(thresholdValue, thresholdType);
         }
@@ -111,7 +111,7 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
         onlyVotingToChangeThreshold
         returns(bool)
     {
-        if (_thresholdType == 0) return false;
+        if (_thresholdType == uint8(ThresholdTypes.Invalid)) return false;
         if (_thresholdType > uint8(ThresholdTypes.MetadataChange)) return false;
         if (_newValue == 0) return false;
         if (_newValue == getBallotThreshold(_thresholdType)) return false;
@@ -121,7 +121,7 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
     }
 
     function getBallotThreshold(uint8 _ballotType) public view returns(uint256) {
-        return uintStorage[keccak256(abi.encodePacked(BALLOT_THRESHOLDS, _ballotType))];
+        return uintStorage[keccak256(abi.encode(BALLOT_THRESHOLDS, _ballotType))];
     }
 
     function getVotingToChangeThreshold() public view returns(address) {
@@ -233,7 +233,7 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
 
     function _setThreshold(uint256 _newValue, uint8 _thresholdType) internal {
         uintStorage[
-            keccak256(abi.encodePacked(BALLOT_THRESHOLDS, _thresholdType))
+            keccak256(abi.encode(BALLOT_THRESHOLDS, _thresholdType))
         ] = _newValue;
     }
 }
