@@ -64,6 +64,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
 
     metadata = await ValidatorMetadata.new();
     metadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, metadata.address);
+    metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
     
     await proxyStorageMock.initializeAddresses(
       keysManager.address,
@@ -76,16 +77,15 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       accounts[0]
     );
     
-    metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
-    
     await addMiningKey(miningKey);
     await addVotingKey(votingKey, miningKey);
     await addMiningKey(miningKey2);
     await addVotingKey(votingKey2, miningKey2);
     await addMiningKey(miningKey3);
     await addVotingKey(votingKey3, miningKey3);
+
     await metadata.setTime(55555);
-  })
+  });
 
   describe('#createMetadata', async () => {
     it('happy path', async () => {
@@ -127,7 +127,198 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
       await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
     });
-  })
+  });
+
+  describe('#clearMetadata', async () => {
+    it('happy path', async () => {
+      let result = await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
+      (await metadata.validators.call(miningKey)).should.be.deep.equal([
+        toHex("Djamshut"),
+        toHex("Roosvelt"),
+        pad(web3.toHex("123asd")),
+        "Moskva",
+        toHex("ZZ"),
+        pad(web3.toHex("234")),
+        new web3.BigNumber(23423),
+        new web3.BigNumber(55555),
+        new web3.BigNumber(0),
+        new web3.BigNumber(2)
+      ]);
+      result.logs[0].event.should.be.equal('MetadataCreated');
+      result.logs[0].args.miningKey.should.be.equal(miningKey);
+
+      await metadata.setTime(4444);
+      result = await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
+      (await metadata.pendingChanges.call(miningKey)).should.be.deep.equal([
+        toHex("Feodosiy"),
+        toHex("Kennedy"),
+        pad(web3.toHex("123123")),
+        "Petrovka 38",
+        toHex("ZA"),
+        pad(web3.toHex("1337")),
+        new web3.BigNumber(71),
+        new web3.BigNumber(55555),
+        new web3.BigNumber(4444),
+        new web3.BigNumber(2)
+      ]);
+      result.logs[0].event.should.be.equal("ChangeRequestInitiated");
+      result.logs[0].args.miningKey.should.be.equal(miningKey);
+
+      await proxyStorageMock.setKeysManagerMock(accounts[0]);
+      result = await metadata.clearMetadata(miningKey);
+      result.logs[0].event.should.be.equal('MetadataCleared');
+      result.logs[0].args.miningKey.should.be.equal(miningKey);
+      await proxyStorageMock.setKeysManagerMock(keysManager.address);
+
+      (await metadata.validators.call(miningKey)).should.be.deep.equal([
+        toHex(""),
+        toHex(""),
+        toHex(""),
+        "",
+        toHex(""),
+        toHex(""),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0)
+      ]);
+
+      (await metadata.pendingChanges.call(miningKey)).should.be.deep.equal([
+        toHex(""),
+        toHex(""),
+        toHex(""),
+        "",
+        toHex(""),
+        toHex(""),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0)
+      ]);
+    });
+  });
+
+  describe('#moveMetadata', async () => {
+    it('happy path', async () => {
+      let result = await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
+      (await metadata.validators.call(miningKey)).should.be.deep.equal([
+        toHex("Djamshut"),
+        toHex("Roosvelt"),
+        pad(web3.toHex("123asd")),
+        "Moskva",
+        toHex("ZZ"),
+        pad(web3.toHex("234")),
+        new web3.BigNumber(23423),
+        new web3.BigNumber(55555),
+        new web3.BigNumber(0),
+        new web3.BigNumber(2)
+      ]);
+      result.logs[0].event.should.be.equal('MetadataCreated');
+      result.logs[0].args.miningKey.should.be.equal(miningKey);
+
+      await metadata.setTime(4444);
+      result = await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
+      (await metadata.pendingChanges.call(miningKey)).should.be.deep.equal([
+        toHex("Feodosiy"),
+        toHex("Kennedy"),
+        pad(web3.toHex("123123")),
+        "Petrovka 38",
+        toHex("ZA"),
+        pad(web3.toHex("1337")),
+        new web3.BigNumber(71),
+        new web3.BigNumber(55555),
+        new web3.BigNumber(4444),
+        new web3.BigNumber(2)
+      ]);
+      result.logs[0].event.should.be.equal("ChangeRequestInitiated");
+      result.logs[0].args.miningKey.should.be.equal(miningKey);
+
+      (await metadata.validators.call(miningKey2)).should.be.deep.equal([
+        toHex(""),
+        toHex(""),
+        toHex(""),
+        "",
+        toHex(""),
+        toHex(""),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0)
+      ]);
+
+      (await metadata.pendingChanges.call(miningKey2)).should.be.deep.equal([
+        toHex(""),
+        toHex(""),
+        toHex(""),
+        "",
+        toHex(""),
+        toHex(""),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0)
+      ]);
+
+      await proxyStorageMock.setKeysManagerMock(accounts[0]);
+      result = await metadata.moveMetadata(miningKey, miningKey2);
+      result.logs[0].event.should.be.equal('MetadataMoved');
+      result.logs[0].args.oldMiningKey.should.be.equal(miningKey);
+      result.logs[0].args.newMiningKey.should.be.equal(miningKey2);
+      await proxyStorageMock.setKeysManagerMock(keysManager.address);
+
+      (await metadata.validators.call(miningKey)).should.be.deep.equal([
+        toHex(""),
+        toHex(""),
+        toHex(""),
+        "",
+        toHex(""),
+        toHex(""),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0)
+      ]);
+
+      (await metadata.pendingChanges.call(miningKey)).should.be.deep.equal([
+        toHex(""),
+        toHex(""),
+        toHex(""),
+        "",
+        toHex(""),
+        toHex(""),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0)
+      ]);
+
+      (await metadata.validators.call(miningKey2)).should.be.deep.equal([
+        toHex("Djamshut"),
+        toHex("Roosvelt"),
+        pad(web3.toHex("123asd")),
+        "Moskva",
+        toHex("ZZ"),
+        pad(web3.toHex("234")),
+        new web3.BigNumber(23423),
+        new web3.BigNumber(55555),
+        new web3.BigNumber(0),
+        new web3.BigNumber(2)
+      ]);
+
+      (await metadata.pendingChanges.call(miningKey2)).should.be.deep.equal([
+        toHex("Feodosiy"),
+        toHex("Kennedy"),
+        pad(web3.toHex("123123")),
+        "Petrovka 38",
+        toHex("ZA"),
+        pad(web3.toHex("1337")),
+        new web3.BigNumber(71),
+        new web3.BigNumber(55555),
+        new web3.BigNumber(4444),
+        new web3.BigNumber(2)
+      ]);
+    });
+  });
 
   describe('#initMetadata', async () => {
     it('happy path', async () => {

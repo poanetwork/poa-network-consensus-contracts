@@ -1,7 +1,9 @@
+let BallotsStorage = artifacts.require('./BallotsStorage');
 let PoaNetworkConsensusMock = artifacts.require('./PoaNetworkConsensusMock');
 let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let KeysManagerNew = artifacts.require('./upgradeContracts/KeysManagerNew');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
+let ValidatorMetadata = artifacts.require('./mockContracts/ValidatorMetadataMock');
 let EternalStorageProxy = artifacts.require('./EternalStorageProxyMock');
 
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
@@ -13,6 +15,7 @@ require('chai')
 let keysManager, keysManagerEternalStorage;
 contract('KeysManager upgraded [all features]', function (accounts) {
   let poaNetworkConsensusMock, proxyStorageMock;
+  let validatorMetadata;
 
   beforeEach(async () => {
     masterOfCeremony = accounts[0];
@@ -34,6 +37,15 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       "0x0000000000000000000000000000000000000000"
     ).should.be.fulfilled;
 
+    let ballotsStorage = await BallotsStorage.new();
+    let ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
+    ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
+    await ballotsStorage.init([3, 2]).should.be.fulfilled;
+
+    validatorMetadata = await ValidatorMetadata.new();
+    let validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, validatorMetadata.address);
+    validatorMetadata = ValidatorMetadata.at(validatorMetadataEternalStorage.address);
+
     let keysManagerNew = await KeysManagerNew.new();
     await keysManagerEternalStorage.setProxyStorage(accounts[6]);
     const {logs} = await keysManagerEternalStorage.upgradeTo(keysManagerNew.address, {from: accounts[6]});
@@ -49,8 +61,8 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       accounts[0],
       accounts[0],
       accounts[0],
-      accounts[0],
-      accounts[0],
+      ballotsStorage.address,
+      validatorMetadata.address,
       accounts[0]
     );
   });
@@ -398,7 +410,40 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       await keysManager.removeMiningKey(accounts[1], {from: accounts[3]}).should.be.rejectedWith(ERROR_MSG);
       await addMiningKey(accounts[1], true);
       await addVotingKey(accounts[3], accounts[1], true);
+
+      const validatorData = [
+        "Djamshut", "Roosvelt", "123asd", "Moskva", "ZZ", "234", 23423
+      ];
+      await validatorMetadata.setTime(55555);
+      await validatorMetadata.createMetadata(...validatorData, {from: accounts[3]}).should.be.fulfilled;
+      (await validatorMetadata.validators.call(accounts[1])).should.be.deep.equal([
+        toHex("Djamshut"),
+        toHex("Roosvelt"),
+        pad(web3.toHex("123asd")),
+        "Moskva",
+        toHex("ZZ"),
+        pad(web3.toHex("234")),
+        new web3.BigNumber(23423),
+        new web3.BigNumber(55555),
+        new web3.BigNumber(0),
+        new web3.BigNumber(2)
+      ]);
+
       const {logs} = await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
+
+      (await validatorMetadata.validators.call(accounts[1])).should.be.deep.equal([
+        toHex(""),
+        toHex(""),
+        toHex(""),
+        "",
+        toHex(""),
+        toHex(""),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0)
+      ]);
+      
       const validator = await keysManager.validatorKeys.call(accounts[1]);
       validator.should.be.deep.equal(
         [ '0x0000000000000000000000000000000000000000',
@@ -406,7 +451,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
         false,
         false,
         false ]
-      )
+      );
       logs[0].event.should.be.equal('MiningKeyChanged');
       logs[0].args.key.should.be.equal(accounts[1]);
       logs[0].args.action.should.be.equal('removed');
@@ -592,24 +637,60 @@ contract('KeysManager upgraded [all features]', function (accounts) {
     it('should swap mining key', async () => {
       await keysManager.swapMiningKey(accounts[1], accounts[2], {from: accounts[4]}).should.be.rejectedWith(ERROR_MSG);
       await addMiningKey(accounts[1], true);
+      await addVotingKey(accounts[5], accounts[1], true);
+
+      const validatorData = [
+        "Djamshut", "Roosvelt", "123asd", "Moskva", "ZZ", "234", 23423
+      ];
+      await validatorMetadata.setTime(55555);
+      await validatorMetadata.createMetadata(...validatorData, {from: accounts[5]}).should.be.fulfilled;
+
       await swapMiningKey(accounts[2], accounts[1], true);
       await swapMiningKey(accounts[4], accounts[3], false);
+
       const validator = await keysManager.validatorKeys.call(accounts[1]);
-      validator.should.be.deep.equal(
-        [ '0x0000000000000000000000000000000000000000',
+      validator.should.be.deep.equal([
+        '0x0000000000000000000000000000000000000000',
         '0x0000000000000000000000000000000000000000',
         false,
         false,
-        false ]
-      )
+        false
+      ]);
+
       const validatorNew = await keysManager.validatorKeys.call(accounts[2]);
-      validatorNew.should.be.deep.equal(
-        [ '0x0000000000000000000000000000000000000000',
+      validatorNew.should.be.deep.equal([
+        accounts[5],
         '0x0000000000000000000000000000000000000000',
         true,
-        false,
-        false]
-      )
+        true,
+        false
+      ]);
+
+      (await validatorMetadata.validators.call(accounts[2])).should.be.deep.equal([
+        toHex("Djamshut"),
+        toHex("Roosvelt"),
+        pad(web3.toHex("123asd")),
+        "Moskva",
+        toHex("ZZ"),
+        pad(web3.toHex("234")),
+        new web3.BigNumber(23423),
+        new web3.BigNumber(55555),
+        new web3.BigNumber(0),
+        new web3.BigNumber(2)
+      ]);
+
+      (await validatorMetadata.validators.call(accounts[1])).should.be.deep.equal([
+        toHex(""),
+        toHex(""),
+        toHex(""),
+        "",
+        toHex(""),
+        toHex(""),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0),
+        new web3.BigNumber(0)
+      ]);
     });
     it('should swap MoC', async () => {
       (await keysManager.masterOfCeremony.call()).should.be.equal(masterOfCeremony);
@@ -845,6 +926,19 @@ contract('KeysManager upgraded [all features]', function (accounts) {
     })
   });
 });
+
+function toHex(someString) {
+  var hex = '0x' + new Buffer(someString).toString('hex');
+  hex = pad(hex);
+  return hex;
+}
+
+function pad(hex) {
+  while(hex.length !== 66){
+    hex = hex + '0';
+  }
+  return hex;
+}
 
 async function addMiningKey(_key, _shouldBeSuccessful, options) {
   const result = await keysManager.addMiningKey(_key, options);

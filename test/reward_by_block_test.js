@@ -4,6 +4,7 @@ const EternalStorageProxy = artifacts.require('./mockContracts/EternalStoragePro
 const KeysManager = artifacts.require('./mockContracts/KeysManagerMock');
 const PoaNetworkConsensus = artifacts.require('./mockContracts/PoaNetworkConsensusMock');
 const ProxyStorage = artifacts.require('./mockContracts/ProxyStorageMock');
+const ValidatorMetadata = artifacts.require('./ValidatorMetadata');
 const {getRandomInt} = require('./utils/helpers');
 
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
@@ -57,6 +58,9 @@ contract('RewardByBlock [all features]', function (accounts) {
       "0x0000000000000000000000000000000000000000"
     ).should.be.fulfilled;
 
+    const validatorMetadata = await ValidatorMetadata.new();
+    const validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorage.address, validatorMetadata.address);
+
     await proxyStorage.initializeAddresses(
       keysManagerEternalStorage.address,
       votingToChangeKeys,
@@ -64,7 +68,7 @@ contract('RewardByBlock [all features]', function (accounts) {
       accounts[9],
       accounts[9],
       accounts[9],
-      accounts[9],
+      validatorMetadataEternalStorage.address,
       accounts[9]
     );
 

@@ -5,6 +5,7 @@ let Voting = artifacts.require('./mockContracts/VotingToChangeMinThresholdMock')
 let VotingNew = artifacts.require('./upgradeContracts/VotingToChangeMinThresholdNew');
 let VotingForKeys = artifacts.require('./mockContracts/VotingToChangeKeysMock');
 let BallotsStorage = artifacts.require('./mockContracts/BallotsStorageMock');
+let ValidatorMetadata = artifacts.require('./ValidatorMetadata');
 let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 const moment = require('moment');
@@ -47,6 +48,9 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     
     ballotsStorage = await BallotsStorage.new();
     const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
+
+    const validatorMetadata = await ValidatorMetadata.new();
+    const validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, validatorMetadata.address);
     
     await poaNetworkConsensusMock.setProxyStorage(proxyStorageMock.address);
     
@@ -63,7 +67,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       accounts[0],
       accounts[0],
       ballotsEternalStorage.address,
-      accounts[0],
+      validatorMetadataEternalStorage.address,
       accounts[0]
     );
     

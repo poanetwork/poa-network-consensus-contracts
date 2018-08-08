@@ -11,6 +11,7 @@ interface IProxyStorage {
     function getBallotsStorage() external view returns(address);
     function getKeysManager() external view returns(address);
     function getPoaConsensus() external view returns(address);
+    function getValidatorMetadata() external view returns(address);
     function getVotingToChangeKeys() external view returns(address);
     function getVotingToChangeMinThreshold() external view returns(address);
 }

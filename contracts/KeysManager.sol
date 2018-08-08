@@ -4,6 +4,7 @@ import "./libs/SafeMath.sol";
 import "./interfaces/IPoaNetworkConsensus.sol";
 import "./interfaces/IKeysManager.sol";
 import "./interfaces/IProxyStorage.sol";
+import "./interfaces/IValidatorMetadata.sol";
 import "./eternal-storage/EternalStorage.sol";
 
 
@@ -397,6 +398,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setMiningKeyByVoting(votingKey, address(0));
         _setMiningKeyByPayout(payoutKey, address(0));
         _clearMiningKey(_key);
+        IValidatorMetadata(_getValidatorMetadata()).clearMetadata(_key);
         emit MiningKeyChanged(_key, "removed");
         if (votingKey != address(0)) {
             emit VotingKeyChanged(votingKey, _key, "removed");
@@ -444,6 +446,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _clearMiningKey(_oldMiningKey);
         _setMiningKeyByVoting(votingKey, _key);
         _setMiningKeyByPayout(payoutKey, _key);
+        IValidatorMetadata(_getValidatorMetadata()).moveMetadata(_oldMiningKey, _key);
         emit MiningKeyChanged(_key, "swapped");
         return true;
     }
@@ -489,6 +492,10 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsMiningActive(false, _miningKey);
         _setIsVotingActive(false, _miningKey);
         _setIsPayoutActive(false, _miningKey);
+    }
+
+    function _getValidatorMetadata() private view returns(address) {
+        return IProxyStorage(proxyStorage()).getValidatorMetadata();
     }
 
     function _removeVotingKey(address _miningKey) private {
