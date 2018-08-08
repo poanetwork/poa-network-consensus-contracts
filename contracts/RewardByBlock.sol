@@ -93,7 +93,7 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
 
     function extraReceiversAmounts(address _receiver) public view returns(uint256) {
         return uintStorage[
-            keccak256(abi.encodePacked(EXTRA_RECEIVERS_AMOUNTS, _receiver))
+            keccak256(abi.encode(EXTRA_RECEIVERS_AMOUNTS, _receiver))
         ];
     }
 
@@ -138,7 +138,7 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
 
     function _setExtraReceiverAmount(address _receiver, uint256 _amount) private {
         uintStorage[
-            keccak256(abi.encodePacked(EXTRA_RECEIVERS_AMOUNTS, _receiver))
+            keccak256(abi.encode(EXTRA_RECEIVERS_AMOUNTS, _receiver))
         ] = _amount;
     }
 }

@@ -47,7 +47,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function getIndex(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, INDEX))];
+        return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, INDEX))];
     }
 
     function init(uint256 _minBallotDuration) public {
@@ -101,7 +101,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
 
     function validatorActiveBallots(address _miningKey) public view returns(uint256) {
         return uintStorage[
-            keccak256(abi.encodePacked(VALIDATOR_ACTIVE_BALLOTS, _miningKey))
+            keccak256(abi.encode(VALIDATOR_ACTIVE_BALLOTS, _miningKey))
         ];
     }
 
@@ -243,16 +243,16 @@ contract VotingToChange is IVotingToChange, VotingTo {
 
     function _getFinalizeCalled(uint256 _id) internal view returns(bool) {
         return boolStorage[
-            keccak256(abi.encodePacked(FINALIZE_CALLED, _id))
+            keccak256(abi.encode(FINALIZE_CALLED, _id))
         ];
     }
 
     function _getProgress(uint256 _id) internal view returns(int) {
-        return intStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, PROGRESS))];
+        return intStorage[keccak256(abi.encode(VOTING_STATE, _id, PROGRESS))];
     }
 
     function _getTotalVoters(uint256 _id) internal view returns(uint256) {
-        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, TOTAL_VOTERS))];
+        return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, TOTAL_VOTERS))];
     }
 
     function _increaseValidatorLimit(address _miningKey) internal {
@@ -296,31 +296,31 @@ contract VotingToChange is IVotingToChange, VotingTo {
 
     function _setIndex(uint256 _ballotId, uint256 _value) internal {
         uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, INDEX))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, INDEX))
         ] = _value;
     }
 
     function _setFinalizeCalled(uint256 _id) internal {
         boolStorage[
-            keccak256(abi.encodePacked(FINALIZE_CALLED, _id))
+            keccak256(abi.encode(FINALIZE_CALLED, _id))
         ] = true;
     }
 
     function _setProgress(uint256 _ballotId, int256 _value) internal {
         intStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, PROGRESS))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, PROGRESS))
         ] = _value;
     }
 
     function _setTotalVoters(uint256 _ballotId, uint256 _value) internal {
         uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, TOTAL_VOTERS))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, TOTAL_VOTERS))
         ] = _value;
     }
 
     function _setValidatorActiveBallots(address _miningKey, uint256 _count) internal {
         uintStorage[
-            keccak256(abi.encodePacked(VALIDATOR_ACTIVE_BALLOTS, _miningKey))
+            keccak256(abi.encode(VALIDATOR_ACTIVE_BALLOTS, _miningKey))
         ] = _count;
     }
 

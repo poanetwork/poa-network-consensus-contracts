@@ -136,31 +136,31 @@ contract KeysManager is EternalStorage, IKeysManager {
 
     function getInitialKeyStatus(address _initialKey) public view returns(uint8) {
         return uint8(uintStorage[
-            keccak256(abi.encodePacked(INITIAL_KEY_STATUS, _initialKey))
+            keccak256(abi.encode(INITIAL_KEY_STATUS, _initialKey))
         ]);
     }
 
     function miningKeyByPayout(address _payoutKey) public view returns(address) {
         return addressStorage[
-            keccak256(abi.encodePacked(MINING_KEY_BY_PAYOUT, _payoutKey))
+            keccak256(abi.encode(MINING_KEY_BY_PAYOUT, _payoutKey))
         ];
     }
 
     function miningKeyByVoting(address _votingKey) public view returns(address) {
         return addressStorage[
-            keccak256(abi.encodePacked(MINING_KEY_BY_VOTING, _votingKey))
+            keccak256(abi.encode(MINING_KEY_BY_VOTING, _votingKey))
         ];
     }
 
     function miningKeyHistory(address _miningKey) public view returns(address) {
         return addressStorage[
-            keccak256(abi.encodePacked(MINING_KEY_HISTORY, _miningKey))
+            keccak256(abi.encode(MINING_KEY_HISTORY, _miningKey))
         ];
     }
 
     function successfulValidatorClone(address _miningKey) public view returns(bool) {
         return boolStorage[
-            keccak256(abi.encodePacked(SUCCESSFUL_VALIDATOR_CLONE, _miningKey))
+            keccak256(abi.encode(SUCCESSFUL_VALIDATOR_CLONE, _miningKey))
         ];
     }
 
@@ -310,7 +310,7 @@ contract KeysManager is EternalStorage, IKeysManager {
 
     function isMiningActive(address _key) public view returns(bool) {
         return boolStorage[
-            keccak256(abi.encodePacked(VALIDATOR_KEYS, _key, IS_MINING_ACTIVE))
+            keccak256(abi.encode(VALIDATOR_KEYS, _key, IS_MINING_ACTIVE))
         ];
     }
 
@@ -321,25 +321,25 @@ contract KeysManager is EternalStorage, IKeysManager {
 
     function isVotingActiveByMiningKey(address _miningKey) public view returns(bool) {
         return boolStorage[
-            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, IS_VOTING_ACTIVE))
+            keccak256(abi.encode(VALIDATOR_KEYS, _miningKey, IS_VOTING_ACTIVE))
         ];
     }
 
     function isPayoutActive(address _miningKey) public view returns(bool) {
         return boolStorage[
-            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, IS_PAYOUT_ACTIVE))
+            keccak256(abi.encode(VALIDATOR_KEYS, _miningKey, IS_PAYOUT_ACTIVE))
         ];
     }
 
     function getVotingByMining(address _miningKey) public view returns(address) {
         return addressStorage[
-            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, VOTING_KEY))
+            keccak256(abi.encode(VALIDATOR_KEYS, _miningKey, VOTING_KEY))
         ];
     }
 
     function getPayoutByMining(address _miningKey) public view returns(address) {
         return addressStorage[
-            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, PAYOUT_KEY))
+            keccak256(abi.encode(VALIDATOR_KEYS, _miningKey, PAYOUT_KEY))
         ];
     }
 
@@ -536,63 +536,63 @@ contract KeysManager is EternalStorage, IKeysManager {
 
     function _setInitialKeyStatus(address _initialKey, uint8 _status) private {
         uintStorage[
-            keccak256(abi.encodePacked(INITIAL_KEY_STATUS, _initialKey))
+            keccak256(abi.encode(INITIAL_KEY_STATUS, _initialKey))
         ] = _status;
     }
 
     function _setVotingKey(address _key, address _miningKey) private {
         addressStorage[
-            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, VOTING_KEY))
+            keccak256(abi.encode(VALIDATOR_KEYS, _miningKey, VOTING_KEY))
         ] = _key;
     }
 
     function _setPayoutKey(address _key, address _miningKey) private {
         addressStorage[
-            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, PAYOUT_KEY))
+            keccak256(abi.encode(VALIDATOR_KEYS, _miningKey, PAYOUT_KEY))
         ] = _key;
     }
 
     function _setIsMiningActive(bool _active, address _miningKey) private {
         boolStorage[
-            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, IS_MINING_ACTIVE))
+            keccak256(abi.encode(VALIDATOR_KEYS, _miningKey, IS_MINING_ACTIVE))
         ] = _active;
     }
 
     function _setIsVotingActive(bool _active, address _miningKey) private {
         boolStorage[
-            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, IS_VOTING_ACTIVE))
+            keccak256(abi.encode(VALIDATOR_KEYS, _miningKey, IS_VOTING_ACTIVE))
         ] = _active;
     }
 
     function _setIsPayoutActive(bool _active, address _miningKey) private {
         boolStorage[
-            keccak256(abi.encodePacked(VALIDATOR_KEYS, _miningKey, IS_PAYOUT_ACTIVE))
+            keccak256(abi.encode(VALIDATOR_KEYS, _miningKey, IS_PAYOUT_ACTIVE))
         ] = _active;
     }
 
     function _setMiningKeyByPayout(address _payoutKey, address _miningKey) private {
         if (_payoutKey == address(0)) return;
         addressStorage[
-            keccak256(abi.encodePacked(MINING_KEY_BY_PAYOUT, _payoutKey))
+            keccak256(abi.encode(MINING_KEY_BY_PAYOUT, _payoutKey))
         ] = _miningKey;
     }
 
     function _setMiningKeyByVoting(address _votingKey, address _miningKey) private {
         if (_votingKey == address(0)) return;
         addressStorage[
-            keccak256(abi.encodePacked(MINING_KEY_BY_VOTING, _votingKey))
+            keccak256(abi.encode(MINING_KEY_BY_VOTING, _votingKey))
         ] = _miningKey;
     }
 
     function _setMiningKeyHistory(address _key, address _oldMiningKey) private {
         addressStorage[
-            keccak256(abi.encodePacked(MINING_KEY_HISTORY, _key))
+            keccak256(abi.encode(MINING_KEY_HISTORY, _key))
         ] = _oldMiningKey;
     }
 
     function _setSuccessfulValidatorClone(bool _success, address _miningKey) private {
         boolStorage[
-            keccak256(abi.encodePacked(SUCCESSFUL_VALIDATOR_CLONE, _miningKey))
+            keccak256(abi.encode(SUCCESSFUL_VALIDATOR_CLONE, _miningKey))
         ] = _success;
     }
 

@@ -80,13 +80,13 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
 
     function getMinThresholdOfVoters(uint256 _id) public view returns(uint256) {
         return uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, MIN_THRESHOLD_OF_VOTERS))
+            keccak256(abi.encode(VOTING_STATE, _id, MIN_THRESHOLD_OF_VOTERS))
         ];
     }
 
     function getQuorumState(uint256 _id) public view returns(uint8) {
         return uint8(uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, QUORUM_STATE))
+            keccak256(abi.encode(VOTING_STATE, _id, QUORUM_STATE))
         ]);
     }
 
@@ -158,13 +158,13 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
 
     function _getCreator(uint256 _id) internal view returns(address) {
         return addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, CREATOR))
+            keccak256(abi.encode(VOTING_STATE, _id, CREATOR))
         ];
     }
 
     function _getEndTime(uint256 _id) internal view returns(uint256) {
         return uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, END_TIME))
+            keccak256(abi.encode(VOTING_STATE, _id, END_TIME))
         ];
     }
 
@@ -175,7 +175,7 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
 
     function _getIsFinalized(uint256 _id) internal view returns(bool) {
         return boolStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, IS_FINALIZED))
+            keccak256(abi.encode(VOTING_STATE, _id, IS_FINALIZED))
         ];
     }
 
@@ -185,7 +185,7 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
 
     function _getMemo(uint256 _id) internal view returns(string) {
         return stringStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, MEMO))
+            keccak256(abi.encode(VOTING_STATE, _id, MEMO))
         ];
     }
 
@@ -196,7 +196,7 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
 
     function _getStartTime(uint256 _id) internal view returns(uint256) {
         return uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, START_TIME))
+            keccak256(abi.encode(VOTING_STATE, _id, START_TIME))
         ];
     }
 
@@ -206,37 +206,37 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
         returns(bool)
     {
         return boolStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _id, VOTERS, _miningKey))
+            keccak256(abi.encode(VOTING_STATE, _id, VOTERS, _miningKey))
         ];
     }
 
     function _setCreator(uint256 _ballotId, address _value) internal {
         addressStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, CREATOR))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, CREATOR))
         ] = _value;
     }
 
     function _setEndTime(uint256 _ballotId, uint256 _value) internal {
         uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, END_TIME))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, END_TIME))
         ] = _value;
     }
 
     function _setIsFinalized(uint256 _ballotId, bool _value) internal {
         boolStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, IS_FINALIZED))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, IS_FINALIZED))
         ] = _value;
     }
 
     function _setMemo(uint256 _ballotId, string _value) internal {
         stringStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, MEMO))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, MEMO))
         ] = _value;
     }
 
     function _setMinThresholdOfVoters(uint256 _ballotId, uint256 _value) internal {
         uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, MIN_THRESHOLD_OF_VOTERS))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, MIN_THRESHOLD_OF_VOTERS))
         ] = _value;
     }
 
@@ -246,19 +246,19 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
 
     function _setQuorumState(uint256 _ballotId, uint8 _value) internal {
         uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, QUORUM_STATE))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, QUORUM_STATE))
         ] = _value;
     }
 
     function _setStartTime(uint256 _ballotId, uint256 _value) internal {
         uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, START_TIME))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, START_TIME))
         ] = _value;
     }
 
     function _votersAdd(uint256 _ballotId, address _miningKey) internal {
         boolStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, VOTERS, _miningKey))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, VOTERS, _miningKey))
         ] = true;
     }
 }

@@ -121,7 +121,7 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
     }
 
     function getBallotThreshold(uint8 _ballotType) public view returns(uint256) {
-        return uintStorage[keccak256(abi.encodePacked(BALLOT_THRESHOLDS, _ballotType))];
+        return uintStorage[keccak256(abi.encode(BALLOT_THRESHOLDS, _ballotType))];
     }
 
     function getVotingToChangeThreshold() public view returns(address) {
@@ -233,7 +233,7 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
 
     function _setThreshold(uint256 _newValue, uint8 _thresholdType) internal {
         uintStorage[
-            keccak256(abi.encodePacked(BALLOT_THRESHOLDS, _thresholdType))
+            keccak256(abi.encode(BALLOT_THRESHOLDS, _thresholdType))
         ] = _newValue;
     }
 }

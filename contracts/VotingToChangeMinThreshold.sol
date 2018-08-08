@@ -94,12 +94,12 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
     }
 
     function _getProposedValue(uint256 _id) internal view returns(uint256) {
-        return uintStorage[keccak256(abi.encodePacked(VOTING_STATE, _id, PROPOSED_VALUE))];
+        return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, PROPOSED_VALUE))];
     }
 
     function _setProposedValue(uint256 _ballotId, uint256 _value) private {
         uintStorage[
-            keccak256(abi.encodePacked(VOTING_STATE, _ballotId, PROPOSED_VALUE))
+            keccak256(abi.encode(VOTING_STATE, _ballotId, PROPOSED_VALUE))
         ] = _value;
     }
 
