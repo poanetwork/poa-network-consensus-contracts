@@ -107,7 +107,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
 
     function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
         require(!_getIsFinalized(_id));
-        address miningKey = _getMiningByVotingKey(msg.sender);
+        address miningKey = _getKeysManager().getMiningKeyByVoting(msg.sender);
         require(isValidVote(_id, msg.sender));
         if (_choice == uint(ActionChoice.Accept)) {
             _setProgress(_id, _getProgress(_id) + 1);
@@ -175,7 +175,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
         returns(uint256)
     {
         require(initDisabled());
-        address creatorMiningKey = _getMiningByVotingKey(msg.sender);
+        address creatorMiningKey = _getKeysManager().getMiningKeyByVoting(msg.sender);
         require(_withinLimit(creatorMiningKey));
         uint256 ballotId = super._createBallot(
             _ballotType,
@@ -237,8 +237,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
     function _finalizeBallotInner(uint256 _id) internal returns(bool);
 
     function _getBallotLimitPerValidator() internal view returns(uint256) {
-        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
-        return ballotsStorage.getBallotLimitPerValidator();
+        return _getBallotsStorage().getBallotLimitPerValidator();
     }
 
     function _getFinalizeCalled(uint256 _id) internal view returns(bool) {

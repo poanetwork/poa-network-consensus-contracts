@@ -38,13 +38,12 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     event FinalizedChange(address indexed miningKey);
 
     modifier onlyValidVotingKey(address _votingKey) {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
-        require(keysManager.isVotingActive(_votingKey));
+        require(_getKeysManager().isVotingActive(_votingKey));
         _;
     }
 
     modifier onlyFirstTime(address _votingKey) {
-        address miningKey = _getMiningByVotingKey(_votingKey);
+        address miningKey = _getKeysManager().getMiningKeyByVoting(_votingKey);
         require(_getCreatedDate(false, miningKey) == 0);
         _;
     }
@@ -55,7 +54,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     }
 
     modifier onlyKeysManager() {
-        require(msg.sender == _getKeysManager());
+        require(msg.sender == address(_getKeysManager()));
         _;
     }
 
@@ -63,7 +62,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         external
         onlyKeysManager
     {
-        if (_ifChangeExist(_miningKey)) {
+        if (_ifPendingExist(_miningKey)) {
             _deleteMetadata(true, _miningKey);
         }
         _deleteMetadata(false, _miningKey);
@@ -74,7 +73,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         external
         onlyKeysManager
     {
-        if (_ifChangeExist(_oldMiningKey)) {
+        if (_ifPendingExist(_oldMiningKey)) {
             _moveMetadata(true, _oldMiningKey, _newMiningKey);
         }
         _moveMetadata(false, _oldMiningKey, _newMiningKey);
@@ -148,8 +147,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         uint256 _minThreshold,
         address _miningKey
     ) public onlyOwner {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
-        require(keysManager.isMiningActive(_miningKey));
+        require(_getKeysManager().isMiningActive(_miningKey));
         require(_getCreatedDate(false, _miningKey) == 0);
         require(_createdDate != 0);
         require(!initMetadataDisabled());
@@ -186,7 +184,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         onlyValidVotingKey(msg.sender)
         onlyFirstTime(msg.sender)
     {
-        address miningKey = _getMiningByVotingKey(msg.sender);
+        address miningKey = _getKeysManager().getMiningKeyByVoting(msg.sender);
         _setMetadata(
             false,
             miningKey,
@@ -217,7 +215,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         onlyValidVotingKey(msg.sender)
         returns(bool)
     {
-        address miningKey = _getMiningByVotingKey(msg.sender);
+        address miningKey = _getKeysManager().getMiningKeyByVoting(msg.sender);
         _setMetadata(
             true,
             miningKey,
@@ -241,7 +239,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     }
 
     function cancelPendingChange() public onlyValidVotingKey(msg.sender) returns(bool) {
-        address miningKey = _getMiningByVotingKey(msg.sender);
+        address miningKey = _getKeysManager().getMiningKeyByVoting(msg.sender);
         _deleteMetadata(true, miningKey);
         emit CancelledRequest(miningKey);
         return true;
@@ -252,7 +250,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         view
         returns(bool)
     {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        IKeysManager keysManager = _getKeysManager();
         address historyVoterMiningKey = _voterMiningKey;
         uint8 maxDeep = keysManager.maxOldMiningKeysDeepCheck();
 
@@ -274,7 +272,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         public
         onlyValidVotingKey(msg.sender)
     {
-        address voterMiningKey = _getMiningByVotingKey(msg.sender);
+        address voterMiningKey = _getKeysManager().getMiningKeyByVoting(msg.sender);
         require(voterMiningKey != _miningKey);
         require(!isValidatorAlreadyVoted(_miningKey, voterMiningKey));
         _confirmationsVoterAdd(_miningKey, voterMiningKey);
@@ -282,7 +280,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     }
 
     function finalize(address _miningKey) public onlyValidVotingKey(msg.sender) {
-        require(_ifChangeExist(_miningKey));
+        require(_ifPendingExist(_miningKey));
         uint256 count = _getConfirmationsVoters(_miningKey).length;
         uint256 minThreshold = _getMinThreshold(true, _miningKey);
         require(count >= minThreshold);
@@ -295,7 +293,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         _setExpirationDate(false, _miningKey, _getExpirationDate(true, _miningKey));
         _setCreatedDate(false, _miningKey, _getCreatedDate(true, _miningKey));
         _setUpdatedDate(false, _miningKey, _getUpdatedDate(true, _miningKey));
-        _setMinThreshold(false, _miningKey, _getMinThreshold(true, _miningKey));
+        _setMinThreshold(false, _miningKey, minThreshold);
         _deleteMetadata(true, _miningKey);
         emit FinalizedChange(_miningKey);
     }
@@ -305,16 +303,15 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     }
 
     function getMinThreshold() public view returns(uint256) {
-        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
-        return ballotsStorage.getBallotThreshold(uint8(ThresholdTypes.MetadataChange));
+        return _getBallotsStorage().getBallotThreshold(uint8(ThresholdTypes.MetadataChange));
     }
 
     function _storeName(bool _pending) private pure returns(string) {
         return _pending ? "pendingChanges" : "validators";
     }
 
-    function _getBallotsStorage() private view returns(address) {
-        return IProxyStorage(proxyStorage()).getBallotsStorage();
+    function _getBallotsStorage() private view returns(IBallotsStorage) {
+        return IBallotsStorage(IProxyStorage(proxyStorage()).getBallotsStorage());
     }
 
     function _getFirstName(bool _pending, address _miningKey)
@@ -427,16 +424,11 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         ))];
     }
 
-    function _getKeysManager() private view returns(address) {
-        return IProxyStorage(proxyStorage()).getKeysManager();
+    function _getKeysManager() private view returns(IKeysManager) {
+        return IKeysManager(IProxyStorage(proxyStorage()).getKeysManager());
     }
 
-    function _getMiningByVotingKey(address _votingKey) private view returns(address) {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
-        return keysManager.getMiningKeyByVoting(_votingKey);
-    }
-
-    function _ifChangeExist(address _miningKey) private view returns(bool) {
+    function _ifPendingExist(address _miningKey) private view returns(bool) {
         return _getCreatedDate(true, _miningKey) > 0;
     }
 

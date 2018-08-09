@@ -153,7 +153,7 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
         uint256 _affectedKeyType,
         address _miningKey
     ) internal view returns(bool) {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        IKeysManager keysManager = _getKeysManager();
         if (_affectedKeyType == uint256(KeyTypes.MiningKey)) {
             return !keysManager.checkIfMiningExisted(_miningKey, _affectedKey);
         }
@@ -173,7 +173,7 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
         uint256 _affectedKeyType,
         address _miningKey
     ) internal view returns(bool) {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        IKeysManager keysManager = _getKeysManager();
         require(keysManager.isMiningActive(_miningKey));
         if (_affectedKeyType == uint256(KeyTypes.MiningKey)) {
             return true;
@@ -198,7 +198,7 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
         address _miningKey
     ) internal view returns(bool) {
         require(_affectedKey != _miningKey);
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        IKeysManager keysManager = _getKeysManager();
         require(keysManager.isMiningActive(_miningKey));
         if (_affectedKeyType == uint256(KeyTypes.MiningKey)) {
             return !keysManager.checkIfMiningExisted(_miningKey, _affectedKey);
@@ -221,8 +221,8 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
         boolStorage[INIT_DISABLED] = true;
     }
 
-    function _getKeysManager() internal view returns(address) {
-        return IProxyStorage(proxyStorage()).getKeysManager();
+    function _getKeysManager() internal view returns(IKeysManager) {
+        return IKeysManager(IProxyStorage(proxyStorage()).getKeysManager());
     }
 
     function _getTotalNumberOfValidators() internal view returns(uint256) {

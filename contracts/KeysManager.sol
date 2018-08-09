@@ -398,7 +398,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setMiningKeyByVoting(votingKey, address(0));
         _setMiningKeyByPayout(payoutKey, address(0));
         _clearMiningKey(_key);
-        IValidatorMetadata(_getValidatorMetadata()).clearMetadata(_key);
+        _getValidatorMetadata().clearMetadata(_key);
         emit MiningKeyChanged(_key, "removed");
         if (votingKey != address(0)) {
             emit VotingKeyChanged(votingKey, _key, "removed");
@@ -446,7 +446,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _clearMiningKey(_oldMiningKey);
         _setMiningKeyByVoting(votingKey, _key);
         _setMiningKeyByPayout(payoutKey, _key);
-        IValidatorMetadata(_getValidatorMetadata()).moveMetadata(_oldMiningKey, _key);
+        _getValidatorMetadata().moveMetadata(_oldMiningKey, _key);
         emit MiningKeyChanged(_key, "swapped");
         return true;
     }
@@ -494,8 +494,8 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsPayoutActive(false, _miningKey);
     }
 
-    function _getValidatorMetadata() private view returns(address) {
-        return IProxyStorage(proxyStorage()).getValidatorMetadata();
+    function _getValidatorMetadata() private view returns(IValidatorMetadata) {
+        return IValidatorMetadata(IProxyStorage(proxyStorage()).getValidatorMetadata());
     }
 
     function _removeVotingKey(address _miningKey) private {
