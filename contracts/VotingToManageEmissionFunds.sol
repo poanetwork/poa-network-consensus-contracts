@@ -52,7 +52,7 @@ contract VotingToManageEmissionFunds is VotingTo {
             _endTime,
             _memo,
             uint8(QuorumStates.InProgress),
-            _getMiningByVotingKey(msg.sender)
+            _getKeysManager().getMiningKeyByVoting(msg.sender)
         );
         _setSendVotes(ballotId, 0);
         _setBurnVotes(ballotId, 0);
@@ -189,7 +189,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         } else {
             revert();
         }
-        address miningKey = _getMiningByVotingKey(msg.sender);
+        address miningKey = _getKeysManager().getMiningKeyByVoting(msg.sender);
         _votersAdd(_id, miningKey);
         emit Vote(_id, _choice, msg.sender, getTime(), miningKey);
 
@@ -261,8 +261,7 @@ contract VotingToManageEmissionFunds is VotingTo {
     // solhint-enable code-complexity, function-max-lines
 
     function _getGlobalMinThresholdOfVoters() internal view returns(uint256) {
-        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
-        return ballotsStorage.getProxyThreshold();
+        return _getBallotsStorage().getProxyThreshold();
     }
 
     function _max(uint256 a, uint256 b, uint256 c) private pure returns(uint256) {

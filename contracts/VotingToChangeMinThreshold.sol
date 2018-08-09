@@ -15,10 +15,9 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
         uint256 _proposedValue,
         string _memo
     ) public {
-        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
         require(_proposedValue >= minPossibleThreshold());
         require(_proposedValue != _getGlobalMinThresholdOfVoters());
-        require(_proposedValue <= ballotsStorage.getProxyThreshold());
+        require(_proposedValue <= _getBallotsStorage().getProxyThreshold());
         uint256 ballotId = _createBallot(
             uint256(BallotTypes.MinThreshold),
             _startTime,
@@ -89,8 +88,10 @@ contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChan
     }
 
     function _finalizeBallotInner(uint256 _id) internal returns(bool) {
-        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
-        return ballotsStorage.setThreshold(_getProposedValue(_id), uint8(ThresholdTypes.Keys));
+        return _getBallotsStorage().setThreshold(
+            _getProposedValue(_id),
+            uint8(ThresholdTypes.Keys)
+        );
     }
 
     function _getProposedValue(uint256 _id) internal view returns(uint256) {

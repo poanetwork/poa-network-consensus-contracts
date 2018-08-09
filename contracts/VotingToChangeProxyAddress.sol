@@ -92,8 +92,7 @@ contract VotingToChangeProxyAddress is IVotingToChangeProxyAddress, VotingToChan
     }
 
     function _getGlobalMinThresholdOfVoters() internal view returns(uint256) {
-        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
-        return ballotsStorage.getProxyThreshold();
+        return _getBallotsStorage().getProxyThreshold();
     }
 
     function _getProposedValue(uint256 _id) internal view returns(address) {

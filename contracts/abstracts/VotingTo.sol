@@ -52,8 +52,7 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
     }
 
     modifier onlyValidVotingKey(address _votingKey) {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
-        require(keysManager.isVotingActive(_votingKey));
+        require(_getKeysManager().isVotingActive(_votingKey));
         _;
     }
 
@@ -62,7 +61,7 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
         view
         returns(bool)
     {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        IKeysManager keysManager = _getKeysManager();
         uint8 maxDeep = keysManager.maxOldMiningKeysDeepCheck();
         for (uint8 i = 0; i < maxDeep; i++) {
             address oldMiningKey = keysManager.getMiningKeyHistory(_miningKey);
@@ -100,7 +99,7 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
         returns(bool)
     {
         if (_votingKey == address(0)) return false;
-        address miningKey = _getMiningByVotingKey(_votingKey);
+        address miningKey = _getKeysManager().getMiningKeyByVoting(_votingKey);
         return _hasMiningKeyAlreadyVoted(_id, miningKey);
     }
 
@@ -117,7 +116,7 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
         view
         returns(bool)
     {
-        address miningKey = _getMiningByVotingKey(_votingKey);
+        address miningKey = _getKeysManager().getMiningKeyByVoting(_votingKey);
         bool notVoted = !_hasMiningKeyAlreadyVoted(_id, miningKey);
         bool oldKeysNotVoted = !areOldMiningKeysVoted(_id, miningKey);
         return notVoted && isActive(_id) && oldKeysNotVoted;
@@ -152,8 +151,8 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
         return ballotId;
     }
 
-    function _getBallotsStorage() internal view returns(address) {
-        return IProxyStorage(proxyStorage()).getBallotsStorage();
+    function _getBallotsStorage() internal view returns(IBallotsStorage) {
+        return IBallotsStorage(IProxyStorage(proxyStorage()).getBallotsStorage());
     }
 
     function _getCreator(uint256 _id) internal view returns(address) {
@@ -169,8 +168,7 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
     }
 
     function _getGlobalMinThresholdOfVoters() internal view returns(uint256) {
-        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
-        return ballotsStorage.getBallotThreshold(uint8(ThresholdTypes.Keys));
+        return _getBallotsStorage().getBallotThreshold(uint8(ThresholdTypes.Keys));
     }
 
     function _getIsFinalized(uint256 _id) internal view returns(bool) {
@@ -179,19 +177,14 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
         ];
     }
 
-    function _getKeysManager() internal view returns(address) {
-        return IProxyStorage(proxyStorage()).getKeysManager();
+    function _getKeysManager() internal view returns(IKeysManager) {
+        return IKeysManager(IProxyStorage(proxyStorage()).getKeysManager());
     }
 
     function _getMemo(uint256 _id) internal view returns(string) {
         return stringStorage[
             keccak256(abi.encode(VOTING_STATE, _id, MEMO))
         ];
-    }
-
-    function _getMiningByVotingKey(address _votingKey) internal view returns(address) {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
-        return keysManager.getMiningKeyByVoting(_votingKey);
     }
 
     function _getStartTime(uint256 _id) internal view returns(uint256) {

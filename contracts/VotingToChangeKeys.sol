@@ -24,7 +24,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange, EnumKeyTypes
         uint256 _ballotType,
         string _memo
     ) public returns(uint256) {
-        require(IBallotsStorage(_getBallotsStorage()).areKeysBallotParamsValid(
+        require(_getBallotsStorage().areKeysBallotParamsValid(
             _ballotType,
             _affectedKey,
             _affectedKeyType,
@@ -46,7 +46,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange, EnumKeyTypes
         address _newPayoutKey,
         string _memo
     ) public returns(uint256) {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        IKeysManager keysManager = _getKeysManager();
         require(keysManager.miningKeyByVoting(_newVotingKey) == address(0));
         require(keysManager.miningKeyByPayout(_newPayoutKey) == address(0));
         require(_newVotingKey != _newMiningKey);
@@ -129,7 +129,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange, EnumKeyTypes
 
     // solhint-disable code-complexity
     function _finalizeAdding(uint256 _id) internal returns(bool) {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        IKeysManager keysManager = _getKeysManager();
 
         address affectedKey = _getAffectedKey(_id);
         uint256 affectedKeyType = _getAffectedKeyType(_id);
@@ -186,7 +186,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange, EnumKeyTypes
     }
 
     function _finalizeRemoval(uint256 _id) internal returns(bool) {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        IKeysManager keysManager = _getKeysManager();
         uint256 affectedKeyType = _getAffectedKeyType(_id);
         if (affectedKeyType == uint256(KeyTypes.MiningKey)) {
             return keysManager.removeMiningKey(_getAffectedKey(_id));
@@ -199,7 +199,7 @@ contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange, EnumKeyTypes
     }
 
     function _finalizeSwap(uint256 _id) internal returns(bool) {
-        IKeysManager keysManager = IKeysManager(_getKeysManager());
+        IKeysManager keysManager = _getKeysManager();
         uint256 affectedKeyType = _getAffectedKeyType(_id);
         if (affectedKeyType == uint256(KeyTypes.MiningKey)) {
             return keysManager.swapMiningKey(_getAffectedKey(_id), _getMiningKey(_id));

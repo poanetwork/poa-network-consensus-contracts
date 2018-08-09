@@ -562,10 +562,10 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
 
   describe('#migrate', async () => {
     it('should copy a ballot to the new contract', async () => {
-      proxyStorageMock.setVotingContractMock(accounts[0]);
+      await proxyStorageMock.setVotingContractMock(accounts[0]);
       await addMiningKey(accounts[1]);
       await addVotingKey(votingKey, accounts[1]);
-      proxyStorageMock.setVotingContractMock(votingForKeysEternalStorage.address);
+      await proxyStorageMock.setVotingContractMock(votingForKeysEternalStorage.address);
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
 
