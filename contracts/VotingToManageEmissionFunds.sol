@@ -203,7 +203,7 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
 
     // solhint-disable code-complexity, function-max-lines
-    function _finalize(uint256 _id) private {
+    function _finalize(uint256 _id) internal {
         IEmissionFunds _emissionFunds = IEmissionFunds(emissionFunds());
         uint256 amount = getAmount(_id);
 
@@ -259,6 +259,11 @@ contract VotingToManageEmissionFunds is VotingTo {
         }
     }
     // solhint-enable code-complexity, function-max-lines
+
+    function _getGlobalMinThresholdOfVoters() internal view returns(uint256) {
+        IBallotsStorage ballotsStorage = IBallotsStorage(_getBallotsStorage());
+        return ballotsStorage.getProxyThreshold();
+    }
 
     function _max(uint256 a, uint256 b, uint256 c) private pure returns(uint256) {
         uint256 max = a;
