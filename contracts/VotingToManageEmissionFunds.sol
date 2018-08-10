@@ -204,6 +204,8 @@ contract VotingToManageEmissionFunds is VotingTo {
 
     // solhint-disable code-complexity, function-max-lines
     function _finalize(uint256 _id) internal {
+        require(_isEOA(msg.sender));
+
         IEmissionFunds _emissionFunds = IEmissionFunds(emissionFunds());
         uint256 amount = getAmount(_id);
 
@@ -262,6 +264,12 @@ contract VotingToManageEmissionFunds is VotingTo {
 
     function _getGlobalMinThresholdOfVoters() internal view returns(uint256) {
         return _getBallotsStorage().getProxyThreshold();
+    }
+
+    function _isEOA(address addr) internal view returns (bool) {
+        uint256 size;
+        assembly { size := extcodesize(addr) }
+        return size == 0;
     }
 
     function _max(uint256 a, uint256 b, uint256 c) private pure returns(uint256) {

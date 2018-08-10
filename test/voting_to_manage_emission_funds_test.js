@@ -11,6 +11,7 @@ const VotingForMinThreshold = artifacts.require('./mockContracts/VotingToChangeM
 const VotingForProxy = artifacts.require('./mockContracts/VotingToChangeProxyAddressMock');
 const VotingToManageEmissionFunds = artifacts.require('./mockContracts/VotingToManageEmissionFundsMock');
 const VotingToManageEmissionFundsNew = artifacts.require('./upgradeContracts/VotingToManageEmissionFundsNew');
+const VotingKey = artifacts.require('./utilContracts/VotingKey');
 
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
 
@@ -491,18 +492,18 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
       false.should.be.equal((await voting.getBallotInfo.call(id, votingKey))[2]); // isFinalized
 
-      proxyStorage.setVotingContractMock(coinbase);
+      await proxyStorage.setVotingContractMock(coinbase);
       const {logs} = await keysManager.swapMiningKey(miningKey3, miningKey);
       logs[0].event.should.equal("MiningKeyChanged");
-      proxyStorage.setVotingContractMock(votingForKeysEternalStorage.address);
+      await proxyStorage.setVotingContractMock(votingForKeysEternalStorage.address);
       await poaNetworkConsensus.setSystemAddress(coinbase);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
       await voting.vote(id, choice.send, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
 
-      proxyStorage.setVotingContractMock(coinbase);
+      await proxyStorage.setVotingContractMock(coinbase);
       await swapVotingKey(votingKey3, miningKey3);
-      proxyStorage.setVotingContractMock(votingForKeysEternalStorage.address);
+      await proxyStorage.setVotingContractMock(votingForKeysEternalStorage.address);
       await voting.vote(id, choice.send, {from: votingKey3}).should.be.rejectedWith(ERROR_MSG);
 
       await voting.vote(id, choice.send, {from: votingKey2}).should.be.fulfilled;
@@ -520,11 +521,11 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       await voting.vote(id, choice.send, {from: votingKey3}).should.be.fulfilled;
       false.should.be.equal((await voting.getBallotInfo.call(id, votingKey))[2]); // isFinalized
 
-      proxyStorage.setVotingContractMock(coinbase);
+      await proxyStorage.setVotingContractMock(coinbase);
       let result = await keysManager.swapMiningKey(miningKey, miningKey3);
       result.logs[0].event.should.equal("MiningKeyChanged");
       await swapVotingKey(votingKey, miningKey);
-      proxyStorage.setVotingContractMock(votingForKeysEternalStorage.address);
+      await proxyStorage.setVotingContractMock(votingForKeysEternalStorage.address);
       await poaNetworkConsensus.setSystemAddress(coinbase);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
@@ -756,6 +757,32 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       );
       await voting.setTime(VOTING_END_DATE + 1);
       await voting.finalize(0, {from: votingKey}).should.be.fulfilled;
+      (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
+        emissionReleaseTime + emissionReleaseThreshold
+      );
+    });
+
+    it('deny finalization if the voting key is a contract', async () => {
+      const voter = await VotingKey.new(voting.address);
+      votingKey2 = voter.address;
+
+      await voting.createBallot(
+        VOTING_START_DATE, VOTING_END_DATE, receiver, "memo", {from: votingKey}
+      ).should.be.fulfilled;
+
+      false.should.be.equal((await voting.getBallotInfo.call(id, votingKey))[2]); // isFinalized
+      (await voting.previousBallotFinalized.call()).should.be.equal(false);
+
+      await addValidator(votingKey2, miningKey2);
+      await voting.setTime(VOTING_END_DATE + 1);
+      
+      await voter.callFinalize(id).should.be.rejectedWith(ERROR_MSG);
+      false.should.be.equal((await voting.getBallotInfo.call(id, votingKey))[2]); // isFinalized
+
+      await voting.finalize(id, {from: votingKey}).should.be.fulfilled;
+      true.should.be.equal((await voting.getBallotInfo.call(id, votingKey))[2]); // isFinalized
+
+      (await voting.previousBallotFinalized.call()).should.be.equal(true);
       (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime + emissionReleaseThreshold
       );
