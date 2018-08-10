@@ -171,11 +171,19 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       result.logs[0].event.should.be.equal("ChangeRequestInitiated");
       result.logs[0].args.miningKey.should.be.equal(miningKey);
 
+      await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.fulfilled;
+      let confirmations = await metadata.confirmations.call(miningKey);
+      confirmations[0].should.be.bignumber.equal(1); // voters count
+      confirmations[1][0].should.be.equal(miningKey2); // voters array
+
       await proxyStorageMock.setKeysManagerMock(accounts[0]);
       result = await metadata.clearMetadata(miningKey);
       result.logs[0].event.should.be.equal('MetadataCleared');
       result.logs[0].args.miningKey.should.be.equal(miningKey);
       await proxyStorageMock.setKeysManagerMock(keysManager.address);
+
+      confirmations = await metadata.confirmations.call(miningKey);
+      confirmations[0].should.be.bignumber.equal(0); // voters count
 
       (await metadata.validators.call(miningKey)).should.be.deep.equal([
         toHex(""),
@@ -240,6 +248,11 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       result.logs[0].event.should.be.equal("ChangeRequestInitiated");
       result.logs[0].args.miningKey.should.be.equal(miningKey);
 
+      await metadata.confirmPendingChange(miningKey, {from: votingKey3}).should.be.fulfilled;
+      let confirmations = await metadata.confirmations.call(miningKey);
+      confirmations[0].should.be.bignumber.equal(1); // voters count
+      confirmations[1][0].should.be.equal(miningKey3); // voters array
+
       (await metadata.validators.call(miningKey2)).should.be.deep.equal([
         toHex(""),
         toHex(""),
@@ -273,6 +286,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
       result.logs[0].args.newMiningKey.should.be.equal(miningKey2);
       await proxyStorageMock.setKeysManagerMock(keysManager.address);
 
+      confirmations = await metadata.confirmations.call(miningKey);
+      confirmations[0].should.be.bignumber.equal(0); // voters count
+
       (await metadata.validators.call(miningKey)).should.be.deep.equal([
         toHex(""),
         toHex(""),
@@ -298,6 +314,10 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0)
       ]);
+
+      confirmations = await metadata.confirmations.call(miningKey2);
+      confirmations[0].should.be.bignumber.equal(1); // voters count
+      confirmations[1][0].should.be.equal(miningKey3); // voters array
 
       (await metadata.validators.call(miningKey2)).should.be.deep.equal([
         toHex("Djamshut"),

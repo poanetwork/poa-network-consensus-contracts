@@ -228,12 +228,8 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
             _expirationDate,
             _getCreatedDate(false, miningKey),
             getTime(),
-            getMinThreshold()
+            _getMinThreshold(false, miningKey)
         );
-        _setMinThreshold(true, miningKey, _getMinThreshold(false, miningKey));
-        delete addressArrayStorage[keccak256(abi.encode(
-            CONFIRMATIONS, miningKey, VOTERS
-        ))];
         emit ChangeRequestInitiated(miningKey);
         return true;
     }
@@ -275,6 +271,14 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         address voterMiningKey = _getKeysManager().getMiningKeyByVoting(msg.sender);
         require(voterMiningKey != _miningKey);
         require(!isValidatorAlreadyVoted(_miningKey, voterMiningKey));
+
+        uint256 confirmationsLimit = 50;
+        uint256 minThreshold = _getMinThreshold(true, _miningKey);
+        if (confirmationsLimit < minThreshold) {
+            confirmationsLimit = minThreshold;
+        }
+        require(_getConfirmationsVoters(_miningKey).length < confirmationsLimit);
+
         _confirmationsVoterAdd(_miningKey, voterMiningKey);
         emit Confirmed(_miningKey, msg.sender, voterMiningKey);
     }
@@ -460,6 +464,9 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         delete uintStorage[keccak256(abi.encode(_store, _miningKey, CREATED_DATE))];
         delete uintStorage[keccak256(abi.encode(_store, _miningKey, UPDATED_DATE))];
         delete uintStorage[keccak256(abi.encode(_store, _miningKey, MIN_THRESHOLD))];
+        if (_pending) {
+            _confirmationsVotersClear(_miningKey);
+        }
     }
 
     function _moveMetadata(bool _pending, address _oldMiningKey, address _newMiningKey) private {
@@ -477,6 +484,11 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
             _getUpdatedDate(_pending, _oldMiningKey),
             _getMinThreshold(_pending, _oldMiningKey)
         );
+        
+        if (_pending) {
+            _confirmationsVotersCopy(_oldMiningKey, _newMiningKey);
+        }
+
         _deleteMetadata(_pending, _oldMiningKey);
     }
 
@@ -592,6 +604,9 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         _setCreatedDate(_pending, _miningKey, _createdDate);
         _setUpdatedDate(_pending, _miningKey, _updatedDate);
         _setMinThreshold(_pending, _miningKey, _minThreshold);
+        if (_pending) {
+            _confirmationsVotersClear(_miningKey);
+        }
     }
 
     function _setMinThreshold(
@@ -610,6 +625,19 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         addressArrayStorage[keccak256(abi.encode(
             CONFIRMATIONS, _miningKey, VOTERS
         ))].push(_voterMiningKey);
+    }
+
+    function _confirmationsVotersClear(address _miningKey) private {
+        delete addressArrayStorage[keccak256(abi.encode(
+            CONFIRMATIONS, _miningKey, VOTERS
+        ))];
+    }
+
+    function _confirmationsVotersCopy(address _oldMiningKey, address _newMiningKey) private {
+        address[] memory voters = _getConfirmationsVoters(_oldMiningKey);
+        for (uint256 i = 0; i < voters.length; i++) {
+            _confirmationsVoterAdd(_newMiningKey, voters[i]);
+        }
     }
 
     function _validators(bool _pending, address _miningKey) private view returns (
