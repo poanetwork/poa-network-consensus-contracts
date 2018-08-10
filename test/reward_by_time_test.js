@@ -17,6 +17,7 @@ require('chai')
 let keysManager;
 let votingToChangeKeys;
 let rewardByTime, rewardByTimeEternalStorage;
+let rewardByTimeOldImplementation;
 contract('RewardByTime [all features]', function (accounts) {
   let poaNetworkConsensus, proxyStorage;
   let blockRewardAmount, emissionFundsAmount, emissionFundsAddress;
@@ -83,6 +84,7 @@ contract('RewardByTime [all features]', function (accounts) {
     await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
 
     rewardByTime = await RewardByTime.new();
+    rewardByTimeOldImplementation = rewardByTime.address;
     rewardByTimeEternalStorage = await EternalStorageProxy.new(proxyStorage.address, rewardByTime.address);
     rewardByTime = await RewardByTime.at(rewardByTimeEternalStorage.address);
 
@@ -93,7 +95,7 @@ contract('RewardByTime [all features]', function (accounts) {
   });
 
   describe('#reward', async () => {
-    it('may be called only by system address', async () => {
+    it('may only be called by system address', async () => {
       await rewardByTime.reward().should.be.rejectedWith(ERROR_MSG);
       await rewardByTime.setSystemAddress(systemAddress);
       await rewardByTime.reward({from: systemAddress}).should.be.fulfilled;
@@ -303,7 +305,7 @@ contract('RewardByTime [all features]', function (accounts) {
 
   describe('#upgradeTo', async () => {
     const proxyStorageStubAddress = accounts[8];
-    it('may be called only by ProxyStorage', async () => {
+    it('may only be called by ProxyStorage', async () => {
       const rewardByTimeNew = await RewardByTimeNew.new();
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorageStubAddress);
       await rewardByTimeEternalStorage.upgradeTo(rewardByTimeNew.address, {from: accounts[0]}).should.be.rejectedWith(ERROR_MSG);
@@ -312,26 +314,20 @@ contract('RewardByTime [all features]', function (accounts) {
     });
     it('should change implementation address', async () => {
       let rewardByTimeNew = await RewardByTimeNew.new();
-      const oldImplementation = await rewardByTime.implementation.call();
       const newImplementation = rewardByTimeNew.address;
-      (await rewardByTimeEternalStorage.implementation.call()).should.be.equal(oldImplementation);
+      (await rewardByTimeEternalStorage.implementation.call()).should.be.equal(rewardByTimeOldImplementation);
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorageStubAddress);
       await upgradeTo(newImplementation, {from: proxyStorageStubAddress});
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorage.address);
-      rewardByTimeNew = await RewardByTimeNew.at(rewardByTimeEternalStorage.address);
-      (await rewardByTimeNew.implementation.call()).should.be.equal(newImplementation);
       (await rewardByTimeEternalStorage.implementation.call()).should.be.equal(newImplementation);
     });
     it('should increment implementation version', async () => {
       let rewardByTimeNew = await RewardByTimeNew.new();
-      const oldVersion = await rewardByTime.version.call();
+      const oldVersion = await rewardByTimeEternalStorage.version.call();
       const newVersion = oldVersion.add(1);
-      (await rewardByTimeEternalStorage.version.call()).should.be.bignumber.equal(oldVersion);
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorageStubAddress);
       await upgradeTo(rewardByTimeNew.address, {from: proxyStorageStubAddress});
       await rewardByTimeEternalStorage.setProxyStorage(proxyStorage.address);
-      rewardByTimeNew = await RewardByTimeNew.at(rewardByTimeEternalStorage.address);
-      (await rewardByTimeNew.version.call()).should.be.bignumber.equal(newVersion);
       (await rewardByTimeEternalStorage.version.call()).should.be.bignumber.equal(newVersion);
     });
     it('new implementation should work', async () => {

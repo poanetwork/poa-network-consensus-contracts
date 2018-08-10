@@ -261,7 +261,7 @@ contract('ProxyStorage [all features]', function (accounts) {
       )
     })
     it('changes proxyStorage (itself) implementation', async () => {
-      const oldVersion = await proxyStorage.version.call();
+      const oldVersion = await proxyStorageEternalStorage.version.call();
       const newVersion = oldVersion.add(1);
       let proxyStorageNew = await ProxyStorageMock.new();
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
@@ -271,15 +271,8 @@ contract('ProxyStorage [all features]', function (accounts) {
       proxyStorageNew.address.should.be.equal(
         await proxyStorageEternalStorage.implementation.call()
       );
-      proxyStorageNew.address.should.be.equal(
-        await proxyStorage.implementation.call()
-      );
       newVersion.should.be.bignumber.equal(
         await proxyStorageEternalStorage.version.call()
-      );
-      proxyStorageNew = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
-      newVersion.should.be.bignumber.equal(
-        await proxyStorageNew.version.call()
       );
     })
   })
@@ -307,14 +300,11 @@ contract('ProxyStorage [all features]', function (accounts) {
     });
     it('should increment implementation version', async () => {
       let proxyStorageNew = await ProxyStorageNew.new();
-      const oldVersion = await proxyStorage.version.call();
+      const oldVersion = await proxyStorageEternalStorage.version.call();
       const newVersion = oldVersion.add(1);
-      (await proxyStorageEternalStorage.version.call()).should.be.bignumber.equal(oldVersion);
       await proxyStorageEternalStorage.setProxyStorage(accounts[0]);
       await upgradeTo(proxyStorageNew.address, {from: accounts[0]});
       await proxyStorageEternalStorage.setProxyStorage(proxyStorageEternalStorage.address);
-      proxyStorageNew = await ProxyStorageNew.at(proxyStorageEternalStorage.address);
-      (await proxyStorageNew.version.call()).should.be.bignumber.equal(newVersion);
       (await proxyStorageEternalStorage.version.call()).should.be.bignumber.equal(newVersion);
     });
     it('new implementation should work', async () => {

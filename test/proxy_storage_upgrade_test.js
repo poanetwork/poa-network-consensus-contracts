@@ -268,7 +268,7 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
       )
     })
     it('changes proxyStorage (itself) implementation', async () => {
-      const oldVersion = await proxyStorage.version.call();
+      const oldVersion = await proxyStorageEternalStorage.version.call();
       const newVersion = oldVersion.add(1);
       let proxyStorageNew = await ProxyStorageMock.new();
       await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
@@ -278,15 +278,8 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
       proxyStorageNew.address.should.be.equal(
         await proxyStorageEternalStorage.implementation.call()
       );
-      proxyStorageNew.address.should.be.equal(
-        await proxyStorage.implementation.call()
-      );
       newVersion.should.be.bignumber.equal(
         await proxyStorageEternalStorage.version.call()
-      );
-      proxyStorageNew = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
-      newVersion.should.be.bignumber.equal(
-        await proxyStorageNew.version.call()
       );
     })
   })

@@ -569,9 +569,11 @@ contract('ValidatorMetadata [all features]', function (accounts) {
 
   describe('#upgradeTo', async () => {
     let proxyStorageStubAddress;
+    let metadataOldImplementation;
     beforeEach(async () => {
       proxyStorageStubAddress = accounts[8];
       metadata = await ValidatorMetadata.new();
+      metadataOldImplementation = metadata.address;
       metadataEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, metadata.address);
       metadata = await ValidatorMetadata.at(metadataEternalStorage.address);
     });
@@ -582,22 +584,16 @@ contract('ValidatorMetadata [all features]', function (accounts) {
     });
     it('should change implementation address', async () => {
       let metadataNew = await ValidatorMetadataNew.new();
-      let oldImplementation = await metadata.implementation.call();
       let newImplementation = metadataNew.address;
-      (await metadataEternalStorage.implementation.call()).should.be.equal(oldImplementation);
+      (await metadataEternalStorage.implementation.call()).should.be.equal(metadataOldImplementation);
       await upgradeTo(newImplementation, {from: proxyStorageStubAddress});
-      metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      (await metadataNew.implementation.call()).should.be.equal(newImplementation);
       (await metadataEternalStorage.implementation.call()).should.be.equal(newImplementation);
     });
     it('should increment implementation version', async () => {
       let metadataNew = await ValidatorMetadataNew.new();
-      let oldVersion = await metadata.version.call();
+      let oldVersion = await metadataEternalStorage.version.call();
       let newVersion = oldVersion.add(1);
-      (await metadataEternalStorage.version.call()).should.be.bignumber.equal(oldVersion);
       await upgradeTo(metadataNew.address, {from: proxyStorageStubAddress});
-      metadataNew = await ValidatorMetadataNew.at(metadataEternalStorage.address);
-      (await metadataNew.version.call()).should.be.bignumber.equal(newVersion);
       (await metadataEternalStorage.version.call()).should.be.bignumber.equal(newVersion);
     });
     it('new implementation should work', async () => {

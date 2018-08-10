@@ -224,7 +224,7 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
   });
 
   describe('#addExtraReceiver', async () => {
-    it('may be called only by bridge contract', async () => {
+    it('may only be called by bridge contract', async () => {
       await rewardByBlock.addExtraReceiver(accounts[1], 1).should.be.rejectedWith(ERROR_MSG);
       await rewardByBlock.setBridgeContractAddress(accounts[2]);
       await rewardByBlock.addExtraReceiver(accounts[1], 1, {from: accounts[2]}).should.be.fulfilled;

@@ -85,6 +85,14 @@ contract EternalStorageProxy is EternalStorage {
     }
 
     /**
+    * @dev Tells the address of the current implementation
+    * @return address of the current implementation
+    */
+    function implementation() public view returns(address) {
+        return _implementation;
+    }
+
+    /**
      * @dev Allows the current owner to relinquish ownership.
      */
     function renounceOwnership() public onlyOwner {
@@ -118,6 +126,14 @@ contract EternalStorageProxy is EternalStorage {
 
         emit Upgraded(_version, _implementation);
         return true;
+    }
+
+    /**
+    * @dev Tells the version number of the current implementation
+    * @return uint representing the number of the current version
+    */
+    function version() public view returns(uint256) {
+        return _version;
     }
 
     function _setProxyStorage(address _proxyStorage) private {

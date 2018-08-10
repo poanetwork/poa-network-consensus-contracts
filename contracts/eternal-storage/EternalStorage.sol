@@ -31,20 +31,4 @@ contract EternalStorage {
     mapping(bytes32 => int256[]) internal intArrayStorage;
     mapping(bytes32 => bytes32[]) internal bytes32ArrayStorage;
 
-    /**
-    * @dev Tells the version number of the current implementation
-    * @return uint representing the number of the current version
-    */
-    function version() public view returns (uint256) {
-        return _version;
-    }
-
-    /**
-    * @dev Tells the address of the current implementation
-    * @return address of the current implementation
-    */
-    function implementation() public view returns (address) {
-        return _implementation;
-    }
-
 }
