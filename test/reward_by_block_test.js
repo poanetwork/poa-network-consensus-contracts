@@ -17,6 +17,7 @@ require('chai')
 let keysManager;
 let votingToChangeKeys;
 let rewardByBlock, rewardByBlockEternalStorage;
+let rewardByBlockOldImplementation;
 contract('RewardByBlock [all features]', function (accounts) {
   let poaNetworkConsensus, proxyStorage;
   let blockRewardAmount, emissionFundsAmount, emissionFundsAddress;
@@ -83,6 +84,7 @@ contract('RewardByBlock [all features]', function (accounts) {
     await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
 
     rewardByBlock = await RewardByBlock.new();
+    rewardByBlockOldImplementation = rewardByBlock.address;
     rewardByBlockEternalStorage = await EternalStorageProxy.new(proxyStorage.address, rewardByBlock.address);
     rewardByBlock = await RewardByBlock.at(rewardByBlockEternalStorage.address);
 
@@ -217,7 +219,7 @@ contract('RewardByBlock [all features]', function (accounts) {
   });
 
   describe('#addExtraReceiver', async () => {
-    it('may be called only by bridge contract', async () => {
+    it('may only be called by bridge contract', async () => {
       await rewardByBlock.addExtraReceiver(accounts[1], 1).should.be.rejectedWith(ERROR_MSG);
       await rewardByBlock.setBridgeContractAddress(accounts[2]);
       await rewardByBlock.addExtraReceiver(accounts[1], 1, {from: accounts[2]}).should.be.fulfilled;
@@ -291,26 +293,20 @@ contract('RewardByBlock [all features]', function (accounts) {
     });
     it('should change implementation address', async () => {
       let rewardByBlockNew = await RewardByBlockNew.new();
-      const oldImplementation = await rewardByBlock.implementation.call();
       const newImplementation = rewardByBlockNew.address;
-      (await rewardByBlockEternalStorage.implementation.call()).should.be.equal(oldImplementation);
+      (await rewardByBlockEternalStorage.implementation.call()).should.be.equal(rewardByBlockOldImplementation);
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorageStubAddress);
       await upgradeTo(newImplementation, {from: proxyStorageStubAddress});
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorage.address);
-      rewardByBlockNew = await RewardByBlockNew.at(rewardByBlockEternalStorage.address);
-      (await rewardByBlockNew.implementation.call()).should.be.equal(newImplementation);
       (await rewardByBlockEternalStorage.implementation.call()).should.be.equal(newImplementation);
     });
     it('should increment implementation version', async () => {
       let rewardByBlockNew = await RewardByBlockNew.new();
-      const oldVersion = await rewardByBlock.version.call();
+      const oldVersion = await rewardByBlockEternalStorage.version.call();
       const newVersion = oldVersion.add(1);
-      (await rewardByBlockEternalStorage.version.call()).should.be.bignumber.equal(oldVersion);
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorageStubAddress);
       await upgradeTo(rewardByBlockNew.address, {from: proxyStorageStubAddress});
       await rewardByBlockEternalStorage.setProxyStorage(proxyStorage.address);
-      rewardByBlockNew = await RewardByBlockNew.at(rewardByBlockEternalStorage.address);
-      (await rewardByBlockNew.version.call()).should.be.bignumber.equal(newVersion);
       (await rewardByBlockEternalStorage.version.call()).should.be.bignumber.equal(newVersion);
     });
     it('new implementation should work', async () => {

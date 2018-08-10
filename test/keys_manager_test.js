@@ -921,9 +921,11 @@ contract('KeysManager [all features]', function (accounts) {
 
   describe('#upgradeTo', async () => {
     let proxyStorageStubAddress;
+    let keysManagerOldImplementation;
     beforeEach(async () => {
       proxyStorageStubAddress = accounts[8];
       keysManager = await KeysManagerMock.new();
+      keysManagerOldImplementation = keysManager.address;
       keysManagerEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, keysManager.address);
       keysManager = await KeysManagerMock.at(keysManagerEternalStorage.address);
       await keysManager.init(
@@ -938,22 +940,16 @@ contract('KeysManager [all features]', function (accounts) {
     });
     it('should change implementation address', async () => {
       let keysManagerNew = await KeysManagerNew.new();
-      let oldImplementation = await keysManager.implementation.call();
       let newImplementation = keysManagerNew.address;
-      (await keysManagerEternalStorage.implementation.call()).should.be.equal(oldImplementation);
+      (await keysManagerEternalStorage.implementation.call()).should.be.equal(keysManagerOldImplementation);
       await upgradeTo(newImplementation, {from: proxyStorageStubAddress});
-      keysManagerNew = await KeysManagerNew.at(keysManagerEternalStorage.address);
-      (await keysManagerNew.implementation.call()).should.be.equal(newImplementation);
       (await keysManagerEternalStorage.implementation.call()).should.be.equal(newImplementation);
     });
     it('should increment implementation version', async () => {
       let keysManagerNew = await KeysManagerNew.new();
-      let oldVersion = await keysManager.version.call();
+      let oldVersion = await keysManagerEternalStorage.version.call();
       let newVersion = oldVersion.add(1);
-      (await keysManagerEternalStorage.version.call()).should.be.bignumber.equal(oldVersion);
       await upgradeTo(keysManagerNew.address, {from: proxyStorageStubAddress});
-      keysManagerNew = await KeysManagerNew.at(keysManagerEternalStorage.address);
-      (await keysManagerNew.version.call()).should.be.bignumber.equal(newVersion);
       (await keysManagerEternalStorage.version.call()).should.be.bignumber.equal(newVersion);
     });
     it('new implementation should work', async () => {

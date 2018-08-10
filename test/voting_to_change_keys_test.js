@@ -1048,9 +1048,11 @@ contract('Voting to change keys [all features]', function (accounts) {
 
   describe('#upgradeTo', async () => {
     let proxyStorageStubAddress;
+    let votingOldImplementation;
     beforeEach(async () => {
       proxyStorageStubAddress = accounts[8];
       voting = await VotingToChangeKeysMock.new();
+      votingOldImplementation = voting.address;
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, voting.address);
       voting = await VotingToChangeKeysMock.at(votingEternalStorage.address);
       await voting.init(172800).should.be.fulfilled;
@@ -1062,22 +1064,16 @@ contract('Voting to change keys [all features]', function (accounts) {
     });
     it('should change implementation address', async () => {
       let votingNew = await VotingToChangeKeysNew.new();
-      let oldImplementation = await voting.implementation.call();
       let newImplementation = votingNew.address;
-      (await votingEternalStorage.implementation.call()).should.be.equal(oldImplementation);
+      (await votingEternalStorage.implementation.call()).should.be.equal(votingOldImplementation);
       await upgradeTo(newImplementation, {from: proxyStorageStubAddress});
-      votingNew = await VotingToChangeKeysNew.at(votingEternalStorage.address);
-      (await votingNew.implementation.call()).should.be.equal(newImplementation);
       (await votingEternalStorage.implementation.call()).should.be.equal(newImplementation);
     });
     it('should increment implementation version', async () => {
       let votingNew = await VotingToChangeKeysNew.new();
-      let oldVersion = await voting.version.call();
+      let oldVersion = await votingEternalStorage.version.call();
       let newVersion = oldVersion.add(1);
-      (await votingEternalStorage.version.call()).should.be.bignumber.equal(oldVersion);
       await upgradeTo(votingNew.address, {from: proxyStorageStubAddress});
-      votingNew = await VotingToChangeKeysNew.at(votingEternalStorage.address);
-      (await votingNew.version.call()).should.be.bignumber.equal(newVersion);
       (await votingEternalStorage.version.call()).should.be.bignumber.equal(newVersion);
     });
     it('new implementation should work', async () => {

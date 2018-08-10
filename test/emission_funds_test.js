@@ -61,7 +61,7 @@ contract('EmissionFunds [all features]', function (accounts) {
       receiverInitBalance = await web3.eth.getBalance(receiver);
     });
 
-    it('may be called only by VotingToManageEmissionFunds', async () => {
+    it('may only be called by VotingToManageEmissionFunds', async () => {
       const amountToSend = web3.toWei(5, 'ether');
       await emissionFunds.sendFundsTo(
         receiver,
@@ -236,7 +236,7 @@ contract('EmissionFunds [all features]', function (accounts) {
   });
 
   describe('#burnFunds', async () => {
-    it('may be called only by VotingToManageEmissionFunds', async () => {
+    it('may only be called by VotingToManageEmissionFunds', async () => {
       const amountToBurn = web3.toWei(5, 'ether');
       await emissionFunds.burnFunds(
         amountToBurn,
@@ -337,7 +337,7 @@ contract('EmissionFunds [all features]', function (accounts) {
   });
 
   describe('#freezeFunds', async () => {
-    it('may be called only by VotingToManageEmissionFunds', async () => {
+    it('may only be called by VotingToManageEmissionFunds', async () => {
       const amountToFreeze = web3.toWei(5, 'ether');
       await emissionFunds.freezeFunds(
         amountToFreeze,

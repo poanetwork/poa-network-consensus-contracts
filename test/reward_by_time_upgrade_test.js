@@ -100,7 +100,7 @@ contract('RewardByTime upgraded [all features]', function (accounts) {
   });
 
   describe('#reward', async () => {
-    it('may be called only by system address', async () => {
+    it('may only be called by system address', async () => {
       await rewardByTime.reward().should.be.rejectedWith(ERROR_MSG);
       await rewardByTime.setSystemAddress(systemAddress);
       await rewardByTime.reward({from: systemAddress}).should.be.fulfilled;

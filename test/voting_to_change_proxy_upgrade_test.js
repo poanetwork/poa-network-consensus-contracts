@@ -26,6 +26,7 @@ require('chai')
 let keysManager, poaNetworkConsensusMock, ballotsStorage, voting, votingEternalStorage;
 let votingKey, votingKey2, votingKey3, miningKeyForVotingKey;
 let votingForKeysEternalStorage;
+let proxyStorageMock, proxyStorageEternalStorage;
 let VOTING_START_DATE, VOTING_END_DATE;
 contract('VotingToChangeProxyAddress upgraded [all features]', function (accounts) {
   beforeEach(async () => {
@@ -36,7 +37,7 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
     poaNetworkConsensusMock = await PoaNetworkConsensusMock.new(masterOfCeremony, []);
     
     proxyStorageMock = await ProxyStorageMock.new();
-    const proxyStorageEternalStorage = await EternalStorageProxy.new(0, proxyStorageMock.address);
+    proxyStorageEternalStorage = await EternalStorageProxy.new(0, proxyStorageMock.address);
     proxyStorageMock = await ProxyStorageMock.at(proxyStorageEternalStorage.address);
     await proxyStorageMock.init(poaNetworkConsensusMock.address).should.be.fulfilled;
 
@@ -426,7 +427,7 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
       const proxyStorageNew = await ProxyStorageMock.new();
       const newAddress = proxyStorageNew.address;
       await deployAndTest({contractType, newAddress})
-      newAddress.should.be.equal(await proxyStorageMock.implementation.call());
+      newAddress.should.be.equal(await proxyStorageEternalStorage.implementation.call());
     })
     it('prevents double finalize', async () => {
       let newAddress1 = accounts[4];
