@@ -112,19 +112,19 @@ contract EternalStorageProxy is EternalStorage {
 
     /**
      * @dev Allows ProxyStorage contract to upgrade the current implementation.
-     * @param implementation representing the address of the new implementation to be set.
+     * @param newImplementation representing the address of the new implementation to be set.
      */
-    function upgradeTo(address implementation) public onlyProxyStorage returns(bool) {
-        if (implementation == address(0)) return false;
-        if (_implementation == implementation) return false;
+    function upgradeTo(address newImplementation) public onlyProxyStorage returns(bool) {
+        if (newImplementation == address(0)) return false;
+        if (_implementation == newImplementation) return false;
 
-        uint256 _newVersion = _version + 1;
-        if (_newVersion <= _version) return false;
+        uint256 newVersion = _version + 1;
+        if (newVersion <= _version) return false;
 
-        _version = _newVersion;
-        _implementation = implementation;
+        _version = newVersion;
+        _implementation = newImplementation;
 
-        emit Upgraded(_version, _implementation);
+        emit Upgraded(newVersion, newImplementation);
         return true;
     }
 
