@@ -272,11 +272,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         require(voterMiningKey != _miningKey);
         require(!isValidatorAlreadyVoted(_miningKey, voterMiningKey));
 
-        uint256 confirmationsLimit = 50;
-        uint256 minThreshold = _getMinThreshold(true, _miningKey);
-        if (confirmationsLimit < minThreshold) {
-            confirmationsLimit = minThreshold;
-        }
+        uint256 confirmationsLimit = _getBallotsStorage().metadataChangeConfirmationsLimit();
         require(_getConfirmationsVoters(_miningKey).length < confirmationsLimit);
 
         _confirmationsVoterAdd(_miningKey, voterMiningKey);

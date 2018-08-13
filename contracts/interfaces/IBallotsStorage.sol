@@ -9,4 +9,5 @@ interface IBallotsStorage {
     function getProxyThreshold() external view returns(uint256);
     function getBallotLimitPerValidator() external view returns(uint256);
     function getMaxLimitBallot() external view returns(uint256);
+    function metadataChangeConfirmationsLimit() external pure returns(uint256);
 }
