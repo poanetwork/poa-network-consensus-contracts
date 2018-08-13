@@ -69,6 +69,7 @@ contract('Voting to change keys [all features]', function (accounts) {
 
     voting = await VotingToChangeKeysMock.at(votingEternalStorage.address);
     await voting.init(172800).should.be.fulfilled;
+    await voting.migrateDisable().should.be.fulfilled;
   })
 
   describe('#createBallot', async () => {
@@ -985,6 +986,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       let votingNew = await VotingToChangeKeysMock.new();
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingNew.address);
       votingNew = await VotingToChangeKeysMock.at(votingEternalStorage.address);
+      await votingNew.init(172800).should.be.fulfilled;
 
       let ballotInfo = await voting.getBallotInfo.call(id);
 
@@ -1056,6 +1058,7 @@ contract('Voting to change keys [all features]', function (accounts) {
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, voting.address);
       voting = await VotingToChangeKeysMock.at(votingEternalStorage.address);
       await voting.init(172800).should.be.fulfilled;
+      await voting.migrateDisable().should.be.fulfilled;
     });
     it('may only be called by ProxyStorage', async () => {
       let votingNew = await VotingToChangeKeysNew.new();

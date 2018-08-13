@@ -46,15 +46,13 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
 
     let ballotsStorage = await BallotsStorage.new();
     const ballotsEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, ballotsStorage.address);
-    ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
 
     const validatorMetadata = await ValidatorMetadata.new();
     const validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, validatorMetadata.address);
 
     voting = await VotingToChangeKeysMock.new();
     votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, voting.address);
-    voting = await VotingToChangeKeysMock.at(votingEternalStorage.address);
-    
+
     await proxyStorageMock.initializeAddresses(
       keysManagerEternalStorage.address,
       votingEternalStorage.address,
@@ -66,8 +64,12 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       accounts[0]
     );
 
+    ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
     await ballotsStorage.init([3, 2]).should.be.fulfilled;
+
+    voting = await VotingToChangeKeysMock.at(votingEternalStorage.address);
     await voting.init(172800).should.be.fulfilled;
+    await voting.migrateDisable().should.be.fulfilled;
 
     let votingNew = await VotingToChangeKeysNew.new();
     await votingEternalStorage.setProxyStorage(accounts[6]);
@@ -991,6 +993,7 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       let votingNew = await VotingToChangeKeysMock.new();
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingNew.address);
       votingNew = await VotingToChangeKeysMock.at(votingEternalStorage.address);
+      await votingNew.init(172800).should.be.fulfilled;
 
       let ballotInfo = await voting.getBallotInfo.call(id);
 

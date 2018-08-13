@@ -36,7 +36,6 @@ contract VotingToManageEmissionFunds is VotingTo {
         address _receiver,
         string _memo
     ) public onlyValidVotingKey(msg.sender) {
-        require(initDisabled());
         require(_startTime > 0 && _endTime > 0);
         uint256 currentTime = getTime();
         require(_endTime > _startTime && _startTime > currentTime);

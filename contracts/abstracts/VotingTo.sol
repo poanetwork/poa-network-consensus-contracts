@@ -138,6 +138,7 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
         uint8 _quorumState,
         address _creatorMiningKey
     ) internal returns(uint256) {
+        require(initDisabled());
         uint256 ballotId = nextBallotId();
         _setStartTime(ballotId, _startTime);
         _setEndTime(ballotId, _endTime);

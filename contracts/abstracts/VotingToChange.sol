@@ -60,6 +60,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
 
     function migrateBasicAll(address _prevVotingToChange) public onlyOwner {
         require(_prevVotingToChange != address(0));
+        require(initDisabled());
         require(!migrateDisabled());
 
         IVotingToChangePrev prev =
@@ -87,6 +88,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function migrateDisable() public onlyOwner {
+        require(initDisabled());
         require(!migrateDisabled());
         boolStorage[MIGRATE_DISABLED] = true;
     }
@@ -106,6 +108,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
+        require(migrateDisabled());
         require(!_getIsFinalized(_id));
         address miningKey = _getKeysManager().getMiningKeyByVoting(msg.sender);
         require(isValidVote(_id, msg.sender));
@@ -140,6 +143,8 @@ contract VotingToChange is IVotingToChange, VotingTo {
     }
 
     function _canBeFinalizedNow(uint256 _id) internal view returns(bool) {
+        if (!migrateDisabled()) return false;
+
         uint256 currentTime = getTime();
         uint256 startTime = _getStartTime(_id);
 
@@ -174,7 +179,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
         onlyValidTime(_startTime, _endTime)
         returns(uint256)
     {
-        require(initDisabled());
+        require(migrateDisabled());
         address creatorMiningKey = _getKeysManager().getMiningKeyByVoting(msg.sender);
         require(_withinLimit(creatorMiningKey));
         uint256 ballotId = super._createBallot(
@@ -260,6 +265,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
 
     function _init(uint256 _minBallotDuration) internal onlyOwner {
         require(!initDisabled());
+        require(!migrateDisabled());
         require(_minBallotDuration < maxBallotDuration());
         uintStorage[MIN_BALLOT_DURATION] = _minBallotDuration;
         boolStorage[INIT_DISABLED] = true;
@@ -275,6 +281,7 @@ contract VotingToChange is IVotingToChange, VotingTo {
         address[] _voters
     ) internal onlyOwner {
         require(_prevVotingToChange != address(0));
+        require(initDisabled());
         require(!migrateDisabled());
         IVotingToChangePrev prev = IVotingToChangePrev(_prevVotingToChange);
         _setStartTime(_id, prev.getStartTime(_id));

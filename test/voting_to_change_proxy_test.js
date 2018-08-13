@@ -74,6 +74,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
     voting = await VotingToChangeProxyAddress.at(votingEternalStorage.address);
     await voting.init(172800, {from: accounts[8]}).should.be.rejectedWith(ERROR_MSG);
     await voting.init(172800).should.be.fulfilled;
+    await voting.migrateDisable().should.be.fulfilled;
 
     const validatorMetadata = await ValidatorMetadata.new();
     const validatorMetadataEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, validatorMetadata.address);
@@ -574,6 +575,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       let votingNew = await VotingToChangeProxyAddress.new();
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingNew.address);
       votingNew = await VotingToChangeProxyAddress.at(votingEternalStorage.address);
+      await votingNew.init(172800).should.be.fulfilled;
 
       let ballotInfo = await voting.getBallotInfo.call(id, votingKey);
 
@@ -640,6 +642,7 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, voting.address);
       voting = await VotingToChangeProxyAddress.at(votingEternalStorage.address);
       await voting.init(172800).should.be.fulfilled;
+      await voting.migrateDisable().should.be.fulfilled;
     });
     it('may only be called by ProxyStorage', async () => {
       let votingNew = await VotingToChangeProxyAddressNew.new();

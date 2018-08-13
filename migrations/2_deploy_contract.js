@@ -100,6 +100,7 @@ module.exports = function(deployer, network, accounts) {
       );
       votingToChangeKeys = VotingToChangeKeys.at(votingToChangeKeys.address);
       await votingToChangeKeys.init(minBallotDuration);
+      await votingToChangeKeys.migrateDisable();
 
       // Deploy VotingToChangeMinThreshold
       votingToChangeMinThreshold = await VotingToChangeMinThreshold.new();
@@ -112,6 +113,7 @@ module.exports = function(deployer, network, accounts) {
         votingToChangeMinThreshold.address
       );
       await votingToChangeMinThreshold.init(minBallotDuration, demoMode ? 1 : 3);
+      await votingToChangeMinThreshold.migrateDisable();
 
       // Deploy VotingToChangeProxyAddress
       votingToChangeProxyAddress = await VotingToChangeProxyAddress.new();
@@ -124,6 +126,7 @@ module.exports = function(deployer, network, accounts) {
         votingToChangeProxyAddress.address
       );
       await votingToChangeProxyAddress.init(minBallotDuration);
+      await votingToChangeProxyAddress.migrateDisable();
 
       // Deploy VotingToManageEmissionFunds
       votingToManageEmissionFunds = await VotingToManageEmissionFunds.new();

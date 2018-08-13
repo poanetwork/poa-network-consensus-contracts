@@ -57,16 +57,19 @@ Compile and deploy contracts in the next sequence:
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of VotingToChangeKeys contract.
 -  Make a call to `VotingToChangeKeys init` with `_minBallotDuration` parameter equal to `172800`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeKeys`.
+-  Make a call to `VotingToChangeKeys migrateDisable`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeKeys`.
 - `VotingToChangeMinThreshold_flat.sol` - Deploy `VotingToChangeMinThreshold` contract.
 - `EternalStorageProxy_flat.sol` - Deploy `EternalStorageProxy` contract with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of VotingToChangeMinThreshold contract.
 -  Make a call to `VotingToChangeMinThreshold init` with `_minBallotDuration` parameter equal to `172800` and `_minPossibleThreshold` parameter equal to `3`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeMinThreshold`.
+-  Make a call to `VotingToChangeMinThreshold migrateDisable`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeMinThreshold`.
 - `VotingToChangeProxyAddress_flat.sol` - Deploy `VotingToChangeProxyAddress` contract.
 - `EternalStorageProxy_flat.sol` - Deploy `EternalStorageProxy` contract with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
 `_implementationAddress` - address of VotingToChangeProxyAddress contract.
 -  Make a call to `VotingToChangeProxyAddress init` with `_minBallotDuration` parameter equal to `172800`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeProxyAddress`.
+-  Make a call to `VotingToChangeProxyAddress migrateDisable`, using the address of `EternalStorageProxy` and ABI of `VotingToChangeProxyAddress`.
 - `ValidatorMetadata_flat.sol` - Deploy `ValidatorMetadata` contract.
 - `EternalStorageProxy_flat.sol` - Deploy `EternalStorageProxy` contract with constructor parameters: <br />
 `_proxyStorage` - address of ProxyStorage contract,
