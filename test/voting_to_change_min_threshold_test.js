@@ -59,6 +59,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
     voting = await Voting.at(votingEternalStorage.address);
     await voting.init(172800, 0).should.be.rejectedWith(ERROR_MSG);
     await voting.init(172800, 3).should.be.fulfilled;
+    await voting.migrateDisable().should.be.fulfilled;
     
     await proxyStorageMock.initializeAddresses(
       keysManager.address,
@@ -334,6 +335,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       const votingForKeysEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingForKeys.address);
       votingForKeys = await VotingForKeys.at(votingForKeysEternalStorage.address);
       await votingForKeys.init(172800);
+      await votingForKeys.migrateDisable();
 
       const nextId = await votingForKeys.nextBallotId.call();
       await votingForKeys.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 3, accounts[1], 1, "memo", {from: votingKey});
@@ -503,6 +505,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       let votingNew = await Voting.new();
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingNew.address);
       votingNew = await Voting.at(votingEternalStorage.address);
+      await votingNew.init(172800, 3).should.be.fulfilled;
 
       let ballotInfo = await voting.getBallotInfo.call(id, votingKey);
 
@@ -567,6 +570,7 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, voting.address);
       voting = await Voting.at(votingEternalStorage.address);
       await voting.init(172800, 3).should.be.fulfilled;
+      await voting.migrateDisable().should.be.fulfilled;
     });
     it('may only be called by ProxyStorage', async () => {
       let votingNew = await VotingNew.new();

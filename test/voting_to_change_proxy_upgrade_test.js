@@ -74,6 +74,7 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
     voting = await VotingToChangeProxyAddress.at(votingEternalStorage.address);
     await voting.init(172800, {from: accounts[8]}).should.be.rejectedWith(ERROR_MSG);
     await voting.init(172800).should.be.fulfilled;
+    await voting.migrateDisable().should.be.fulfilled;
 
     votingNew = await VotingToChangeProxyAddressNew.new();
     await votingEternalStorage.setProxyStorage(accounts[7]);
@@ -581,6 +582,7 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
       let votingNew = await VotingToChangeProxyAddress.new();
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingNew.address);
       votingNew = await VotingToChangeProxyAddress.at(votingEternalStorage.address);
+      await votingNew.init(172800).should.be.fulfilled;
 
       let ballotInfo = await voting.getBallotInfo.call(id, votingKey);
 

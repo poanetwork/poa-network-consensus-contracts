@@ -233,6 +233,7 @@ async function votingToChangeMigrateAndCheck(sender, key, chainId, contractName)
 				init = await votingNewInstance.methods.init(172800);
 			}
 			await utils.call(init, sender, contractNewAddress, key, chainId);
+			(await votingNewInstance.methods.initDisabled().call()).should.be.equal(true);
 		}
 
 		if (!ONLY_CHECK) {
@@ -312,6 +313,7 @@ async function votingToChangeMigrateAndCheck(sender, key, chainId, contractName)
 
 			console.log('  Disable migrations feature of the new contract...');
 			await utils.call(votingNewInstance.methods.migrateDisable(), sender, contractNewAddress, key, chainId);
+			(await votingNewInstance.methods.migrateDisabled().call()).should.be.equal(true);
 		}
 
 		if (ONLY_CHECK) {
