@@ -1,9 +1,9 @@
 pragma solidity ^0.4.24;
 
-import "../../contracts/BallotsStorage.sol";
+import '../mockContracts/BallotsStorageMock.sol';
 
 
-contract BallotsStorageNew is BallotsStorage {
+contract BallotsStorageNew is BallotsStorageMock {
   
   function initialize() public {
     boolStorage[keccak256('initialized')] = true;

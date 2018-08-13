@@ -678,10 +678,10 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
       const id = await voting.nextBallotId.call();
-      proxyStorageMock.setVotingContractMock(accounts[0]);
+      await proxyStorageMock.setVotingContractMock(accounts[0]);
       await addMiningKey(miningKeyForVotingKey);
       await addVotingKey(votingKey, miningKeyForVotingKey);
-      proxyStorageMock.setVotingContractMock(votingForKeysEternalStorage.address);
+      await proxyStorageMock.setVotingContractMock(votingForKeysEternalStorage.address);
       await votingEternalStorage.setProxyStorage(proxyStorageMock.address);
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], 1, "memo", { from: votingKey }

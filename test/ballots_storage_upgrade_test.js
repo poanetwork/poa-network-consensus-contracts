@@ -1,6 +1,6 @@
 let PoaNetworkConsensus = artifacts.require('./mockContracts/PoaNetworkConsensusMock');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
-let BallotsStorage = artifacts.require('./BallotsStorage');
+let BallotsStorage = artifacts.require('./mockContracts/BallotsStorageMock');
 let BallotsStorageNew = artifacts.require('./upgradeContracts/BallotsStorageNew');
 let VotingToChangeMinThresholdMock = artifacts.require('./mockContracts/VotingToChangeMinThresholdMock');
 let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
@@ -41,6 +41,7 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     ballotsEternalStorage = await EternalStorageProxy.new(proxyStorage.address, ballotsStorage.address);
     ballotsStorage = await BallotsStorage.at(ballotsEternalStorage.address);
     await ballotsStorage.init([3, 2], {from: accounts[1]}).should.be.rejectedWith(ERROR_MSG);
+    await ballotsStorage.init([3, 3]).should.be.rejectedWith(ERROR_MSG);
     await ballotsStorage.init([3, 2]).should.be.fulfilled;
 
     keysManager = await KeysManagerMock.new();
@@ -72,7 +73,7 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     await ballotsEternalStorage.setProxyStorage(proxyStorage.address);
     ballotsStorage = await BallotsStorageNew.at(ballotsEternalStorage.address);
   })
-  
+
   describe('#init', async () => {
     it('prevent from double init', async () => {
       await ballotsStorage.init([3, 2]).should.be.rejectedWith(ERROR_MSG);
@@ -112,20 +113,22 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
       await setThreshold(5, -10, false, {from: accounts[3]});
       await setThreshold(5, -1, false, {from: accounts[3]});
       await setThreshold(5, 3, false, {from: accounts[3]});
+      await setThreshold(3, 2, false, {from: accounts[3]});
     })
     it('new value cannot be equal to 0', async () => {
       await setThreshold(0, 1, false, {from: accounts[3]});
       await setThreshold(0, 2, false, {from: accounts[3]});
       await setThreshold(4, 1, true, {from: accounts[3]});
-      await setThreshold(4, 2, true, {from: accounts[3]});
+      await setThreshold(1, 2, true, {from: accounts[3]});
     })
     it('sets new value for Keys threshold', async () => {
       await setThreshold(5, 1, true, {from: accounts[3]});
       new web3.BigNumber(5).should.be.bignumber.equal(await ballotsStorage.getBallotThreshold.call(1));
     })
     it('sets new value for MetadataChange threshold', async () => {
-      await setThreshold(6, 2, true, {from: accounts[3]});
-      new web3.BigNumber(6).should.be.bignumber.equal(await ballotsStorage.getBallotThreshold.call(2));
+      new web3.BigNumber(2).should.be.bignumber.equal(await ballotsStorage.getBallotThreshold.call(2));
+      await setThreshold(1, 2, true, {from: accounts[3]});
+      new web3.BigNumber(1).should.be.bignumber.equal(await ballotsStorage.getBallotThreshold.call(2));
     })
   })
   describe('#getProxyThreshold', async () => {

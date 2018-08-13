@@ -4,7 +4,12 @@ import '../../contracts/BallotsStorage.sol';
 
 
 contract BallotsStorageMock is BallotsStorage {
+    function metadataChangeConfirmationsLimit() public pure returns(uint256) {
+        return 2;
+    }
+
     function setThresholdMock(uint256 _newValue, uint8 _thresholdType) public {
         _setThreshold(_newValue, _thresholdType);
     }
+
 }

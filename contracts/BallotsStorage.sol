@@ -83,10 +83,15 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
         require(_thresholds.length < 255);
         for (uint8 thresholdType = uint8(ThresholdTypes.Keys); thresholdType <= _thresholds.length; thresholdType++) {
             uint256 thresholdValue = _thresholds[thresholdType - uint8(ThresholdTypes.Keys)];
-            require(thresholdValue > 0);
-            _setThreshold(thresholdValue, thresholdType);
+            if (!_setThreshold(thresholdValue, thresholdType)) {
+                revert();
+            }
         }
         _initDisable();
+    }
+
+    function metadataChangeConfirmationsLimit() public pure returns(uint256) {
+        return 50;
     }
 
     function migrate(address _prevBallotsStorage) public onlyOwner {
@@ -95,14 +100,12 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
         uint8 thresholdKeysType = uint8(ThresholdTypes.Keys);
         uint8 thresholdMetadataType = uint8(ThresholdTypes.MetadataChange);
         IBallotsStorage prevBallotsStorage = IBallotsStorage(_prevBallotsStorage);
-        _setThreshold(
-            prevBallotsStorage.getBallotThreshold(thresholdKeysType),
-            thresholdKeysType
-        );
-        _setThreshold(
-            prevBallotsStorage.getBallotThreshold(thresholdMetadataType),
-            thresholdMetadataType
-        );
+        if (!_setThreshold(prevBallotsStorage.getBallotThreshold(thresholdKeysType), thresholdKeysType)) {
+            revert();
+        }
+        if (!_setThreshold(prevBallotsStorage.getBallotThreshold(thresholdMetadataType), thresholdMetadataType)) {
+            revert();
+        }
         _initDisable();
     }
 
@@ -111,11 +114,8 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
         onlyVotingToChangeThreshold
         returns(bool)
     {
-        if (_thresholdType == uint8(ThresholdTypes.Invalid)) return false;
-        if (_thresholdType > uint8(ThresholdTypes.MetadataChange)) return false;
-        if (_newValue == 0) return false;
         if (_newValue == getBallotThreshold(_thresholdType)) return false;
-        _setThreshold(_newValue, _thresholdType);
+        if (!_setThreshold(_newValue, _thresholdType)) return false;
         emit ThresholdChanged(_thresholdType, _newValue);
         return true;
     }
@@ -231,9 +231,18 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
         return poa.getCurrentValidatorsLengthWithoutMoC();
     }
 
-    function _setThreshold(uint256 _newValue, uint8 _thresholdType) internal {
+    function _setThreshold(uint256 _newValue, uint8 _thresholdType) internal returns(bool) {
+        if (_newValue == 0) return false;
+        if (_thresholdType == uint8(ThresholdTypes.Invalid)) return false;
+        if (_thresholdType > uint8(ThresholdTypes.MetadataChange)) return false;
+        if (_thresholdType == uint8(ThresholdTypes.MetadataChange)) {
+            if (_newValue > metadataChangeConfirmationsLimit()) {
+                return false;
+            }
+        }
         uintStorage[
             keccak256(abi.encode(BALLOT_THRESHOLDS, _thresholdType))
         ] = _newValue;
+        return true;
     }
 }

@@ -2,7 +2,7 @@ let PoaNetworkConsensusMock = artifacts.require('./mockContracts/PoaNetworkConse
 let KeysManagerMock = artifacts.require('./mockContracts/KeysManagerMock');
 let ValidatorMetadata = artifacts.require('./mockContracts/ValidatorMetadataMock');
 let ValidatorMetadataNew = artifacts.require('./upgradeContracts/ValidatorMetadataNew');
-let BallotsStorage = artifacts.require('./BallotsStorage');
+let BallotsStorage = artifacts.require('./mockContracts/BallotsStorageMock');
 let ProxyStorageMock = artifacts.require('./mockContracts/ProxyStorageMock');
 let EternalStorageProxy = artifacts.require('./mockContracts/EternalStorageProxyMock');
 const ERROR_MSG = 'VM Exception while processing transaction: revert';
@@ -434,13 +434,13 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       await metadata.confirmPendingChange(miningKey, {from: votingKey2});
       await metadata.confirmPendingChange(miningKey, {from: votingKey3});
       let confirmations = await metadata.confirmations.call(miningKey);
-      confirmations[0].should.be.bignumber.equal(2);
+      confirmations[0].should.be.bignumber.equal(2); // voters count
       const {logs} = await metadata.changeRequest(...anotherData, {from: votingKey}).should.be.fulfilled;
       confirmations = await metadata.confirmations.call(miningKey);
-      confirmations[0].should.be.bignumber.equal(0);
+      confirmations[0].should.be.bignumber.equal(0); // voters count
       await metadata.confirmPendingChange(miningKey, {from: votingKey2});
       confirmations = await metadata.confirmations.call(miningKey);
-      confirmations[0].should.be.bignumber.equal(1);
+      confirmations[0].should.be.bignumber.equal(1); // voters count
     })
   })
 
@@ -525,7 +525,7 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
       const {logs} = await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.fulfilled;
       const confirmations = await metadata.confirmations.call(miningKey);
-      confirmations[0].should.be.bignumber.equal(1);
+      confirmations[0].should.be.bignumber.equal(1); // voters count
       logs[0].event.should.be.equal('Confirmed');
       logs[0].args.miningKey.should.be.equal(miningKey);
       logs[0].args.votingSender.should.be.equal(votingKey2);
@@ -536,8 +536,21 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       const {logs} = await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.fulfilled;
       await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.rejectedWith(ERROR_MSG);
       const confirmations = await metadata.confirmations.call(miningKey);
-      confirmations[0].should.be.bignumber.equal(1);
-    })
+      confirmations[0].should.be.bignumber.equal(1); // voters count
+    });
+    it('should not exceed confirmations limit', async () => {
+      const miningKey4 = accounts[8];
+      const votingKey4 = accounts[9];
+      await addMiningKey(miningKey4);
+      await addVotingKey(votingKey4, miningKey4);
+      await metadata.createMetadata(...fakeData, {from: votingKey}).should.be.fulfilled;
+      await metadata.changeRequest(...newMetadata, {from: votingKey}).should.be.fulfilled;
+      await metadata.confirmPendingChange(miningKey, {from: votingKey2}).should.be.fulfilled;
+      await metadata.confirmPendingChange(miningKey, {from: votingKey4}).should.be.fulfilled;
+      await metadata.confirmPendingChange(miningKey, {from: votingKey3}).should.be.rejectedWith(ERROR_MSG);
+      const confirmations = await metadata.confirmations.call(miningKey);
+      confirmations[0].should.be.bignumber.equal(2); // voters count
+    });
   });
   describe('#finalize', async ()=> {
     it('happy path', async ()=> {
