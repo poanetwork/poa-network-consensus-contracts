@@ -23,12 +23,50 @@ contract VotingToManageEmissionFunds is VotingTo {
 
     string internal constant AMOUNT = "amount";
     string internal constant BURN_VOTES = "burnVotes";
+    string internal constant CREATION_TIME = "creationTime";
+    string internal constant EMISSION_RELEASE_TIME_SNAPSHOT = "emissionReleaseTimeSnapshot";
     string internal constant FREEZE_VOTES = "freezeVotes";
+    string internal constant IS_CANCELED = "isCanceled";
     string internal constant RECEIVER = "receiver";
     string internal constant SEND_VOTES = "sendVotes";
 
+    event BallotCanceled(
+        uint256 indexed id,
+        address indexed votingKey
+    );
+
     enum QuorumStates {Invalid, InProgress, Sent, Burnt, Frozen}
     enum ActionChoice {Invalid, Send, Burn, Freeze}
+
+    function ballotCancelingThreshold() public pure returns(uint256) {
+        return 15 minutes;
+    }
+
+    // solhint-disable code-complexity
+    function canBeFinalizedNow(uint256 _id) public view returns(bool) {
+        if (_id >= nextBallotId()) return false;
+        if (_id != nextBallotId().sub(1)) return false;
+        if (_getStartTime(_id) > getTime()) return false;
+        if (isActive(_id)) return false;
+        if (_getIsCanceled(_id)) return false;
+        if (_getIsFinalized(_id)) return false;
+        if (previousBallotFinalized()) return false;
+        if (_withinCancelingThreshold(_id)) return false;
+        return true;
+    }
+    // solhint-enable code-complexity
+
+    function cancelNewBallot() public {
+        uint256 ballotId = nextBallotId().sub(1);
+        require(_getKeysManager().getMiningKeyByVoting(msg.sender) == _getCreator(ballotId));
+        require(_withinCancelingThreshold(ballotId));
+        require(!_getIsCanceled(ballotId));
+        require(!_getIsFinalized(ballotId));
+        _setIsCanceled(ballotId, true);
+        _setPreviousBallotFinalized(true);
+        _setEmissionReleaseTime(_getEmissionReleaseTimeSnapshot(ballotId));
+        emit BallotCanceled(ballotId, msg.sender);
+    }
 
     function createBallot(
         uint256 _startTime,
@@ -39,6 +77,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         require(_startTime > 0 && _endTime > 0);
         uint256 currentTime = getTime();
         require(_endTime > _startTime && _startTime > currentTime);
+        uint256 releaseTimeSnapshot = emissionReleaseTime();
         uint256 releaseTime = refreshEmissionReleaseTime();
         require(_startTime > releaseTime);
         require(currentTime > releaseTime);
@@ -59,6 +98,9 @@ contract VotingToManageEmissionFunds is VotingTo {
         _setReceiver(ballotId, _receiver);
         _setAmount(ballotId, emissionFunds().balance);
         _setPreviousBallotFinalized(false);
+        _setCreationTime(ballotId, currentTime);
+        _setEmissionReleaseTimeSnapshot(ballotId, releaseTimeSnapshot);
+        _setIsCanceled(ballotId, false);
     }
 
     function distributionThreshold() public view returns(uint256) {
@@ -78,76 +120,53 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
 
     function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
-        require(_id < nextBallotId());
-        require(_id == nextBallotId().sub(1));
-        require(_getStartTime(_id) <= getTime());
-        require(!isActive(_id));
-        require(!_getIsFinalized(_id));
-        require(!previousBallotFinalized());
+        require(canBeFinalizedNow(_id));
         _finalize(_id);
     }
 
-    function getAmount(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, AMOUNT))];
-    }
-
-    function getBallotInfo(uint256 _id, address _votingKey) public view returns(
+    function getBallotInfo(uint256 _id) public view returns(
+        uint256 creationTime,
         uint256 startTime,
         uint256 endTime,
+        bool isCanceled,
         bool isFinalized,
         address creator,
         string memo,
-        bool hasAlreadyVoted,
         uint256 amount,
         uint256 burnVotes,
         uint256 freezeVotes,
         uint256 sendVotes,
         address receiver
     ) {
+        creationTime = _getCreationTime(_id);
         startTime = _getStartTime(_id);
         endTime = _getEndTime(_id);
+        isCanceled = _getIsCanceled(_id);
         isFinalized = _getIsFinalized(_id);
         creator = _getCreator(_id);
         memo = _getMemo(_id);
-        hasAlreadyVoted = this.hasAlreadyVoted(_id, _votingKey);
-        amount = getAmount(_id);
-        burnVotes = getBurnVotes(_id);
-        freezeVotes = getFreezeVotes(_id);
-        sendVotes = getSendVotes(_id);
-        receiver = getReceiver(_id);
-    }
-
-    function getBurnVotes(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, BURN_VOTES))];
-    }
-
-    function getFreezeVotes(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, FREEZE_VOTES))];
-    }
-
-    function getReceiver(uint256 _id) public view returns(address) {
-        return addressStorage[keccak256(abi.encode(VOTING_STATE, _id, RECEIVER))];
-    }
-
-    function getSendVotes(uint256 _id) public view returns(uint256) {
-        return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, SEND_VOTES))];
+        amount = _getAmount(_id);
+        burnVotes = _getBurnVotes(_id);
+        freezeVotes = _getFreezeVotes(_id);
+        sendVotes = _getSendVotes(_id);
+        receiver = _getReceiver(_id);
     }
 
     function getTotalVoters(uint256 _id) public view returns(uint256) {
-        return getSendVotes(_id).add(getBurnVotes(_id)).add(getFreezeVotes(_id));
+        return _getSendVotes(_id).add(_getBurnVotes(_id)).add(_getFreezeVotes(_id));
     }
 
     function init(
         address _emissionFunds,
-        uint256 _emissionReleaseTime,
-        uint256 _emissionReleaseThreshold,
-        uint256 _distributionThreshold
+        uint256 _emissionReleaseTime, // unix timestamp
+        uint256 _emissionReleaseThreshold, // seconds
+        uint256 _distributionThreshold // seconds
     ) public onlyOwner {
         require(!initDisabled());
         require(_emissionFunds != address(0));
         require(_emissionReleaseTime > getTime());
         require(_emissionReleaseThreshold > 0);
-        require(_distributionThreshold > 0);
+        require(_distributionThreshold > ballotCancelingThreshold());
         require(_emissionReleaseThreshold > _distributionThreshold);
         _setPreviousBallotFinalized(true);
         _setEmissionReleaseTime(_emissionReleaseTime);
@@ -177,14 +196,15 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
 
     function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
+        require(!_getIsCanceled(_id));
         require(!_getIsFinalized(_id));
         require(isValidVote(_id, msg.sender));
         if (_choice == uint(ActionChoice.Send)) {
-            _setSendVotes(_id, getSendVotes(_id).add(1));
+            _setSendVotes(_id, _getSendVotes(_id).add(1));
         } else if (_choice == uint(ActionChoice.Burn)) {
-            _setBurnVotes(_id, getBurnVotes(_id).add(1));
+            _setBurnVotes(_id, _getBurnVotes(_id).add(1));
         } else if (_choice == uint(ActionChoice.Freeze)) {
-            _setFreezeVotes(_id, getFreezeVotes(_id).add(1));
+            _setFreezeVotes(_id, _getFreezeVotes(_id).add(1));
         } else {
             revert();
         }
@@ -196,7 +216,7 @@ contract VotingToManageEmissionFunds is VotingTo {
             IProxyStorage(proxyStorage()).getPoaConsensus()
         ).getCurrentValidatorsLengthWithoutMoC();
         
-        if (getTotalVoters(_id) >= validatorsLength) {
+        if (getTotalVoters(_id) >= validatorsLength && !_withinCancelingThreshold(_id)) {
             _finalize(_id);
         }
     }
@@ -206,7 +226,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         require(_isEOA(msg.sender));
 
         IEmissionFunds _emissionFunds = IEmissionFunds(emissionFunds());
-        uint256 amount = getAmount(_id);
+        uint256 amount = _getAmount(_id);
 
         _setIsFinalized(_id, true);
         _setPreviousBallotFinalized(true);
@@ -223,9 +243,9 @@ contract VotingToManageEmissionFunds is VotingTo {
         }
 
         QuorumStates quorumState = QuorumStates.Frozen;
-        uint256 sendVotesCount = getSendVotes(_id);
-        uint256 burnVotesCount = getBurnVotes(_id);
-        uint256 freezeVotesCount = getFreezeVotes(_id);
+        uint256 sendVotesCount = _getSendVotes(_id);
+        uint256 burnVotesCount = _getBurnVotes(_id);
+        uint256 freezeVotesCount = _getFreezeVotes(_id);
         
         if (
             sendVotesCount != burnVotesCount &&
@@ -252,7 +272,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         _setQuorumState(_id, uint8(quorumState));
 
         if (quorumState == QuorumStates.Sent) {
-            _emissionFunds.sendFundsTo(getReceiver(_id), amount);
+            _emissionFunds.sendFundsTo(_getReceiver(_id), amount);
         } else if (quorumState == QuorumStates.Burnt) {
             _emissionFunds.burnFunds(amount);
         } else {
@@ -261,8 +281,46 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
     // solhint-enable code-complexity, function-max-lines
 
+    function _getAmount(uint256 _id) internal view returns(uint256) {
+        return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, AMOUNT))];
+    }
+
+    function _getBurnVotes(uint256 _id) internal view returns(uint256) {
+        return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, BURN_VOTES))];
+    }
+
+    function _getCreationTime(uint256 _ballotId) internal view returns(uint256) {
+        return uintStorage[
+            keccak256(abi.encode(VOTING_STATE, _ballotId, CREATION_TIME))
+        ];
+    }
+
+    function _getEmissionReleaseTimeSnapshot(uint256 _ballotId) internal view returns(uint256) {
+        return uintStorage[
+            keccak256(abi.encode(VOTING_STATE, _ballotId, EMISSION_RELEASE_TIME_SNAPSHOT))
+        ];
+    }
+
+    function _getFreezeVotes(uint256 _id) internal view returns(uint256) {
+        return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, FREEZE_VOTES))];
+    }
+
     function _getGlobalMinThresholdOfVoters() internal view returns(uint256) {
         return _getBallotsStorage().getProxyThreshold();
+    }
+
+    function _getIsCanceled(uint256 _ballotId) internal view returns(bool) {
+        return boolStorage[
+            keccak256(abi.encode(VOTING_STATE, _ballotId, IS_CANCELED))
+        ];
+    }
+
+    function _getReceiver(uint256 _id) internal view returns(address) {
+        return addressStorage[keccak256(abi.encode(VOTING_STATE, _id, RECEIVER))];
+    }
+
+    function _getSendVotes(uint256 _id) internal view returns(uint256) {
+        return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, SEND_VOTES))];
     }
 
     function _isEOA(address addr) internal view returns (bool) {
@@ -294,14 +352,32 @@ contract VotingToManageEmissionFunds is VotingTo {
         ] = _value;
     }
 
+    function _setCreationTime(uint256 _ballotId, uint256 _time) private {
+        uintStorage[
+            keccak256(abi.encode(VOTING_STATE, _ballotId, CREATION_TIME))
+        ] = _time;
+    }
+
     function _setEmissionReleaseTime(uint256 _time) private {
         uintStorage[EMISSION_RELEASE_TIME] = _time;
+    }
+
+    function _setEmissionReleaseTimeSnapshot(uint256 _ballotId, uint256 _time) private {
+        uintStorage[
+            keccak256(abi.encode(VOTING_STATE, _ballotId, EMISSION_RELEASE_TIME_SNAPSHOT))
+        ] = _time;
     }
 
     function _setFreezeVotes(uint256 _ballotId, uint256 _value) private {
         uintStorage[
             keccak256(abi.encode(VOTING_STATE, _ballotId, FREEZE_VOTES))
         ] = _value;
+    }
+
+    function _setIsCanceled(uint256 _ballotId, bool _canceled) private {
+        boolStorage[
+            keccak256(abi.encode(VOTING_STATE, _ballotId, IS_CANCELED))
+        ] = _canceled;
     }
 
     function _setPreviousBallotFinalized(bool _finalized) private {
@@ -318,5 +394,9 @@ contract VotingToManageEmissionFunds is VotingTo {
         uintStorage[
             keccak256(abi.encode(VOTING_STATE, _ballotId, SEND_VOTES))
         ] = _value;
+    }
+
+    function _withinCancelingThreshold(uint256 _ballotId) private view returns(bool) {
+        return getTime().sub(_getCreationTime(_ballotId)) <= ballotCancelingThreshold();
     }
 }
