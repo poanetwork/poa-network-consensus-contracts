@@ -48,6 +48,9 @@ contract RewardByTime is EternalStorage, IRewardByTime {
 
         keysNumberToReward = currentTime.sub(lastTime()).div(threshold);
 
+        // TODO: limit the value of `keysNumberToReward` to prevent
+        // possible reaching of block's gasLimit
+
         if (keysNumberToReward == 0 || getPayoutKeys().length == 0) {
             receivers = new address[](0);
             rewards = new uint256[](0);

@@ -4,6 +4,14 @@ import '../../contracts/VotingToManageEmissionFunds.sol';
 
 
 contract VotingToManageEmissionFundsMock is VotingToManageEmissionFunds {
+    function getAmount(uint256 _id) public view returns(uint256) {
+        return _getAmount(_id);
+    }
+
+    function getEmissionReleaseTimeSnapshot(uint256 _ballotId) public view returns(uint256) {
+        return _getEmissionReleaseTimeSnapshot(_ballotId);
+    }
+
     function getKeysManager() public view returns(address) {
         return IProxyStorage(proxyStorage()).getKeysManager();
     }
