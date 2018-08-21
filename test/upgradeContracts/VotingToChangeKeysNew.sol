@@ -1,8 +1,8 @@
 pragma solidity ^0.4.24;
 
-import '../mockContracts/VotingToChangeKeysMock.sol';
+import '../../contracts/VotingToChangeKeys.sol';
 
-contract VotingToChangeKeysNew is VotingToChangeKeysMock {
+contract VotingToChangeKeysNew is VotingToChangeKeys {
   
   function initialize() public {
     boolStorage[keccak256('initialized')] = true;

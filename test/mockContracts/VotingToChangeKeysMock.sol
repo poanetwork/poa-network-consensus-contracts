@@ -33,4 +33,36 @@ contract VotingToChangeKeysMock is VotingToChangeMock, VotingToChangeKeys {
     function setTime(uint256 _newTime) public {
         uintStorage[keccak256("mockTime")] = _newTime;
     }
+
+    function votingState(uint256 _id) public view returns(
+        uint256 startTime,
+        uint256 endTime,
+        address affectedKey,
+        uint256 affectedKeyType,
+        address miningKey,
+        uint256 totalVoters,
+        int progress,
+        bool isFinalized,
+        uint8 quorumState,
+        uint256 ballotType,
+        uint256 index,
+        uint256 minThresholdOfVoters,
+        address creator,
+        string memo
+    ) {
+        startTime = _getStartTime(_id);
+        endTime = _getEndTime(_id);
+        affectedKey = _getAffectedKey(_id);
+        affectedKeyType = _getAffectedKeyType(_id);
+        miningKey = _getMiningKey(_id);
+        totalVoters = _getTotalVoters(_id);
+        progress = _getProgress(_id);
+        isFinalized = _getIsFinalized(_id);
+        quorumState = getQuorumState(_id);
+        ballotType = _getBallotType(_id);
+        index = getIndex(_id);
+        minThresholdOfVoters = getMinThresholdOfVoters(_id);
+        creator = _getCreator(_id);
+        memo = _getMemo(_id);
+    }
 }

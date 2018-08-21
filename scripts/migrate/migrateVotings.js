@@ -301,10 +301,6 @@ async function votingToChangeMigrateAndCheck(sender, key, chainId, contractName)
 				const migrateBasicOne = votingNewInstance.methods.migrateBasicOne(
 					ballotId,
 					contractOldAddress,
-					votingState.quorumState,
-					votingState.index,
-					votingState.creator,
-					votingState.memo,
 					voters
 				);
 
