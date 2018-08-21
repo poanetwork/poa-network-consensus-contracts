@@ -502,45 +502,45 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       const id = await voting.nextBallotId.call();
       await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, 4, "memo", {from: votingKey}).should.be.fulfilled;
 
+      await voting.setTime(VOTING_START_DATE);
+      await voting.vote(id, choice.reject, {from: votingKey}).should.be.fulfilled;
+      await voting.vote(id, choice.reject, {from: votingKey2}).should.be.fulfilled;
+      await voting.vote(id, choice.reject, {from: votingKey3}).should.be.fulfilled;
+
       let votingNew = await Voting.new();
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingNew.address);
       votingNew = await Voting.at(votingEternalStorage.address);
       await votingNew.init(172800, 3).should.be.fulfilled;
-
-      let ballotInfo = await voting.getBallotInfo.call(id, votingKey);
+      await votingNew.setTime(VOTING_START_DATE);
 
       await votingNew.migrateBasicOne(
         id,
         voting.address,
-        await voting.getQuorumState.call(id),
-        await voting.getIndex.call(id),
-        ballotInfo[6], // creator
-        ballotInfo[7], // memo
-        [votingKey, votingKey2, votingKey3]
-      );
+        [miningKeyForVotingKey, accounts[2], accounts[4]]
+      ).should.be.fulfilled;
 
-      ballotInfo = await votingNew.getBallotInfo.call(id, votingKey);
+      const ballotInfo = await votingNew.getBallotInfo.call(id, votingKey);
 
       ballotInfo.should.be.deep.equal([
         new web3.BigNumber(VOTING_START_DATE), // startTime
         new web3.BigNumber(VOTING_END_DATE), // endTime
-        new web3.BigNumber(0), // totalVoters
-        new web3.BigNumber(0), // progress
+        new web3.BigNumber(3), // totalVoters
+        new web3.BigNumber(-3), // progress
         false, // isFinalized
         new web3.BigNumber(4), // proposedValue
-        accounts[1], // creator
+        miningKeyForVotingKey, // creator
         "memo", // memo
         false, // canBeFinalizedNow
-        false // hasAlreadyVoted
+        true // hasAlreadyVoted
       ]);
 
       (await votingNew.getQuorumState.call(id)).should.be.bignumber.equal(1);
       (await votingNew.getIndex.call(id)).should.be.bignumber.equal(0);
       (await votingNew.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(3);
 
-      (await votingNew.hasMiningKeyAlreadyVoted.call(id, votingKey)).should.be.equal(true);
-      (await votingNew.hasMiningKeyAlreadyVoted.call(id, votingKey2)).should.be.equal(true);
-      (await votingNew.hasMiningKeyAlreadyVoted.call(id, votingKey3)).should.be.equal(true);
+      (await votingNew.hasMiningKeyAlreadyVoted.call(id, miningKeyForVotingKey)).should.be.equal(true);
+      (await votingNew.hasMiningKeyAlreadyVoted.call(id, accounts[2])).should.be.equal(true);
+      (await votingNew.hasMiningKeyAlreadyVoted.call(id, accounts[4])).should.be.equal(true);
 
       (await votingNew.nextBallotId.call()).should.be.bignumber.equal(0);
       (await votingNew.activeBallotsLength.call()).should.be.bignumber.equal(0);

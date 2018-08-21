@@ -57,25 +57,49 @@ contract VotingToChangeProxyAddress is IVotingToChangeProxyAddress, VotingToChan
     function migrateBasicOne(
         uint256 _id,
         address _prevVotingToChange,
-        uint8 _quorumState,
-        uint256 _index,
-        address _creator,
-        string _memo,
         address[] _voters
     ) public {
-        _migrateBasicOne(
-            _id,
-            _prevVotingToChange,
-            _quorumState,
-            _index,
-            _creator,
-            _memo,
-            _voters
-        );
+        require(_prevVotingToChange != address(0));
+        require(initDisabled());
+        require(!migrateDisabled());
         IVotingToChangeProxyAddressPrev prev =
             IVotingToChangeProxyAddressPrev(_prevVotingToChange);
+        require(prev.getTotalVoters(_id) == _voters.length);
+
+        uint256 endTime = prev.getEndTime(_id);
+
+        _setTotalVoters(_id, _voters.length);
+        _setIsFinalized(_id, prev.getIsFinalized(_id));
+        _setMinThresholdOfVoters(_id, prev.getMinThresholdOfVoters(_id));
+        _setStartTime(_id, prev.getStartTime(_id));
+        _setEndTime(_id, endTime);
+
+        // solhint-disable indent
+        (
+            , , ,
+            int progress, ,
+            uint8 quorumState,
+            uint256 index, , , ,
+            address creator,
+            string memory memo
+        ) = prev.votingState(_id);
+        // solhint-enable indent
+        _setProgress(_id, progress);
+        _setQuorumState(_id, quorumState);
+        _setIndex(_id, index);
+        _setCreator(_id, creator);
+        _setMemo(_id, memo);
+        
         _setProposedValue(_id, prev.getProposedValue(_id));
         _setContractType(_id, prev.getContractType(_id));
+
+        IKeysManager prevKeysManager = IKeysManager(prev.getKeysManager());
+        for (uint256 i = 0; i < _voters.length; i++) {
+            if (getTime() <= endTime) {
+                require(prev.hasAlreadyVoted(_id, prevKeysManager.getVotingByMining(_voters[i])));
+            }
+            _votersAdd(_id, _voters[i]);
+        }
     }
 
     function _finalizeBallotInner(uint256 _id) internal returns(bool) {

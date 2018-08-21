@@ -271,35 +271,6 @@ contract VotingToChange is IVotingToChange, VotingTo {
         boolStorage[INIT_DISABLED] = true;
     }
 
-    function _migrateBasicOne(
-        uint256 _id,
-        address _prevVotingToChange,
-        uint8 _quorumState,
-        uint256 _index,
-        address _creator,
-        string _memo,
-        address[] _voters
-    ) internal onlyOwner {
-        require(_prevVotingToChange != address(0));
-        require(initDisabled());
-        require(!migrateDisabled());
-        IVotingToChangePrev prev = IVotingToChangePrev(_prevVotingToChange);
-        _setStartTime(_id, prev.getStartTime(_id));
-        _setEndTime(_id, prev.getEndTime(_id));
-        _setTotalVoters(_id, prev.getTotalVoters(_id));
-        _setProgress(_id, prev.getProgress(_id));
-        _setIsFinalized(_id, prev.getIsFinalized(_id));
-        _setQuorumState(_id, _quorumState);
-        _setIndex(_id, _index);
-        _setMinThresholdOfVoters(_id, prev.getMinThresholdOfVoters(_id));
-        for (uint256 i = 0; i < _voters.length; i++) {
-            address miningKey = _voters[i];
-            _votersAdd(_id, miningKey);
-        }
-        _setCreator(_id, _creator);
-        _setMemo(_id, _memo);
-    }
-
     function _setIndex(uint256 _ballotId, uint256 _value) internal {
         uintStorage[
             keccak256(abi.encode(VOTING_STATE, _ballotId, INDEX))

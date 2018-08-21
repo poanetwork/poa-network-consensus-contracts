@@ -565,8 +565,12 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
   describe('#migrate', async () => {
     it('should copy a ballot to the new contract', async () => {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
-      await addMiningKey(accounts[1]);
-      await addVotingKey(votingKey, accounts[1]);
+      await addMiningKey(miningKeyForVotingKey);
+      await addVotingKey(votingKey, miningKeyForVotingKey);
+      await addMiningKey(accounts[3]);
+      await addVotingKey(accounts[4], accounts[3]);
+      await addMiningKey(accounts[5]);
+      await addVotingKey(accounts[6], accounts[5]);
       await proxyStorageMock.setVotingContractMock(votingForKeysEternalStorage.address);
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
@@ -576,48 +580,49 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
       const id = await voting.nextBallotId.call();
 
       await voting.createBallot(
-        VOTING_START_DATE, VOTING_END_DATE, accounts[5], 1, "memo", {from: votingKey}
+        VOTING_START_DATE, VOTING_END_DATE, accounts[7], 1, "memo", {from: votingKey}
       ).should.be.fulfilled;
+
+      await voting.setTime(VOTING_START_DATE);
+      await voting.vote(id, choice.reject, {from: votingKey}).should.be.fulfilled;
+      await voting.vote(id, choice.reject, {from: accounts[4]}).should.be.fulfilled;
+      await voting.vote(id, choice.reject, {from: accounts[6]}).should.be.fulfilled;
 
       let votingNew = await VotingToChangeProxyAddress.new();
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageMock.address, votingNew.address);
       votingNew = await VotingToChangeProxyAddress.at(votingEternalStorage.address);
       await votingNew.init(172800).should.be.fulfilled;
-
-      let ballotInfo = await voting.getBallotInfo.call(id, votingKey);
+      await votingNew.setTime(VOTING_START_DATE);
 
       await votingNew.migrateBasicOne(
         id,
         voting.address,
-        await voting.getQuorumState.call(id),
-        await voting.getIndex.call(id),
-        ballotInfo[7],
-        ballotInfo[8],
-        [accounts[3], accounts[4], accounts[5]]
-      );
+        [miningKeyForVotingKey, accounts[3], accounts[5]]
+      ).should.be.fulfilled;
 
-      ballotInfo = await votingNew.getBallotInfo.call(id, votingKey);
+      const ballotInfo = await votingNew.getBallotInfo.call(id, votingKey);
+      
       ballotInfo.should.be.deep.equal([
         new web3.BigNumber(VOTING_START_DATE), // startTime
         new web3.BigNumber(VOTING_END_DATE), // endTime
-        new web3.BigNumber(0), // totalVoters
-        new web3.BigNumber(0), // progress
+        new web3.BigNumber(3), // totalVoters
+        new web3.BigNumber(-3), // progress
         false, // isFinalized
-        accounts[5], // proposedValue
+        accounts[7], // proposedValue
         new web3.BigNumber(1), // contractType
-        accounts[1], // creator
+        miningKeyForVotingKey, // creator
         "memo", // memo
         false, // canBeFinalizedNow
-        false // hasAlreadyVoted
+        true // hasAlreadyVoted
       ]);
       (await votingNew.getQuorumState.call(id)).should.be.bignumber.equal(1);
       (await votingNew.getIndex.call(id)).should.be.bignumber.equal(0);
-      (await votingNew.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(1);
+      (await votingNew.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(2);
 
-      (await votingNew.hasMiningKeyAlreadyVoted.call(id, accounts[1])).should.be.equal(false);
+      (await votingNew.hasMiningKeyAlreadyVoted.call(id, miningKeyForVotingKey)).should.be.equal(true);
       (await votingNew.hasMiningKeyAlreadyVoted.call(id, accounts[2])).should.be.equal(false);
       (await votingNew.hasMiningKeyAlreadyVoted.call(id, accounts[3])).should.be.equal(true);
-      (await votingNew.hasMiningKeyAlreadyVoted.call(id, accounts[4])).should.be.equal(true);
+      (await votingNew.hasMiningKeyAlreadyVoted.call(id, accounts[4])).should.be.equal(false);
       (await votingNew.hasMiningKeyAlreadyVoted.call(id, accounts[5])).should.be.equal(true);
       (await votingNew.hasMiningKeyAlreadyVoted.call(id, accounts[6])).should.be.equal(false);
 
