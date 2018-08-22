@@ -51,7 +51,7 @@ contract EternalStorageProxy is EternalStorage {
     * This function will return whatever the implementation call returns
     */
     // solhint-disable no-complex-fallback, no-inline-assembly
-    function() external payable {
+    function() external {
         address _impl = _implementation;
         require(_impl != address(0));
 

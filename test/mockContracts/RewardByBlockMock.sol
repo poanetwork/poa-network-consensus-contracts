@@ -4,24 +4,21 @@ import '../../contracts/RewardByBlock.sol';
 
 
 contract RewardByBlockMock is RewardByBlock {
-    address internal bridgeContractAddress;
-    address internal systemAddress;
-
     modifier onlyBridgeContract {
-        require(msg.sender == bridgeContractAddress);
+        require(msg.sender == addressStorage[keccak256("bridgeContractAddress")]);
         _;
     }
 
     modifier onlySystem {
-        require(msg.sender == systemAddress);
+        require(msg.sender == addressStorage[keccak256("systemAddress")]);
         _;
     }
 
     function setBridgeContractAddress(address _address) public {
-        bridgeContractAddress = _address;
+        addressStorage[keccak256("bridgeContractAddress")] = _address;
     }
 
     function setSystemAddress(address _address) public {
-        systemAddress = _address;
+        addressStorage[keccak256("systemAddress")] = _address;
     }
 }

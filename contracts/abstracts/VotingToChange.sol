@@ -1,12 +1,11 @@
 pragma solidity ^0.4.24;
 
-import "../interfaces/IBallotsStorage.sol";
 import "../interfaces/IPoaNetworkConsensus.sol";
-import "../interfaces/IVotingToChange.sol";
+import "../interfaces/IVotingToChangePrev.sol";
 import "./VotingTo.sol";
 
 
-contract VotingToChange is IVotingToChange, VotingTo {
+contract VotingToChange is VotingTo {
     bytes32 internal constant ACTIVE_BALLOTS = keccak256("activeBallots");
     bytes32 internal constant MIGRATE_DISABLED = keccak256("migrateDisabled");
     bytes32 internal constant MIN_BALLOT_DURATION = keccak256("minBallotDuration");

@@ -1,10 +1,10 @@
 pragma solidity ^0.4.24;
 
-import "./interfaces/IVotingToChangeMinThreshold.sol";
+import "./interfaces/IVotingToChangeMinThresholdPrev.sol";
 import "./abstracts/VotingToChange.sol";
 
 
-contract VotingToChangeMinThreshold is IVotingToChangeMinThreshold, VotingToChange {
+contract VotingToChangeMinThreshold is VotingToChange {
     bytes32 internal constant MIN_POSSIBLE_THRESHOLD = keccak256("minPossibleThreshold");
 
     string internal constant PROPOSED_VALUE = "proposedValue";

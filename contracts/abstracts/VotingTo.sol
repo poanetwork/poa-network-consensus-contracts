@@ -9,7 +9,7 @@ import "../abstracts/EnumThresholdTypes.sol";
 import "../eternal-storage/EternalStorage.sol";
 
 
-contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
+contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
     using SafeMath for uint256;
 
     bytes32 internal constant OWNER = keccak256("owner");
@@ -140,6 +140,7 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
     ) internal returns(uint256) {
         require(initDisabled());
         uint256 ballotId = nextBallotId();
+        _setNextBallotId(ballotId.add(1));
         _setStartTime(ballotId, _startTime);
         _setEndTime(ballotId, _endTime);
         _setIsFinalized(ballotId, false);
@@ -147,7 +148,6 @@ contract VotingTo is EnumBallotTypes, EnumThresholdTypes, EternalStorage {
         _setMinThresholdOfVoters(ballotId, _getGlobalMinThresholdOfVoters());
         _setCreator(ballotId, _creatorMiningKey);
         _setMemo(ballotId, _memo);
-        _setNextBallotId(ballotId.add(1));
         emit BallotCreated(ballotId, _ballotType, msg.sender);
         return ballotId;
     }

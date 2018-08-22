@@ -1,13 +1,12 @@
 pragma solidity ^0.4.24;
 
-import "./interfaces/IBallotsStorage.sol";
 import "./interfaces/IKeysManager.sol";
-import "./interfaces/IVotingToChangeKeys.sol";
+import "./interfaces/IVotingToChangeKeysPrev.sol";
 import "./abstracts/VotingToChange.sol";
 import "./abstracts/EnumKeyTypes.sol";
 
 
-contract VotingToChangeKeys is IVotingToChangeKeys, VotingToChange, EnumKeyTypes {
+contract VotingToChangeKeys is VotingToChange, EnumKeyTypes {
     string internal constant AFFECTED_KEY = "affectedKey";
     string internal constant AFFECTED_KEY_TYPE = "affectedKeyType";
     string internal constant BALLOT_TYPE = "ballotType";
