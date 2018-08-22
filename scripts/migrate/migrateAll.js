@@ -173,7 +173,7 @@ async function main() {
 
 		console.log('Deploy RewardByBlock...');
 		let rewardByBlockCode = fs.readFileSync('../../contracts/RewardByBlock.sol').toString();
-		rewardByBlockCode = rewardByBlockCode.replace('0x0000000000000000000000000000000000000000', emissionFundsAddress);
+		rewardByBlockCode = rewardByBlockCode.replace('emissionFunds = 0x0000000000000000000000000000000000000000', 'emissionFunds = ' + emissionFundsAddress);
 		const rewardByBlockCompiled = await utils.compile('../../contracts/', 'RewardByBlock', rewardByBlockCode);
 		const rewardByBlockImplAddress = await utils.deploy('RewardByBlock', rewardByBlockCompiled, sender, key, chainId);
 		console.log('  RewardByBlock implementation address is ' + rewardByBlockImplAddress);
@@ -226,6 +226,9 @@ async function main() {
 		);
 		emissionFundsAddress.should.be.equal(
 			EthereumUtil.toChecksumAddress(await rewardByBlockInstance.methods.emissionFunds().call())
+		);
+		'0x0000000000000000000000000000000000000000'.should.be.equal(
+			await rewardByBlockInstance.methods.bridgeContract().call()
 		);
 		process.env.PROXY_STORAGE_NEW_ADDRESS.should.be.equal(
 			await rewardByBlockInstance.methods.proxyStorage().call()

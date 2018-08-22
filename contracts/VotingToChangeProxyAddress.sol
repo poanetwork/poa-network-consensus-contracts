@@ -1,12 +1,11 @@
 pragma solidity ^0.4.24;
 
 import "./interfaces/IProxyStorage.sol";
-import "./interfaces/IBallotsStorage.sol";
-import "./interfaces/IVotingToChangeProxyAddress.sol";
+import "./interfaces/IVotingToChangeProxyAddressPrev.sol";
 import "./abstracts/VotingToChange.sol";
 
 
-contract VotingToChangeProxyAddress is IVotingToChangeProxyAddress, VotingToChange {
+contract VotingToChangeProxyAddress is VotingToChange {
     string internal constant CONTRACT_TYPE = "contractType";
     string internal constant PROPOSED_VALUE = "proposedValue";
 
