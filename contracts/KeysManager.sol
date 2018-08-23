@@ -26,17 +26,17 @@ contract KeysManager is EternalStorage, IKeysManager {
     bytes32 internal constant PROXY_STORAGE =
         keccak256("proxyStorage");
 
-    string internal constant INITIAL_KEY_STATUS = "initialKeyStatus";
-    string internal constant IS_MINING_ACTIVE = "isMiningActive";
-    string internal constant IS_PAYOUT_ACTIVE = "isPayoutActive";
-    string internal constant IS_VOTING_ACTIVE = "isVotingActive";
-    string internal constant MINING_KEY_BY_PAYOUT = "miningKeyByPayout";
-    string internal constant MINING_KEY_BY_VOTING = "miningKeyByVoting";
-    string internal constant MINING_KEY_HISTORY = "miningKeyHistory";
-    string internal constant PAYOUT_KEY = "payoutKey";
-    string internal constant SUCCESSFUL_VALIDATOR_CLONE = "successfulValidatorClone";
-    string internal constant VALIDATOR_KEYS = "validatorKeys";
-    string internal constant VOTING_KEY = "votingKey";
+    bytes32 internal constant INITIAL_KEY_STATUS = "initialKeyStatus";
+    bytes32 internal constant IS_MINING_ACTIVE = "isMiningActive";
+    bytes32 internal constant IS_PAYOUT_ACTIVE = "isPayoutActive";
+    bytes32 internal constant IS_VOTING_ACTIVE = "isVotingActive";
+    bytes32 internal constant MINING_KEY_BY_PAYOUT = "miningKeyByPayout";
+    bytes32 internal constant MINING_KEY_BY_VOTING = "miningKeyByVoting";
+    bytes32 internal constant MINING_KEY_HISTORY = "miningKeyHistory";
+    bytes32 internal constant PAYOUT_KEY = "payoutKey";
+    bytes32 internal constant SUCCESSFUL_VALIDATOR_CLONE = "successfulValidatorClone";
+    bytes32 internal constant VALIDATOR_KEYS = "validatorKeys";
+    bytes32 internal constant VOTING_KEY = "votingKey";
 
     enum InitialKeyState {Invalid, Activated, Deactivated}
 
@@ -86,17 +86,18 @@ contract KeysManager is EternalStorage, IKeysManager {
             return false;
         }
         
+        address currentKey = _currentKey;
         uint8 maxDeep = maxOldMiningKeysDeepCheck();
         
         for (uint8 i = 0; i < maxDeep; i++) {
-            address oldMiningKey = getMiningKeyHistory(_currentKey);
+            address oldMiningKey = getMiningKeyHistory(currentKey);
             if (oldMiningKey == address(0)) {
                 return false;
             }
             if (oldMiningKey == _newKey) {
                 return true;
             }
-            _currentKey = oldMiningKey;
+            currentKey = oldMiningKey;
         }
         
         return false;

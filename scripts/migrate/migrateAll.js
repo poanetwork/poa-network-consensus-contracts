@@ -57,30 +57,43 @@ async function main() {
 		const poaNewInstance = new web3.eth.Contract(poaCompiled.abi, process.env.POA_CONSENSUS_NEW_ADDRESS);
 
 		console.log('  PoaNetworkConsensus checking...');
-		false.should.be.equal(
-			await poaNewInstance.methods.wasProxyStorageSet().call()
-		);
-		mocAddress.should.be.equal(
-			await poaNewInstance.methods.masterOfCeremony().call()
-		);
-		(await poaOldInstance.methods.systemAddress().call()).should.be.equal(
-			await poaNewInstance.methods.systemAddress().call()
-		);
 		miningKeys.unshift(mocAddress);
-		miningKeys.should.be.deep.equal(
-			await poaNewInstance.methods.getValidators().call()
-		);
-		(await poaOldInstance.methods.getPendingList().call()).should.be.deep.equal(
-			await poaNewInstance.methods.getPendingList().call()
-		);
-		(await poaOldInstance.methods.getCurrentValidatorsLength().call()).should.be.equal(
-			await poaNewInstance.methods.getCurrentValidatorsLength().call()
-		);
-		for (let i = 0; i < miningKeys.length; i++) {
-			const validatorStateOld = await poaOldInstance.methods.validatorsState(miningKeys[i]).call();
-			const validatorStateNew = await poaNewInstance.methods.validatorsState(miningKeys[i]).call();
-			validatorStateOld[0].should.be.equal(validatorStateNew[0]);
-			validatorStateOld[1].should.be.bignumber.equal(validatorStateNew[2]);
+		for (let t = 0; t < 5; t++) {
+			try {
+				false.should.be.equal(
+					await poaNewInstance.methods.wasProxyStorageSet().call()
+				);
+				mocAddress.should.be.equal(
+					await poaNewInstance.methods.masterOfCeremony().call()
+				);
+				(await poaOldInstance.methods.systemAddress().call()).should.be.equal(
+					await poaNewInstance.methods.systemAddress().call()
+				);
+				miningKeys.should.be.deep.equal(
+					await poaNewInstance.methods.getValidators().call()
+				);
+				(await poaOldInstance.methods.getPendingList().call()).should.be.deep.equal(
+					await poaNewInstance.methods.getPendingList().call()
+				);
+				(await poaOldInstance.methods.getCurrentValidatorsLength().call()).should.be.equal(
+					await poaNewInstance.methods.getCurrentValidatorsLength().call()
+				);
+				for (let i = 0; i < miningKeys.length; i++) {
+					const validatorStateOld = await poaOldInstance.methods.validatorsState(miningKeys[i]).call();
+					const validatorStateNew = await poaNewInstance.methods.validatorsState(miningKeys[i]).call();
+					validatorStateOld[0].should.be.equal(validatorStateNew[0]);
+					validatorStateOld[1].should.be.bignumber.equal(validatorStateNew[2]);
+				}
+			} catch (check_err) {
+				if (check_err.message.indexOf('Invalid JSON RPC response') >= 0) {
+					console.log('  Invalid JSON RPC response. Another try in 5 seconds...');
+					await utils.sleep(5000);
+					continue;
+				} else {
+					throw check_err;
+				}
+			}
+			break;
 		}
 
 		console.log('Success');
@@ -197,17 +210,17 @@ async function main() {
 			distributionThreshold
 		);
 		await utils.call(init, sender, votingToManageEmissionFundsAddress, key, chainId);
-		distributionThreshold.should.be.equal(
-			Number(await votingToManageEmissionFundsInstance.methods.distributionThreshold().call())
-		);
 		emissionFundsAddress.should.be.equal(
 			EthereumUtil.toChecksumAddress(await votingToManageEmissionFundsInstance.methods.emissionFunds().call())
+		);
+		emissionReleaseTime.should.be.equal(
+			Number(await votingToManageEmissionFundsInstance.methods.emissionReleaseTime().call())
 		);
 		emissionReleaseThreshold.should.be.equal(
 			Number(await votingToManageEmissionFundsInstance.methods.emissionReleaseThreshold().call())
 		);
-		emissionReleaseTime.should.be.equal(
-			Number(await votingToManageEmissionFundsInstance.methods.emissionReleaseTime().call())
+		distributionThreshold.should.be.equal(
+			Number(await votingToManageEmissionFundsInstance.methods.distributionThreshold().call())
 		);
 		true.should.be.equal(
 			await votingToManageEmissionFundsInstance.methods.initDisabled().call()

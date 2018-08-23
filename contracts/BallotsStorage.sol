@@ -18,7 +18,7 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
     bytes32 internal constant OWNER = keccak256("owner");
     bytes32 internal constant PROXY_STORAGE = keccak256("proxyStorage");
 
-    string internal constant BALLOT_THRESHOLDS = "ballotThresholds";
+    bytes32 internal constant BALLOT_THRESHOLDS = "ballotThresholds";
 
     event ThresholdChanged(uint8 indexed thresholdType, uint256 newValue);
 

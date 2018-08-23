@@ -17,15 +17,15 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
     bytes32 internal constant NEXT_BALLOT_ID = keccak256("nextBallotId");
     bytes32 internal constant PROXY_STORAGE = keccak256("proxyStorage");
 
-    string internal constant CREATOR = "creator";
-    string internal constant END_TIME = "endTime";
-    string internal constant IS_FINALIZED = "isFinalized";
-    string internal constant MEMO = "memo";
-    string internal constant MIN_THRESHOLD_OF_VOTERS = "minThresholdOfVoters";
-    string internal constant QUORUM_STATE = "quorumState";
-    string internal constant START_TIME = "startTime";
-    string internal constant VOTERS = "voters";
-    string internal constant VOTING_STATE = "votingState";
+    bytes32 internal constant CREATOR = "creator";
+    bytes32 internal constant END_TIME = "endTime";
+    bytes32 internal constant IS_FINALIZED = "isFinalized";
+    bytes32 internal constant MEMO = "memo";
+    bytes32 internal constant MIN_THRESHOLD_OF_VOTERS = "minThresholdOfVoters";
+    bytes32 internal constant QUORUM_STATE = "quorumState";
+    bytes32 internal constant START_TIME = "startTime";
+    bytes32 internal constant VOTERS = "voters";
+    bytes32 internal constant VOTING_STATE = "votingState";
 
     event BallotCreated(
         uint256 indexed id,
@@ -61,17 +61,18 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
         view
         returns(bool)
     {
+        address miningKey = _miningKey;
         IKeysManager keysManager = _getKeysManager();
         uint8 maxDeep = keysManager.maxOldMiningKeysDeepCheck();
         for (uint8 i = 0; i < maxDeep; i++) {
-            address oldMiningKey = keysManager.getMiningKeyHistory(_miningKey);
+            address oldMiningKey = keysManager.getMiningKeyHistory(miningKey);
             if (oldMiningKey == address(0)) {
                 return false;
             }
             if (_hasMiningKeyAlreadyVoted(_id, oldMiningKey)) {
                 return true;
             } else {
-                _miningKey = oldMiningKey;
+                miningKey = oldMiningKey;
             }
         }
         return false;

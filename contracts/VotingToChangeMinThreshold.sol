@@ -7,7 +7,7 @@ import "./abstracts/VotingToChange.sol";
 contract VotingToChangeMinThreshold is VotingToChange {
     bytes32 internal constant MIN_POSSIBLE_THRESHOLD = keccak256("minPossibleThreshold");
 
-    string internal constant PROPOSED_VALUE = "proposedValue";
+    bytes32 internal constant PROPOSED_VALUE = "proposedValue";
 
     function createBallot(
         uint256 _startTime,

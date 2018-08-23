@@ -317,51 +317,64 @@ async function votingToChangeMigrateAndCheck(sender, key, chainId, contractName)
 		} else {
 			console.log('  Checking new contract...');
 		}
-		const poaInstance = new web3.eth.Contract(POA_ABI, POA_ADDRESS);
-		PROXY_STORAGE_NEW_ADDRESS.should.be.equal(await votingNewInstance.methods.proxyStorage().call());
-		(await votingOldInstance.methods.nextBallotId().call()).should.be.equal(await votingNewInstance.methods.nextBallotId().call());
-		const activeBallotsLength = (await votingOldInstance.methods.activeBallotsLength().call());
-		activeBallotsLength.should.be.equal(await votingNewInstance.methods.activeBallotsLength().call());
-		for (let i = 0; i < activeBallotsLength; i++) {
-			(await votingOldInstance.methods.activeBallots(i).call()).should.be.equal(await votingNewInstance.methods.activeBallots(i).call());
-		}
-		const currentValidatorsLength = await poaInstance.methods.getCurrentValidatorsLength().call();
-		for (i = 0; i < currentValidatorsLength; i++) {
-			const miningKey = await poaInstance.methods.currentValidators(i).call();
-			(await votingOldInstance.methods.validatorActiveBallots(miningKey).call()).should.be.equal(await votingNewInstance.methods.validatorActiveBallots(miningKey).call());
-		}
-		const nextBallotId = (await votingOldInstance.methods.nextBallotId().call());
-		for (i = 0; i < nextBallotId; i++) {
-			console.log(`  Check ballot #${i}...`);
-			
-			const votingState = (await votingOldInstance.methods.votingState(i).call());
-			let ballotInfo;
+		for (let t = 0; t < 5; t++) {
+			try {
+				const poaInstance = new web3.eth.Contract(POA_ABI, POA_ADDRESS);
+				PROXY_STORAGE_NEW_ADDRESS.should.be.equal(await votingNewInstance.methods.proxyStorage().call());
+				(await votingOldInstance.methods.nextBallotId().call()).should.be.equal(await votingNewInstance.methods.nextBallotId().call());
+				const activeBallotsLength = (await votingOldInstance.methods.activeBallotsLength().call());
+				activeBallotsLength.should.be.equal(await votingNewInstance.methods.activeBallotsLength().call());
+				for (let i = 0; i < activeBallotsLength; i++) {
+					(await votingOldInstance.methods.activeBallots(i).call()).should.be.equal(await votingNewInstance.methods.activeBallots(i).call());
+				}
+				const currentValidatorsLength = await poaInstance.methods.getCurrentValidatorsLength().call();
+				for (i = 0; i < currentValidatorsLength; i++) {
+					const miningKey = await poaInstance.methods.currentValidators(i).call();
+					(await votingOldInstance.methods.validatorActiveBallots(miningKey).call()).should.be.equal(await votingNewInstance.methods.validatorActiveBallots(miningKey).call());
+				}
+				const nextBallotId = (await votingOldInstance.methods.nextBallotId().call());
+				for (i = 0; i < nextBallotId; i++) {
+					console.log(`  Check ballot #${i}...`);
+					
+					const votingState = (await votingOldInstance.methods.votingState(i).call());
+					let ballotInfo;
 
-			if (contractName == 'VotingToChangeKeys') {
-				ballotInfo = await votingNewInstance.methods.getBallotInfo(i).call();
-				votingState.affectedKey.should.be.equal(ballotInfo.affectedKey);
-				votingState.affectedKeyType.should.be.equal(ballotInfo.affectedKeyType);
-				votingState.miningKey.should.be.equal(ballotInfo.miningKey);
-				votingState.ballotType.should.be.equal(ballotInfo.ballotType);
-			} else if (contractName == 'VotingToChangeMinThreshold') {
-				ballotInfo = await votingNewInstance.methods.getBallotInfo(i, '0x0000000000000000000000000000000000000000').call();
-				votingState.proposedValue.should.be.equal(ballotInfo.proposedValue);
-			} else if (contractName == 'VotingToChangeProxyAddress') {
-				ballotInfo = await votingNewInstance.methods.getBallotInfo(i, '0x0000000000000000000000000000000000000000').call();
-				votingState.proposedValue.should.be.equal(ballotInfo.proposedValue);
-				votingState.contractType.should.be.equal(ballotInfo.contractType);
+					if (contractName == 'VotingToChangeKeys') {
+						ballotInfo = await votingNewInstance.methods.getBallotInfo(i).call();
+						votingState.affectedKey.should.be.equal(ballotInfo.affectedKey);
+						votingState.affectedKeyType.should.be.equal(ballotInfo.affectedKeyType);
+						votingState.miningKey.should.be.equal(ballotInfo.miningKey);
+						votingState.ballotType.should.be.equal(ballotInfo.ballotType);
+					} else if (contractName == 'VotingToChangeMinThreshold') {
+						ballotInfo = await votingNewInstance.methods.getBallotInfo(i, '0x0000000000000000000000000000000000000000').call();
+						votingState.proposedValue.should.be.equal(ballotInfo.proposedValue);
+					} else if (contractName == 'VotingToChangeProxyAddress') {
+						ballotInfo = await votingNewInstance.methods.getBallotInfo(i, '0x0000000000000000000000000000000000000000').call();
+						votingState.proposedValue.should.be.equal(ballotInfo.proposedValue);
+						votingState.contractType.should.be.equal(ballotInfo.contractType);
+					}
+
+					votingState.startTime.should.be.equal(ballotInfo.startTime);
+					votingState.endTime.should.be.equal(ballotInfo.endTime);
+					votingState.totalVoters.should.be.equal(ballotInfo.totalVoters);
+					votingState.progress.should.be.equal(ballotInfo.progress);
+					votingState.isFinalized.should.be.equal(ballotInfo.isFinalized);
+					votingState.quorumState.should.be.equal(await votingNewInstance.methods.getQuorumState(i).call());
+					votingState.index.should.be.equal(await votingNewInstance.methods.getIndex(i).call());
+					votingState.minThresholdOfVoters.should.be.equal(await votingNewInstance.methods.getMinThresholdOfVoters(i).call());
+					votingState.creator.should.be.equal(ballotInfo.creator);
+					votingState.memo.should.be.equal(ballotInfo.memo);
+				}
+			} catch (check_err) {
+				if (check_err.message.indexOf('Invalid JSON RPC response') >= 0) {
+					console.log('  Invalid JSON RPC response. Another try in 5 seconds...');
+					await utils.sleep(5000);
+					continue;
+				} else {
+					throw check_err;
+				}
 			}
-
-			votingState.startTime.should.be.equal(ballotInfo.startTime);
-			votingState.endTime.should.be.equal(ballotInfo.endTime);
-			votingState.totalVoters.should.be.equal(ballotInfo.totalVoters);
-			votingState.progress.should.be.equal(ballotInfo.progress);
-			votingState.isFinalized.should.be.equal(ballotInfo.isFinalized);
-			votingState.quorumState.should.be.equal(await votingNewInstance.methods.getQuorumState(i).call());
-			votingState.index.should.be.equal(await votingNewInstance.methods.getIndex(i).call());
-			votingState.minThresholdOfVoters.should.be.equal(await votingNewInstance.methods.getMinThresholdOfVoters(i).call());
-			votingState.creator.should.be.equal(ballotInfo.creator);
-			votingState.memo.should.be.equal(ballotInfo.memo);
+			break;
 		}
 
 		console.log('Success');

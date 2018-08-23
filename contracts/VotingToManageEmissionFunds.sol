@@ -21,14 +21,14 @@ contract VotingToManageEmissionFunds is VotingTo {
     bytes32 internal constant PREVIOUS_BALLOT_FINALIZED =
         keccak256("previousBallotFinalized");
 
-    string internal constant AMOUNT = "amount";
-    string internal constant BURN_VOTES = "burnVotes";
-    string internal constant CREATION_TIME = "creationTime";
-    string internal constant EMISSION_RELEASE_TIME_SNAPSHOT = "emissionReleaseTimeSnapshot";
-    string internal constant FREEZE_VOTES = "freezeVotes";
-    string internal constant IS_CANCELED = "isCanceled";
-    string internal constant RECEIVER = "receiver";
-    string internal constant SEND_VOTES = "sendVotes";
+    bytes32 internal constant AMOUNT = "amount";
+    bytes32 internal constant BURN_VOTES = "burnVotes";
+    bytes32 internal constant CREATION_TIME = "creationTime";
+    bytes32 internal constant EMISSION_RELEASE_TIME_SNAPSHOT = "emissionReleaseTimeSnapshot";
+    bytes32 internal constant FREEZE_VOTES = "freezeVotes";
+    bytes32 internal constant IS_CANCELED = "isCanceled";
+    bytes32 internal constant RECEIVER = "receiver";
+    bytes32 internal constant SEND_VOTES = "sendVotes";
 
     event BallotCanceled(
         uint256 indexed id,

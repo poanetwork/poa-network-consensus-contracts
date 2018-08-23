@@ -10,11 +10,11 @@ contract VotingToChange is VotingTo {
     bytes32 internal constant MIGRATE_DISABLED = keccak256("migrateDisabled");
     bytes32 internal constant MIN_BALLOT_DURATION = keccak256("minBallotDuration");
 
-    string internal constant INDEX = "index";
-    string internal constant FINALIZE_CALLED = "finalizeCalled";
-    string internal constant PROGRESS = "progress";
-    string internal constant TOTAL_VOTERS = "totalVoters";
-    string internal constant VALIDATOR_ACTIVE_BALLOTS = "validatorActiveBallots";
+    bytes32 internal constant INDEX = "index";
+    bytes32 internal constant FINALIZE_CALLED = "finalizeCalled";
+    bytes32 internal constant PROGRESS = "progress";
+    bytes32 internal constant TOTAL_VOTERS = "totalVoters";
+    bytes32 internal constant VALIDATOR_ACTIVE_BALLOTS = "validatorActiveBallots";
 
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
     enum ActionChoice {Invalid, Accept, Reject}

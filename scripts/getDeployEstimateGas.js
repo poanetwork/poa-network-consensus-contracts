@@ -8,7 +8,7 @@ main();
 async function main() {
 	const dir = '../contracts/';
 	const filenames = fs.readdirSync(dir);
-	let contracts = [];
+	let contracts = ['EternalStorageProxy'];
 	let maxContractNameLength = 0;
 
 	for (let i = 0; i < filenames.length; i++) {
@@ -30,13 +30,24 @@ async function main() {
 		}
 	}
 
+	contracts.sort();
+
 	for (let i = 0; i < contracts.length; i++) {
 		const contractName = contracts[i];
 		let arguments = [];
+		let contractDir = dir;
 
 		switch (contractName) {
 		case 'EmissionFunds':
 			arguments = ['0x2bc44a42f083907f47262a169674d699b02c3560'];
+			break;
+
+		case 'EternalStorageProxy':
+			arguments = [
+				'0x2bc44a42f083907f47262a169674d699b02c3560',
+				'0x2bc44a42f083907f47262a169674d699b02c3561'
+			];
+			contractDir = `${dir}eternal-storage/`;
 			break;
 
 		case 'PoaNetworkConsensus':
@@ -44,7 +55,7 @@ async function main() {
 			break;
 		}
 
-		const compiled = await compile(dir, contractName);
+		const compiled = await compile(contractDir, contractName);
 		const gas = await estimateGas(compiled, arguments) / 1000000;
 		const dotsCount = maxContractNameLength - contractName.length;
 		const dots = '.'.repeat(dotsCount);

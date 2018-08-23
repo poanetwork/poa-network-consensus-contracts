@@ -16,18 +16,18 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     bytes32 internal constant OWNER = keccak256("owner");
     bytes32 internal constant PROXY_STORAGE = keccak256("proxyStorage");
 
-    string internal constant CONFIRMATIONS = "confirmations";
-    string internal constant CREATED_DATE = "createdDate";
-    string internal constant EXPIRATION_DATE = "expirationDate";
-    string internal constant FIRST_NAME = "firstName";
-    string internal constant FULL_ADDRESS = "fullAddress";
-    string internal constant LAST_NAME = "lastName";
-    string internal constant LICENSE_ID = "licenseId";
-    string internal constant MIN_THRESHOLD = "minThreshold";
-    string internal constant STATE = "state";
-    string internal constant UPDATED_DATE = "updatedDate";
-    string internal constant VOTERS = "voters";
-    string internal constant ZIP_CODE = "zipcode";
+    bytes32 internal constant CONFIRMATIONS = "confirmations";
+    bytes32 internal constant CREATED_DATE = "createdDate";
+    bytes32 internal constant EXPIRATION_DATE = "expirationDate";
+    bytes32 internal constant FIRST_NAME = "firstName";
+    bytes32 internal constant FULL_ADDRESS = "fullAddress";
+    bytes32 internal constant LAST_NAME = "lastName";
+    bytes32 internal constant LICENSE_ID = "licenseId";
+    bytes32 internal constant MIN_THRESHOLD = "minThreshold";
+    bytes32 internal constant STATE = "state";
+    bytes32 internal constant UPDATED_DATE = "updatedDate";
+    bytes32 internal constant VOTERS = "voters";
+    bytes32 internal constant ZIP_CODE = "zipcode";
 
     event MetadataCleared(address indexed miningKey);
     event MetadataCreated(address indexed miningKey);
