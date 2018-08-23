@@ -41,36 +41,49 @@ async function deploy(contractName, contractSpec, sender, key, chainId, args) {
 
 async function call(method, from, to, key, chainId) {
 	const gasPrice = web3.utils.toWei('1', 'gwei');
-	const estimateGas = await method.estimateGas({
-		from: from,
-		gas: web3.utils.toHex(4700000)
-	});
 
-	const nonce = await web3.eth.getTransactionCount(from);
-	const nonceHex = web3.utils.toHex(nonce);
-	const data = await method.encodeABI();
-	
-	var tx = new EthereumTx({
-		nonce: nonceHex,
-		gasPrice: web3.utils.toHex(gasPrice),
-		gasLimit: web3.utils.toHex(estimateGas),
-		to: to,
-		value: '0x00',
-		data: data,
-		chainId: chainId
-	});
-	
-	tx.sign(key);
+	for (let i = 0; i < 5; i++) {
+		try {
+			const estimateGas = await method.estimateGas({
+				from: from,
+				gas: web3.utils.toHex(4700000)
+			});
 
-	const serializedTx = tx.serialize();
+			const nonce = await web3.eth.getTransactionCount(from);
+			const nonceHex = web3.utils.toHex(nonce);
+			const data = await method.encodeABI();
+			
+			var tx = new EthereumTx({
+				nonce: nonceHex,
+				gasPrice: web3.utils.toHex(gasPrice),
+				gasLimit: web3.utils.toHex(estimateGas),
+				to: to,
+				value: '0x00',
+				data: data,
+				chainId: chainId
+			});
+			
+			tx.sign(key);
 
-	const result = await web3.eth.sendSignedTransaction("0x" + serializedTx.toString('hex'));
+			const serializedTx = tx.serialize();
 
-	if (result.status !== true) {
-		throw new Error("transaction status is false");
+			const result = await web3.eth.sendSignedTransaction("0x" + serializedTx.toString('hex'));
+
+			if (result.status !== true) {
+				throw new Error("transaction status is false");
+			}
+
+			return result;
+		} catch (e) {
+			if (e.message.indexOf('nonce is too low') >= 0 || e.message.indexOf('price is too low') >= 0) {
+				console.log('  Transaction failed. Another try in 5 seconds...');
+				await sleep(5000);
+				continue;
+			} else {
+				throw e;
+			}
+		}
 	}
-
-	return result;
 }
 
 async function readPrivateKey() {
@@ -103,9 +116,14 @@ async function readPrivateKey() {
 	});
 }
 
+function sleep(ms) {
+	return new Promise(resolve => setTimeout(resolve, ms))
+}
+
 module.exports = {
 	compile: compile,
 	deploy: deploy,
 	call: call,
-	readPrivateKey: readPrivateKey
+	readPrivateKey: readPrivateKey,
+	sleep: sleep
 }

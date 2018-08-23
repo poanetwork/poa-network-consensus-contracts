@@ -7,12 +7,12 @@ import "./abstracts/EnumKeyTypes.sol";
 
 
 contract VotingToChangeKeys is VotingToChange, EnumKeyTypes {
-    string internal constant AFFECTED_KEY = "affectedKey";
-    string internal constant AFFECTED_KEY_TYPE = "affectedKeyType";
-    string internal constant BALLOT_TYPE = "ballotType";
-    string internal constant MINING_KEY = "miningKey";
-    string internal constant NEW_PAYOUT_KEY = "newPayoutKey";
-    string internal constant NEW_VOTING_KEY = "newVotingKey";
+    bytes32 internal constant AFFECTED_KEY = "affectedKey";
+    bytes32 internal constant AFFECTED_KEY_TYPE = "affectedKeyType";
+    bytes32 internal constant BALLOT_TYPE = "ballotType";
+    bytes32 internal constant MINING_KEY = "miningKey";
+    bytes32 internal constant NEW_PAYOUT_KEY = "newPayoutKey";
+    bytes32 internal constant NEW_VOTING_KEY = "newVotingKey";
 
     function createBallot(
         uint256 _startTime,

@@ -13,7 +13,7 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
 
     bytes32 internal constant EXTRA_RECEIVERS = keccak256("extraReceivers");
 
-    string internal constant EXTRA_RECEIVERS_AMOUNTS = "extraReceiversAmounts";
+    bytes32 internal constant EXTRA_RECEIVERS_AMOUNTS = "extraReceiversAmounts";
 
     // solhint-disable const-name-snakecase
     // These values must be changed before deploy

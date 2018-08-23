@@ -172,42 +172,52 @@ async function migrateAndCheck(privateKey) {
 		for (let i = 0; i < miningKeys.length; i++) {
 			const miningKey = miningKeys[i];
 			console.log(`  Check mining key ${miningKey}...`);
-			(await keysManagerOldInstance.methods.validatorKeys(miningKey).call()).should.be.deep.equal(
-				await keysManagerNewInstance.methods.validatorKeys(miningKey).call()
-			);
-			const votingKey = await keysManagerOldInstance.methods.getVotingByMining(miningKey).call();
-			votingKey.should.be.equal(
-				await keysManagerNewInstance.methods.getVotingByMining(miningKey).call()
-			);
-			(await keysManagerOldInstance.methods.miningKeyByVoting(votingKey).call()).should.be.equal(
-				await keysManagerNewInstance.methods.miningKeyByVoting(votingKey).call()
-			);
-			if (miningKey.toLowerCase() != MOC_ADDRESS.toLowerCase()) {
-				(await keysManagerNewInstance.methods.miningKeyByVoting(votingKey).call()).should.be.equal(
-					miningKey
+			
+			try {
+				(await keysManagerOldInstance.methods.validatorKeys(miningKey).call()).should.be.deep.equal(
+					await keysManagerNewInstance.methods.validatorKeys(miningKey).call()
 				);
-			}
-			let miningKeyHistoryOld = [];
-			let currentMiningKey = miningKey;
-			for (let j = 0; j < 25; j++) {
-				const oldMiningKey = await keysManagerOldInstance.methods.miningKeyHistory(currentMiningKey).call();
-				if (oldMiningKey == '0x0000000000000000000000000000000000000000') {
-					break;
+				const votingKey = await keysManagerOldInstance.methods.getVotingByMining(miningKey).call();
+				votingKey.should.be.equal(
+					await keysManagerNewInstance.methods.getVotingByMining(miningKey).call()
+				);
+				(await keysManagerOldInstance.methods.miningKeyByVoting(votingKey).call()).should.be.equal(
+					await keysManagerNewInstance.methods.miningKeyByVoting(votingKey).call()
+				);
+				if (miningKey.toLowerCase() != MOC_ADDRESS.toLowerCase()) {
+					(await keysManagerNewInstance.methods.miningKeyByVoting(votingKey).call()).should.be.equal(
+						miningKey
+					);
 				}
-				miningKeyHistoryOld.push(oldMiningKey);
-				currentMiningKey = oldMiningKey;
-			}
-			let miningKeyHistoryNew = [];
-			currentMiningKey = miningKey;
-			for (let j = 0; j < 25; j++) {
-				const oldMiningKey = await keysManagerNewInstance.methods.miningKeyHistory(currentMiningKey).call();
-				if (oldMiningKey == '0x0000000000000000000000000000000000000000') {
-					break;
+				let miningKeyHistoryOld = [];
+				let currentMiningKey = miningKey;
+				for (let j = 0; j < 25; j++) {
+					const oldMiningKey = await keysManagerOldInstance.methods.miningKeyHistory(currentMiningKey).call();
+					if (oldMiningKey == '0x0000000000000000000000000000000000000000') {
+						break;
+					}
+					miningKeyHistoryOld.push(oldMiningKey);
+					currentMiningKey = oldMiningKey;
 				}
-				miningKeyHistoryNew.push(oldMiningKey);
-				currentMiningKey = oldMiningKey;
+				let miningKeyHistoryNew = [];
+				currentMiningKey = miningKey;
+				for (let j = 0; j < 25; j++) {
+					const oldMiningKey = await keysManagerNewInstance.methods.miningKeyHistory(currentMiningKey).call();
+					if (oldMiningKey == '0x0000000000000000000000000000000000000000') {
+						break;
+					}
+					miningKeyHistoryNew.push(oldMiningKey);
+					currentMiningKey = oldMiningKey;
+				}
+				miningKeyHistoryOld.should.be.deep.equal(miningKeyHistoryNew);
+			} catch (check_err) {
+				if (check_err.message.indexOf('Invalid JSON RPC response') >= 0) {
+					i--;
+					continue;
+				} else {
+					throw check_err;
+				}
 			}
-			miningKeyHistoryOld.should.be.deep.equal(miningKeyHistoryNew);
 		}
 		
 		console.log('Success');

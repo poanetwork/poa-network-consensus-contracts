@@ -6,8 +6,8 @@ import "./abstracts/VotingToChange.sol";
 
 
 contract VotingToChangeProxyAddress is VotingToChange {
-    string internal constant CONTRACT_TYPE = "contractType";
-    string internal constant PROPOSED_VALUE = "proposedValue";
+    bytes32 internal constant CONTRACT_TYPE = "contractType";
+    bytes32 internal constant PROPOSED_VALUE = "proposedValue";
 
     function createBallot(
         uint256 _startTime,

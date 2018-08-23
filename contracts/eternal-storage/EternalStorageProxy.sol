@@ -1,6 +1,7 @@
 pragma solidity ^0.4.24;
 
 import "./EternalStorage.sol";
+import "../interfaces/IEternalStorageProxy.sol";
 
 
 /**
@@ -9,7 +10,7 @@ import "./EternalStorage.sol";
  * Besides, it allows to upgrade the token's behaviour towards further implementations, and provides
  * authorization control functionalities
  */
-contract EternalStorageProxy is EternalStorage {
+contract EternalStorageProxy is EternalStorage, IEternalStorageProxy {
     bytes32 internal constant OWNER = keccak256("owner");
     bytes32 internal constant PROXY_STORAGE = keccak256("proxyStorage");
 
