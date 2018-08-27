@@ -66,7 +66,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         }
         for (uint256 i = 0; i < currentValidators.length; i++) {
             address validator = currentValidators[i];
-            require(!validatorsState[validator].isValidator);
+            require(!isValidator(validator));
             validatorsState[validator] = ValidatorState({
                 isValidator: true,
                 isValidatorFinalized: true,
@@ -166,8 +166,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
     }
 
     function setProxyStorage(address _newAddress) public {
-        // any miner can change the address
-        require(isValidator(msg.sender) || msg.sender == _owner);
+        require(msg.sender == _moc && !_isMoCRemoved || msg.sender == _owner);
         require(!wasProxyStorageSet);
         require(_newAddress != address(0));
         proxyStorage = IProxyStorage(_newAddress);
@@ -205,7 +204,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
 
     function _addValidatorAllowed(address _validator) private view returns(bool) {
         if (_validator == address(0)) return false;
-        if (validatorsState[_validator].isValidator) return false;
+        if (isValidator(_validator)) return false;
         return true;
     }
 
@@ -224,7 +223,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
 
     function _removeValidatorAllowed(address _validator) private view returns(bool) {
         if (pendingList.length == 0) return false;
-        if (!validatorsState[_validator].isValidator) return false;
+        if (!isValidator(_validator)) return false;
         return true;
     }
 

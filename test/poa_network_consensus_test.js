@@ -12,7 +12,7 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
   let proxyStorageMock;
   let masterOfCeremony;
   beforeEach(async () => {
-    masterOfCeremony = accounts[0];
+    masterOfCeremony = accounts[9];
     await PoaNetworkConsensus.new('0x0000000000000000000000000000000000000000', []).should.be.rejectedWith(ERROR_MSG);
     poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, []).should.be.fulfilled;;
     
@@ -319,39 +319,42 @@ contract('PoaNetworkConsensus [all features]', function (accounts) {
   });
 
   describe('#setProxyStorage', async () => {
-    let new_masterOfCeremony = accounts[1];
-    const nonValidator = accounts[3];
-    let validator = accounts[0];
-    it('can be called by any validator', async () => {
+    const nonOwner = accounts[3];
+    it('can be called by MoC', async () => {
       await poaNetworkConsensus.setWasProxyStorageSetMock(false);
-      await poaNetworkConsensus.setProxyStorage(nonValidator, {from: accounts[6]}).should.be.rejectedWith(ERROR_MSG);
-      await poaNetworkConsensus.setProxyStorage(accounts[5], {from: validator}).should.be.fulfilled;
+      await poaNetworkConsensus.setProxyStorage(accounts[5], {from: accounts[6]}).should.be.rejectedWith(ERROR_MSG);
+      await poaNetworkConsensus.setProxyStorage(accounts[5], {from: masterOfCeremony}).should.be.fulfilled;
+    })
+    it('can be called by owner', async () => {
+      await poaNetworkConsensus.setWasProxyStorageSetMock(false);
+      await poaNetworkConsensus.setProxyStorage(accounts[5], {from: accounts[6]}).should.be.rejectedWith(ERROR_MSG);
+      await poaNetworkConsensus.setProxyStorage(accounts[5], {from: accounts[0]}).should.be.fulfilled;
     })
     it('can only be called once', async () => {
       // we already call it in the beforeEach block, hence why I expect it to be rejected
-      await poaNetworkConsensus.setProxyStorage(nonValidator, {from: nonValidator}).should.be.rejectedWith(ERROR_MSG);
+      await poaNetworkConsensus.setProxyStorage(nonOwner, {from: nonOwner}).should.be.rejectedWith(ERROR_MSG);
     })
     it('cannot be set to 0x0 address', async () => {
       await poaNetworkConsensus.setWasProxyStorageSetMock(false);
-      await poaNetworkConsensus.setProxyStorage('0x0000000000000000000000000000000000000000', {from: validator}).should.be.rejectedWith(ERROR_MSG);
+      await poaNetworkConsensus.setProxyStorage('0x0000000000000000000000000000000000000000', {from: masterOfCeremony}).should.be.rejectedWith(ERROR_MSG);
     })
     it('sets proxyStorage', async () => {
       let newProxyStorage = accounts[3];
       await poaNetworkConsensus.setWasProxyStorageSetMock(false);
-      await poaNetworkConsensus.setProxyStorage(newProxyStorage, {from: validator}).should.be.fulfilled;
+      await poaNetworkConsensus.setProxyStorage(newProxyStorage, {from: masterOfCeremony}).should.be.fulfilled;
       (await poaNetworkConsensus.proxyStorage.call()).should.be.equal(newProxyStorage);
     })
     it('sets wasProxyStorageSet', async () => {
       let newProxyStorage = accounts[3];
       await poaNetworkConsensus.setWasProxyStorageSetMock(false);
-      await poaNetworkConsensus.setProxyStorage(newProxyStorage, {from: validator}).should.be.fulfilled;
+      await poaNetworkConsensus.setProxyStorage(newProxyStorage, {from: masterOfCeremony}).should.be.fulfilled;
       (await poaNetworkConsensus.wasProxyStorageSet.call()).should.be.equal(true);
     })
 
     it('emits MoCInitializedProxyStorage', async () => {
       let newProxyStorage = accounts[3];
       await poaNetworkConsensus.setWasProxyStorageSetMock(false);
-      const {logs} = await poaNetworkConsensus.setProxyStorage(newProxyStorage, {from: validator}).should.be.fulfilled;
+      const {logs} = await poaNetworkConsensus.setProxyStorage(newProxyStorage, {from: masterOfCeremony}).should.be.fulfilled;
       logs[0].event.should.be.equal('MoCInitializedProxyStorage');
       logs[0].args.proxyStorage.should.be.equal(newProxyStorage);
     })
