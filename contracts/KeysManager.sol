@@ -228,7 +228,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         uint8 maxMiningKeyHistoryDeep = maxOldMiningKeysDeepCheck();
         for (uint8 i = 0; i < maxMiningKeyHistoryDeep; i++) {
             address oldMiningKey = previous.getMiningKeyHistory(currentMiningKey);
-            if (oldMiningKey == 0) {
+            if (oldMiningKey == address(0)) {
                 break;
             }
             _setMiningKeyHistory(currentMiningKey, oldMiningKey);
