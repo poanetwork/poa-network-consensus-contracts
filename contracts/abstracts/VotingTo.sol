@@ -63,8 +63,8 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
     {
         address miningKey = _miningKey;
         IKeysManager keysManager = _getKeysManager();
-        uint8 maxDeep = keysManager.maxOldMiningKeysDeepCheck();
-        for (uint8 i = 0; i < maxDeep; i++) {
+        uint256 maxDeep = keysManager.maxOldMiningKeysDeepCheck();
+        for (uint256 i = 0; i < maxDeep; i++) {
             address oldMiningKey = keysManager.getMiningKeyHistory(miningKey);
             if (oldMiningKey == address(0)) {
                 return false;
@@ -84,10 +84,10 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
         ];
     }
 
-    function getQuorumState(uint256 _id) public view returns(uint8) {
-        return uint8(uintStorage[
+    function getQuorumState(uint256 _id) public view returns(uint256) {
+        return uintStorage[
             keccak256(abi.encode(VOTING_STATE, _id, QUORUM_STATE))
-        ]);
+        ];
     }
 
     function getTime() public view returns(uint256) {
@@ -136,7 +136,7 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
         uint256 _startTime,
         uint256 _endTime,
         string _memo,
-        uint8 _quorumState,
+        uint256 _quorumState,
         address _creatorMiningKey
     ) internal returns(uint256) {
         require(initDisabled());
@@ -170,7 +170,7 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
     }
 
     function _getGlobalMinThresholdOfVoters() internal view returns(uint256) {
-        return _getBallotsStorage().getBallotThreshold(uint8(ThresholdTypes.Keys));
+        return _getBallotsStorage().getBallotThreshold(uint256(ThresholdTypes.Keys));
     }
 
     function _getIsFinalized(uint256 _id) internal view returns(bool) {
@@ -239,7 +239,7 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
         uintStorage[NEXT_BALLOT_ID] = _id;
     }
 
-    function _setQuorumState(uint256 _ballotId, uint8 _value) internal {
+    function _setQuorumState(uint256 _ballotId, uint256 _value) internal {
         uintStorage[
             keccak256(abi.encode(VOTING_STATE, _ballotId, QUORUM_STATE))
         ] = _value;

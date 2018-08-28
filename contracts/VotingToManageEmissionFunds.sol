@@ -89,7 +89,7 @@ contract VotingToManageEmissionFunds is VotingTo {
             _startTime,
             _endTime,
             _memo,
-            uint8(QuorumStates.InProgress),
+            uint256(QuorumStates.InProgress),
             _getKeysManager().getMiningKeyByVoting(msg.sender)
         );
         _setSendVotes(ballotId, 0);
@@ -195,7 +195,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         return releaseTime;
     }
 
-    function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
+    function vote(uint256 _id, uint256 _choice) public onlyValidVotingKey(msg.sender) {
         require(!_getIsCanceled(_id));
         require(!_getIsFinalized(_id));
         require(isValidVote(_id, msg.sender));
@@ -237,7 +237,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         emit BallotFinalized(_id, msg.sender);
         
         if (getTotalVoters(_id) < getMinThresholdOfVoters(_id)) {
-            _setQuorumState(_id, uint8(QuorumStates.Frozen));
+            _setQuorumState(_id, uint256(QuorumStates.Frozen));
             _emissionFunds.freezeFunds(amount);
             return;
         }
@@ -269,7 +269,7 @@ contract VotingToManageEmissionFunds is VotingTo {
             }
         }
 
-        _setQuorumState(_id, uint8(quorumState));
+        _setQuorumState(_id, uint256(quorumState));
 
         if (quorumState == QuorumStates.Sent) {
             _emissionFunds.sendFundsTo(_getReceiver(_id), amount);

@@ -248,9 +248,9 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     {
         IKeysManager keysManager = _getKeysManager();
         address historyVoterMiningKey = _voterMiningKey;
-        uint8 maxDeep = keysManager.maxOldMiningKeysDeepCheck();
+        uint256 maxDeep = keysManager.maxOldMiningKeysDeepCheck();
 
-        for (uint8 i = 0; i < maxDeep; i++) {
+        for (uint256 i = 0; i < maxDeep; i++) {
             if (_isValidatorAlreadyVoted(_miningKey, historyVoterMiningKey)) {
                 return true;
             }
@@ -303,7 +303,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     }
 
     function getMinThreshold() public view returns(uint256) {
-        return _getBallotsStorage().getBallotThreshold(uint8(ThresholdTypes.MetadataChange));
+        return _getBallotsStorage().getBallotThreshold(uint256(ThresholdTypes.MetadataChange));
     }
 
     function _storeName(bool _pending) private pure returns(string) {

@@ -25,9 +25,9 @@ interface IKeysManager {
     function getTime() external view returns(uint256);
     function getMiningKeyHistory(address) external view returns(address);
     function getMiningKeyByVoting(address) external view returns(address);
-    function getInitialKeyStatus(address) external view returns(uint8);
+    function getInitialKeyStatus(address) external view returns(uint256);
     function masterOfCeremony() external view returns(address);
-    function maxOldMiningKeysDeepCheck() external pure returns(uint8);
+    function maxOldMiningKeysDeepCheck() external pure returns(uint256);
     function miningKeyByPayout(address) external view returns(address);
     function miningKeyByVoting(address) external view returns(address);
 }

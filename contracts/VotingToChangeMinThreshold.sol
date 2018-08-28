@@ -114,7 +114,7 @@ contract VotingToChangeMinThreshold is VotingToChange {
     function _finalizeBallotInner(uint256 _id) internal returns(bool) {
         return _getBallotsStorage().setThreshold(
             _getProposedValue(_id),
-            uint8(ThresholdTypes.Keys)
+            uint256(ThresholdTypes.Keys)
         );
     }
 

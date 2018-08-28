@@ -5,7 +5,7 @@ import '../../contracts/KeysManager.sol';
 
 contract KeysManagerMock is KeysManager {
     function getInitialKey(address _initialKey) public view returns(uint8) {
-        return getInitialKeyStatus(_initialKey);
+        return uint8(getInitialKeyStatus(_initialKey));
     }
 
     function setProxyStorage(address _proxyStorage) public {

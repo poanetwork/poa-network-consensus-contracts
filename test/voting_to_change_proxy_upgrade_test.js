@@ -117,7 +117,7 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
       // uint256 _startTime,
       // uint256 _endTime,
       // address _proposedValue,
-      // uint8 _contractType
+      // uint256 _contractType
       const {logs} = await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], 1, "memo", { from: votingKey }
       );
@@ -506,7 +506,7 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
         VOTING_START_DATE, // uint256 _startTime
         VOTING_END_DATE,   // uint256 _endTime
         accounts[7],       // address _proposedValue
-        100,               // uint8 _contractType
+        100,               // uint256 _contractType
         "memo",            // string _memo
         {from: votingKey}
       ).should.be.fulfilled;
@@ -539,7 +539,7 @@ contract('VotingToChangeProxyAddress upgraded [all features]', function (account
         VOTING_START_DATE, // uint256 _startTime
         VOTING_END_DATE,   // uint256 _endTime
         accounts[8],       // address _proposedValue
-        100,               // uint8 _contractType
+        100,               // uint256 _contractType
         "memo",            // string _memo
         {from: votingKey}
       ).should.be.fulfilled;

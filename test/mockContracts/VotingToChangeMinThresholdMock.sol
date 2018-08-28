@@ -44,7 +44,7 @@ contract VotingToChangeMinThresholdMock is VotingToChangeMock, VotingToChangeMin
         totalVoters = _getTotalVoters(_id);
         progress = _getProgress(_id);
         isFinalized = _getIsFinalized(_id);
-        quorumState = getQuorumState(_id);
+        quorumState = uint8(getQuorumState(_id));
         index = getIndex(_id);
         minThresholdOfVoters = getMinThresholdOfVoters(_id);
         proposedValue = _getProposedValue(_id);
