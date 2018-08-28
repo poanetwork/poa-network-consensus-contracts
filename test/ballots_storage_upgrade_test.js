@@ -73,7 +73,7 @@ contract('BallotsStorage upgraded [all features]', function (accounts) {
     await ballotsEternalStorage.setProxyStorage(proxyStorage.address);
     ballotsStorage = await BallotsStorageNew.at(ballotsEternalStorage.address);
   })
-
+  
   describe('#init', async () => {
     it('prevent from double init', async () => {
       await ballotsStorage.init([3, 2]).should.be.rejectedWith(ERROR_MSG);

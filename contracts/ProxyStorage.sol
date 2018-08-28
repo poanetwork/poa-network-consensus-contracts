@@ -181,34 +181,34 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         if (!initDisabled()) return false;
         if (_contractAddress == address(0)) return false;
         bool success = false;
-        if (_contractType == uint8(ContractTypes.KeysManager)) {
+        if (_contractType == uint256(ContractTypes.KeysManager)) {
             success = IEternalStorageProxy(
                 getKeysManager()
             ).upgradeTo(_contractAddress);
-        } else if (_contractType == uint8(ContractTypes.VotingToChangeKeys)) {
+        } else if (_contractType == uint256(ContractTypes.VotingToChangeKeys)) {
             success = IEternalStorageProxy(
                 getVotingToChangeKeys()
             ).upgradeTo(_contractAddress);
-        } else if (_contractType == uint8(ContractTypes.VotingToChangeMinThreshold)) {
+        } else if (_contractType == uint256(ContractTypes.VotingToChangeMinThreshold)) {
             success = IEternalStorageProxy(
                 getVotingToChangeMinThreshold()
             ).upgradeTo(_contractAddress);
-        } else if (_contractType == uint8(ContractTypes.VotingToChangeProxy)) {
+        } else if (_contractType == uint256(ContractTypes.VotingToChangeProxy)) {
             success = IEternalStorageProxy(
                 getVotingToChangeProxy()
             ).upgradeTo(_contractAddress);
-        } else if (_contractType == uint8(ContractTypes.BallotsStorage)) {
+        } else if (_contractType == uint256(ContractTypes.BallotsStorage)) {
             success = IEternalStorageProxy(
                 getBallotsStorage()
             ).upgradeTo(_contractAddress);
-        } else if (_contractType == uint8(ContractTypes.PoaConsensus)) {
+        } else if (_contractType == uint256(ContractTypes.PoaConsensus)) {
             _setPoaConsensus(_contractAddress);
             success = true;
-        } else if (_contractType == uint8(ContractTypes.ValidatorMetadata)) {
+        } else if (_contractType == uint256(ContractTypes.ValidatorMetadata)) {
             success = IEternalStorageProxy(
                 getValidatorMetadata()
             ).upgradeTo(_contractAddress);
-        } else if (_contractType == uint8(ContractTypes.ProxyStorage)) {
+        } else if (_contractType == uint256(ContractTypes.ProxyStorage)) {
             success = IEternalStorageProxy(this).upgradeTo(_contractAddress);
         }
         if (success) {

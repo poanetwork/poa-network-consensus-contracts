@@ -69,7 +69,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     modifier onlyValidInitialKey() {
-        require(getInitialKeyStatus(msg.sender) == uint8(InitialKeyState.Activated));
+        require(getInitialKeyStatus(msg.sender) == uint256(InitialKeyState.Activated));
         _;
     }
 
@@ -87,9 +87,9 @@ contract KeysManager is EternalStorage, IKeysManager {
         }
         
         address currentKey = _currentKey;
-        uint8 maxDeep = maxOldMiningKeysDeepCheck();
+        uint256 maxDeep = maxOldMiningKeysDeepCheck();
         
-        for (uint8 i = 0; i < maxDeep; i++) {
+        for (uint256 i = 0; i < maxDeep; i++) {
             address oldMiningKey = getMiningKeyHistory(currentKey);
             if (oldMiningKey == address(0)) {
                 return false;
@@ -107,7 +107,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         return 2000;
     }
 
-    function maxOldMiningKeysDeepCheck() public pure returns(uint8) {
+    function maxOldMiningKeysDeepCheck() public pure returns(uint256) {
         return 25;
     }
 
@@ -135,10 +135,10 @@ contract KeysManager is EternalStorage, IKeysManager {
         return uintStorage[INITIAL_KEYS_COUNT];
     }
 
-    function getInitialKeyStatus(address _initialKey) public view returns(uint8) {
-        return uint8(uintStorage[
+    function getInitialKeyStatus(address _initialKey) public view returns(uint256) {
+        return uintStorage[
             keccak256(abi.encode(INITIAL_KEY_STATUS, _initialKey))
-        ]);
+        ];
     }
 
     function miningKeyByPayout(address _payoutKey) public view returns(address) {
@@ -225,8 +225,8 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setMiningKeyByPayout(payoutKey, _miningKey);
         _setSuccessfulValidatorClone(true, _miningKey);
         address currentMiningKey = _miningKey;
-        uint8 maxMiningKeyHistoryDeep = maxOldMiningKeysDeepCheck();
-        for (uint8 i = 0; i < maxMiningKeyHistoryDeep; i++) {
+        uint256 maxMiningKeyHistoryDeep = maxOldMiningKeysDeepCheck();
+        for (uint256 i = 0; i < maxMiningKeyHistoryDeep; i++) {
             address oldMiningKey = previous.getMiningKeyHistory(currentMiningKey);
             if (oldMiningKey == address(0)) {
                 break;
@@ -238,14 +238,14 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function migrateInitialKey(address _initialKey) public onlyOwner {
-        require(getInitialKeyStatus(_initialKey) == uint8(InitialKeyState.Invalid));
+        require(getInitialKeyStatus(_initialKey) == uint256(InitialKeyState.Invalid));
         require(_initialKey != address(0));
         require(previousKeysManager() != address(0));
         IKeysManagerPrev previous = IKeysManagerPrev(previousKeysManager());
-        uint8 status = previous.getInitialKey(_initialKey);
+        uint256 status = previous.getInitialKey(_initialKey);
         require(
-            status == uint8(InitialKeyState.Activated) ||
-            status == uint8(InitialKeyState.Deactivated)
+            status == uint256(InitialKeyState.Activated) ||
+            status == uint256(InitialKeyState.Deactivated)
         );
         _setInitialKeyStatus(_initialKey, status);
         emit Migrated("initialKey", _initialKey);
@@ -254,11 +254,11 @@ contract KeysManager is EternalStorage, IKeysManager {
     function initiateKeys(address _initialKey) public {
         require(msg.sender == masterOfCeremony());
         require(_initialKey != address(0));
-        require(getInitialKeyStatus(_initialKey) == uint8(InitialKeyState.Invalid));
+        require(getInitialKeyStatus(_initialKey) == uint256(InitialKeyState.Invalid));
         require(_initialKey != masterOfCeremony());
         uint256 _initialKeysCount = initialKeysCount();
         require(_initialKeysCount < maxNumberOfInitialKeys());
-        _setInitialKeyStatus(_initialKey, uint8(InitialKeyState.Activated));
+        _setInitialKeyStatus(_initialKey, uint256(InitialKeyState.Activated));
         _initialKeysCount = _initialKeysCount.add(1);
         _setInitialKeysCount(_initialKeysCount);
         emit InitialKeyCreated(_initialKey, getTime(), _initialKeysCount);
@@ -297,7 +297,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsPayoutActive(true, _miningKey);
         _setMiningKeyByVoting(_votingKey, _miningKey);
         _setMiningKeyByPayout(_payoutKey, _miningKey);
-        _setInitialKeyStatus(msg.sender, uint8(InitialKeyState.Deactivated));
+        _setInitialKeyStatus(msg.sender, uint256(InitialKeyState.Deactivated));
         emit ValidatorInitialized(_miningKey, _votingKey, _payoutKey);
     }
 
@@ -535,7 +535,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         uintStorage[INITIAL_KEYS_COUNT] = _count;
     }
 
-    function _setInitialKeyStatus(address _initialKey, uint8 _status) private {
+    function _setInitialKeyStatus(address _initialKey, uint256 _status) private {
         uintStorage[
             keccak256(abi.encode(INITIAL_KEY_STATUS, _initialKey))
         ] = _status;

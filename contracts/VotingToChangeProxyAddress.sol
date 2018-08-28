@@ -13,7 +13,7 @@ contract VotingToChangeProxyAddress is VotingToChange {
         uint256 _startTime,
         uint256 _endTime,
         address _proposedValue,
-        uint8 _contractType,
+        uint256 _contractType,
         string _memo
     ) public {
         require(_proposedValue != address(0));

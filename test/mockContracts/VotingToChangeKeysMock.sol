@@ -58,7 +58,7 @@ contract VotingToChangeKeysMock is VotingToChangeMock, VotingToChangeKeys {
         totalVoters = _getTotalVoters(_id);
         progress = _getProgress(_id);
         isFinalized = _getIsFinalized(_id);
-        quorumState = getQuorumState(_id);
+        quorumState = uint8(getQuorumState(_id));
         ballotType = _getBallotType(_id);
         index = getIndex(_id);
         minThresholdOfVoters = getMinThresholdOfVoters(_id);

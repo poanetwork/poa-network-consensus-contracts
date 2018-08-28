@@ -106,7 +106,7 @@ contract VotingToChange is VotingTo {
         ];
     }
 
-    function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
+    function vote(uint256 _id, uint256 _choice) public onlyValidVotingKey(msg.sender) {
         require(migrateDisabled());
         require(!_getIsFinalized(_id));
         address miningKey = _getKeysManager().getMiningKeyByVoting(msg.sender);
@@ -186,7 +186,7 @@ contract VotingToChange is VotingTo {
             _startTime,
             _endTime,
             _memo,
-            uint8(QuorumStates.InProgress),
+            uint256(QuorumStates.InProgress),
             creatorMiningKey
         );
         _setTotalVoters(ballotId, 0);
@@ -225,12 +225,12 @@ contract VotingToChange is VotingTo {
 
         if (_getProgress(_id) > 0 && _getTotalVoters(_id) >= getMinThresholdOfVoters(_id)) {
             if (_finalizeBallotInner(_id)) {
-                _setQuorumState(_id, uint8(QuorumStates.Accepted));
+                _setQuorumState(_id, uint256(QuorumStates.Accepted));
             } else {
                 return;
             }
         } else {
-            _setQuorumState(_id, uint8(QuorumStates.Rejected));
+            _setQuorumState(_id, uint256(QuorumStates.Rejected));
         }
 
         _deactiveBallot(_id);
