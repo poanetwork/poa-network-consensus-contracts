@@ -80,8 +80,8 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
     ) public onlyOwner {
         require(!initDisabled());
         require(_thresholds.length == uint256(ThresholdTypes.MetadataChange));
-        //require(_thresholds.length < 255);
-        for (uint256 thresholdType = uint256(ThresholdTypes.Keys); thresholdType <= _thresholds.length; thresholdType++) {
+        uint256 thresholdType = uint256(ThresholdTypes.Keys);
+        for (; thresholdType <= _thresholds.length; thresholdType++) {
             uint256 thresholdValue = _thresholds[thresholdType - uint256(ThresholdTypes.Keys)];
             if (!_setThreshold(thresholdValue, thresholdType)) {
                 revert();

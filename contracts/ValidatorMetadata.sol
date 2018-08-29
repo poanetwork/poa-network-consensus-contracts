@@ -525,6 +525,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         address _miningKey,
         string _fullAddress
     ) private {
+        require(bytes(_fullAddress).length <= 200);
         stringStorage[keccak256(abi.encode(
             _storeName(_pending),
             _miningKey,

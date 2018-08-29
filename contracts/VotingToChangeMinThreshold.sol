@@ -37,7 +37,7 @@ contract VotingToChangeMinThreshold is VotingToChange {
         address creator,
         string memo,
         bool canBeFinalizedNow,
-        bool hasAlreadyVoted
+        bool alreadyVoted
     ) {
         startTime = _getStartTime(_id);
         endTime = _getEndTime(_id);
@@ -48,7 +48,7 @@ contract VotingToChangeMinThreshold is VotingToChange {
         creator = _getCreator(_id);
         memo = _getMemo(_id);
         canBeFinalizedNow = _canBeFinalizedNow(_id);
-        hasAlreadyVoted = this.hasAlreadyVoted(_id, _votingKey);
+        alreadyVoted = hasAlreadyVoted(_id, _votingKey);
     }
 
     function init(

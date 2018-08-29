@@ -226,7 +226,7 @@ async function main() {
 			await votingToManageEmissionFundsInstance.methods.initDisabled().call()
 		);
 		true.should.be.equal(
-			await votingToManageEmissionFundsInstance.methods.previousBallotFinalized().call()
+			await votingToManageEmissionFundsInstance.methods.noActiveBallotExists().call()
 		);
 		EthereumUtil.toChecksumAddress(votingToManageEmissionFundsAddress).should.be.equal(
 			EthereumUtil.toChecksumAddress(await emissionFundsInstance.methods.votingToManageEmissionFunds().call())
