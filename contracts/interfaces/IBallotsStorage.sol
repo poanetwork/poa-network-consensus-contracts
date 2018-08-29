@@ -12,6 +12,7 @@ interface IBallotsStorage {
     function metadataChangeConfirmationsLimit() external pure returns(uint256);
 }
 
+
 interface IBallotsStoragePrev {
     function getBallotThreshold(uint8) external view returns(uint256);
 }

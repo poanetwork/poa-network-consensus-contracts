@@ -18,8 +18,8 @@ contract VotingToManageEmissionFunds is VotingTo {
     bytes32 internal constant EMISSION_RELEASE_TIME =
         keccak256("emissionReleaseTime");
     
-    bytes32 internal constant PREVIOUS_BALLOT_FINALIZED =
-        keccak256("previousBallotFinalized");
+    bytes32 internal constant NO_ACTIVE_BALLOT_EXISTS =
+        keccak256("noActiveBallotExists");
 
     bytes32 internal constant AMOUNT = "amount";
     bytes32 internal constant BURN_VOTES = "burnVotes";
@@ -50,7 +50,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         if (isActive(_id)) return false;
         if (_getIsCanceled(_id)) return false;
         if (_getIsFinalized(_id)) return false;
-        if (previousBallotFinalized()) return false;
+        if (noActiveBallotExists()) return false;
         if (_withinCancelingThreshold(_id)) return false;
         return true;
     }
@@ -63,7 +63,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         require(!_getIsCanceled(ballotId));
         require(!_getIsFinalized(ballotId));
         _setIsCanceled(ballotId, true);
-        _setPreviousBallotFinalized(true);
+        _setNoActiveBallotExists(true);
         _setEmissionReleaseTime(_getEmissionReleaseTimeSnapshot(ballotId));
         emit BallotCanceled(ballotId, msg.sender);
     }
@@ -79,11 +79,10 @@ contract VotingToManageEmissionFunds is VotingTo {
         require(_endTime > _startTime && _startTime > currentTime);
         uint256 releaseTimeSnapshot = emissionReleaseTime();
         uint256 releaseTime = refreshEmissionReleaseTime();
-        require(_startTime > releaseTime);
-        require(currentTime > releaseTime);
+        require(currentTime >= releaseTime);
         require(_endTime.sub(releaseTime) <= distributionThreshold());
         require(_receiver != address(0));
-        require(previousBallotFinalized());
+        require(noActiveBallotExists());
         uint256 ballotId = _createBallot(
             uint256(BallotTypes.ManageEmissionFunds),
             _startTime,
@@ -97,7 +96,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         _setFreezeVotes(ballotId, 0);
         _setReceiver(ballotId, _receiver);
         _setAmount(ballotId, emissionFunds().balance);
-        _setPreviousBallotFinalized(false);
+        _setNoActiveBallotExists(false);
         _setCreationTime(ballotId, currentTime);
         _setEmissionReleaseTimeSnapshot(ballotId, releaseTimeSnapshot);
         _setIsCanceled(ballotId, false);
@@ -168,7 +167,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         require(_emissionReleaseThreshold > 0);
         require(_distributionThreshold > ballotCancelingThreshold());
         require(_emissionReleaseThreshold > _distributionThreshold);
-        _setPreviousBallotFinalized(true);
+        _setNoActiveBallotExists(true);
         _setEmissionReleaseTime(_emissionReleaseTime);
         addressStorage[EMISSION_FUNDS] = _emissionFunds;
         uintStorage[EMISSION_RELEASE_THRESHOLD] = _emissionReleaseThreshold;
@@ -176,8 +175,8 @@ contract VotingToManageEmissionFunds is VotingTo {
         boolStorage[INIT_DISABLED] = true;
     }
 
-    function previousBallotFinalized() public view returns(bool) {
-        return boolStorage[PREVIOUS_BALLOT_FINALIZED];
+    function noActiveBallotExists() public view returns(bool) {
+        return boolStorage[NO_ACTIVE_BALLOT_EXISTS];
     }
 
     function refreshEmissionReleaseTime() public returns(uint256) {
@@ -229,7 +228,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         uint256 amount = _getAmount(_id);
 
         _setIsFinalized(_id, true);
-        _setPreviousBallotFinalized(true);
+        _setNoActiveBallotExists(true);
         _setEmissionReleaseTime(
             emissionReleaseTime().add(emissionReleaseThreshold())
         );
@@ -380,8 +379,8 @@ contract VotingToManageEmissionFunds is VotingTo {
         ] = _canceled;
     }
 
-    function _setPreviousBallotFinalized(bool _finalized) private {
-        boolStorage[PREVIOUS_BALLOT_FINALIZED] = _finalized;
+    function _setNoActiveBallotExists(bool _finalized) private {
+        boolStorage[NO_ACTIVE_BALLOT_EXISTS] = _finalized;
     }
 
     function _setReceiver(uint256 _ballotId, address _value) private {

@@ -174,9 +174,16 @@ async function migrateAndCheck(privateKey) {
 			console.log(`  Check mining key ${miningKey}...`);
 			
 			try {
-				(await keysManagerOldInstance.methods.validatorKeys(miningKey).call()).should.be.deep.equal(
-					await keysManagerNewInstance.methods.validatorKeys(miningKey).call()
-				);
+				const validatorOldKeys = await keysManagerOldInstance.methods.validatorKeys(miningKey).call();
+				const validatorNewKeys = await keysManagerNewInstance.methods.validatorKeys(miningKey).call();
+				validatorOldKeys[0].should.be.equal(validatorNewKeys[0]);
+				validatorOldKeys[1].should.be.equal(validatorNewKeys[1]);
+				validatorOldKeys[2].should.be.equal(validatorNewKeys[2]);
+				validatorOldKeys[3].should.be.equal(validatorNewKeys[3]);
+				validatorOldKeys[4].should.be.equal(validatorNewKeys[4]);
+				//(await keysManagerOldInstance.methods.validatorKeys(miningKey).call()).should.be.deep.equal(
+				//	await keysManagerNewInstance.methods.validatorKeys(miningKey).call()
+				//);
 				const votingKey = await keysManagerOldInstance.methods.getVotingByMining(miningKey).call();
 				votingKey.should.be.equal(
 					await keysManagerNewInstance.methods.getVotingByMining(miningKey).call()

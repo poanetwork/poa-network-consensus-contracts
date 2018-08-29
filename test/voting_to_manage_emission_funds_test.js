@@ -150,7 +150,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       (await voting.emissionFunds.call()).should.be.equal(emissionFunds.address);
       (await voting.emissionReleaseThreshold.call()).should.be.bignumber.equal(emissionReleaseThreshold);
       (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(emissionReleaseTime);
-      (await voting.previousBallotFinalized.call()).should.be.equal(true);
+      (await voting.noActiveBallotExists.call()).should.be.equal(true);
       (await voting.initDisabled.call()).should.be.equal(true);
       (await voting.proxyStorage.call()).should.be.equal(proxyStorage.address);
       (await voting.getKeysManager.call()).should.be.equal(keysManager.address);
@@ -202,7 +202,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       (await voting.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(2);
       (await voting.getEmissionReleaseTimeSnapshot.call(id)).should.be.bignumber.equal(emissionReleaseTime);
 
-      (await voting.previousBallotFinalized.call()).should.be.equal(false);
+      (await voting.noActiveBallotExists.call()).should.be.equal(false);
       (await voting.nextBallotId.call()).should.be.bignumber.equal(1);
       logs[0].event.should.be.equal("BallotCreated");
       logs[0].args.id.should.be.bignumber.equal(0);
@@ -356,7 +356,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
         new web3.BigNumber(0), // sendVotes
         accounts[5] // receiver
       ]);
-      (await voting.previousBallotFinalized.call()).should.be.equal(true);
+      (await voting.noActiveBallotExists.call()).should.be.equal(true);
       (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(emissionReleaseTime);
 
       id = await voting.nextBallotId.call();
@@ -368,7 +368,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
 
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(id, choice.freeze, {from: votingKey}).should.be.fulfilled;
-      (await voting.previousBallotFinalized.call()).should.be.equal(false);
+      (await voting.noActiveBallotExists.call()).should.be.equal(false);
 
       await voting.setTime(VOTING_END_DATE + 1);
       await voting.finalize(id, {from: votingKey}).should.be.fulfilled;
@@ -537,7 +537,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       ballotInfo[8].should.be.bignumber.equal(0); // burnVotes
       ballotInfo[9].should.be.bignumber.equal(1); // freezeVotes
       ballotInfo[10].should.be.bignumber.equal(0); // sendVotes
-      (await voting.previousBallotFinalized.call()).should.be.equal(true);
+      (await voting.noActiveBallotExists.call()).should.be.equal(true);
       (await voting.getQuorumState.call(id)).should.be.bignumber.equal(4);
       (await voting.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(1);
       (await voting.hasAlreadyVoted.call(id, votingKey)).should.be.equal(true);
@@ -584,7 +584,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       (await voting.hasMiningKeyAlreadyVoted.call(id, miningKey)).should.be.equal(true);
       (await voting.hasMiningKeyAlreadyVoted.call(id, miningKey2)).should.be.equal(true);
       (await voting.hasMiningKeyAlreadyVoted.call(id, miningKey3)).should.be.equal(true);
-      (await voting.previousBallotFinalized.call()).should.be.equal(true);
+      (await voting.noActiveBallotExists.call()).should.be.equal(true);
       (await voting.getQuorumState.call(id)).should.be.bignumber.equal(3);
       (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(0);
     });
@@ -734,14 +734,14 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       ).should.be.fulfilled;
 
       false.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
-      (await voting.previousBallotFinalized.call()).should.be.equal(false);
+      (await voting.noActiveBallotExists.call()).should.be.equal(false);
 
       await addValidator(votingKey2, miningKey2);
       await voting.setTime(VOTING_END_DATE + 1);
       const {logs} = await voting.finalize(id, {from: votingKey2}).should.be.fulfilled;
 
       true.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
-      (await voting.previousBallotFinalized.call()).should.be.equal(true);
+      (await voting.noActiveBallotExists.call()).should.be.equal(true);
       (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime + emissionReleaseThreshold
       );
@@ -919,7 +919,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       await voting.vote(id, choice.burn, {from: votingKey3}).should.be.fulfilled;
       true.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
       
-      (await voting.previousBallotFinalized.call()).should.be.equal(true);
+      (await voting.noActiveBallotExists.call()).should.be.equal(true);
     });
 
     it('does not finalize immediately until ballot canceling threshold is reached', async () => {
@@ -977,7 +977,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       ).should.be.fulfilled;
 
       false.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
-      (await voting.previousBallotFinalized.call()).should.be.equal(false);
+      (await voting.noActiveBallotExists.call()).should.be.equal(false);
 
       await addValidator(votingKey2, miningKey2);
       await voting.setTime(VOTING_END_DATE + 1);
@@ -988,7 +988,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       await voting.finalize(id, {from: votingKey}).should.be.fulfilled;
       true.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
 
-      (await voting.previousBallotFinalized.call()).should.be.equal(true);
+      (await voting.noActiveBallotExists.call()).should.be.equal(true);
       (await voting.emissionReleaseTime.call()).should.be.bignumber.equal(
         emissionReleaseTime + emissionReleaseThreshold
       );
@@ -1111,7 +1111,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       ]);
       (await votingNew.getQuorumState.call(id)).should.be.bignumber.equal(1);
       (await votingNew.getMinThresholdOfVoters.call(id)).should.be.bignumber.equal(1);
-      (await votingNew.previousBallotFinalized.call()).should.be.equal(false);
+      (await votingNew.noActiveBallotExists.call()).should.be.equal(false);
       (await votingNew.nextBallotId.call()).should.be.bignumber.equal(1);
     });
   });

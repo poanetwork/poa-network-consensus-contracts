@@ -166,17 +166,17 @@ contract KeysManager is EternalStorage, IKeysManager {
     }
 
     function validatorKeys(address _miningKey) public view returns(
-        address votingKey,
-        address payoutKey,
-        bool isMiningActive,
-        bool isVotingActive,
-        bool isPayoutActive
+        address validatorVotingKey,
+        address validatorPayoutKey,
+        bool isValidatorMiningActive,
+        bool isValidatorVotingActive,
+        bool isValidatorPayoutActive
     ) {
-        votingKey = this.getVotingByMining(_miningKey);
-        payoutKey = this.getPayoutByMining(_miningKey);
-        isMiningActive = this.isMiningActive(_miningKey);
-        isVotingActive = this.isVotingActiveByMiningKey(_miningKey);
-        isPayoutActive = this.isPayoutActive(_miningKey);
+        validatorVotingKey = getVotingByMining(_miningKey);
+        validatorPayoutKey = getPayoutByMining(_miningKey);
+        isValidatorMiningActive = isMiningActive(_miningKey);
+        isValidatorVotingActive = isVotingActiveByMiningKey(_miningKey);
+        isValidatorPayoutActive = isPayoutActive(_miningKey);
     }
 
     function initDisabled() public view returns(bool) {

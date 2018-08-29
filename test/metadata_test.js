@@ -107,6 +107,13 @@ contract('ValidatorMetadata [all features]', function (accounts) {
       logs[0].event.should.be.equal('MetadataCreated');
       logs[0].args.miningKey.should.be.equal(miningKey);
     })
+    it('should not let create metadata if fullAddress is too long', async () => {
+      let localFakeData = fakeData.slice();
+      localFakeData[3] = 'a'.repeat(201);
+      await metadata.createMetadata(...localFakeData, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      localFakeData[3] = 'a'.repeat(200);
+      await metadata.createMetadata(...localFakeData, {from: votingKey}).should.be.fulfilled;
+    });
     it('should not let create metadata if called by non-voting key', async () => {
       const {logs} = await metadata.createMetadata(...fakeData, {from: miningKey}).should.be.rejectedWith(ERROR_MSG);
       const validators = await metadata.validators.call(miningKey);

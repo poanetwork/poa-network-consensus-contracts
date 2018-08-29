@@ -3,7 +3,6 @@ pragma solidity ^0.4.24;
 import "./interfaces/IRewardByBlock.sol";
 import "./interfaces/IKeysManager.sol";
 import "./interfaces/IProxyStorage.sol";
-import "./interfaces/IPoaNetworkConsensus.sol";
 import "./eternal-storage/EternalStorage.sol";
 import "./libs/SafeMath.sol";
 
