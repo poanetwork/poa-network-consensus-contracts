@@ -17,19 +17,19 @@ contract VotingToChangeKeys is VotingToChange, EnumKeyTypes {
     function createBallot(
         uint256 _startTime,
         uint256 _endTime,
-        address _affectedKey,
-        uint256 _affectedKeyType,
-        address _miningKey,
         uint256 _ballotType,
-        string _memo
+        uint256 _affectedKeyType,
+        string _memo,
+        address _affectedKey,
+        address _miningKey
     ) public returns(uint256) {
         require(_getBallotsStorage().areKeysBallotParamsValid(
             _ballotType,
-            _affectedKey,
             _affectedKeyType,
+            _affectedKey,
             _miningKey
         ));
-        uint256 ballotId = _createBallot(_ballotType, _startTime, _endTime, _memo);
+        uint256 ballotId = super._createBallot(_ballotType, _startTime, _endTime, _memo);
         _setAffectedKey(ballotId, _affectedKey);
         _setAffectedKeyType(ballotId, _affectedKeyType);
         _setMiningKey(ballotId, _miningKey);
@@ -40,10 +40,10 @@ contract VotingToChangeKeys is VotingToChange, EnumKeyTypes {
     function createBallotToAddNewValidator(
         uint256 _startTime,
         uint256 _endTime,
+        string _memo,
         address _newMiningKey,
         address _newVotingKey,
-        address _newPayoutKey,
-        string _memo
+        address _newPayoutKey
     ) public returns(uint256) {
         IKeysManager keysManager = _getKeysManager();
         require(keysManager.miningKeyByVoting(_newVotingKey) == address(0));
@@ -56,11 +56,11 @@ contract VotingToChangeKeys is VotingToChange, EnumKeyTypes {
         uint256 ballotId = createBallot(
             _startTime,
             _endTime,
-            _newMiningKey, // _affectedKey
-            uint256(KeyTypes.MiningKey), // _affectedKeyType
-            address(0), // _miningKey
             uint256(BallotTypes.KeyAdding), // _ballotType
-            _memo
+            uint256(KeyTypes.MiningKey), // _affectedKeyType
+            _memo,
+            _newMiningKey, // _affectedKey
+            address(0) // _miningKey
         );
         _setNewVotingKey(ballotId, _newVotingKey);
         _setNewPayoutKey(ballotId, _newPayoutKey);

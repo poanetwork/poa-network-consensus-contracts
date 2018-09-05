@@ -155,10 +155,10 @@ module.exports = function(deployer, network, accounts) {
 
       // Initialize VotingToManageEmissionFunds
       await votingToManageEmissionFunds.init(
-        emissionFunds.address,
         moment.utc().add(3, 'months').unix(),
         7776000,
-        604800
+        604800,
+        emissionFunds.address
       );
 
       // Initialize ProxyStorage

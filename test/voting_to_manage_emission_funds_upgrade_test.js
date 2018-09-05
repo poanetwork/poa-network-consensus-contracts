@@ -94,23 +94,23 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
     emissionReleaseThreshold = moment.duration(3, 'months').asSeconds();
     distributionThreshold = moment.duration(7, 'days').asSeconds();
     await voting.init(
-      emissionFunds.address,
       emissionReleaseTime,
       emissionReleaseThreshold,
       distributionThreshold,
+      emissionFunds.address,
       {from: accounts[8]}
     ).should.be.rejectedWith(ERROR_MSG);
     await voting.init(
-      emissionFunds.address,
       emissionReleaseTime,
       emissionReleaseThreshold,
-      300
+      300,
+      emissionFunds.address
     ).should.be.rejectedWith(ERROR_MSG);
     await voting.init(
-      emissionFunds.address,
       emissionReleaseTime,
       emissionReleaseThreshold,
-      distributionThreshold
+      distributionThreshold,
+      emissionFunds.address
     ).should.be.fulfilled;
 
     rewardByBlock = await RewardByBlock.new();
@@ -164,10 +164,10 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
     });
     it('cannot be called more than once', async () => {
       await voting.init(
-        emissionFunds.address,
         emissionReleaseTime,
         emissionReleaseThreshold,
-        distributionThreshold
+        distributionThreshold,
+        emissionFunds.address
       ).should.be.rejectedWith(ERROR_MSG);
     });
   });

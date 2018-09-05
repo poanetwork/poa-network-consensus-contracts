@@ -140,7 +140,7 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         address _validatorMetadataEternalStorage,
         address _rewardByBlockEternalStorage
     ) public {
-        require(isValidator(msg.sender) || _isOwner(msg.sender));
+        require(_isOwner(msg.sender) || _isMoC(msg.sender));
         require(!mocInitialized());
         addressStorage[KEYS_MANAGER_ETERNAL_STORAGE] =
             _keysManagerEternalStorage;
@@ -218,9 +218,10 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     }
     // solhint-enable code-complexity
 
-    function isValidator(address _validator) public view returns(bool) {
+    function _isMoC(address _validator) public view returns(bool) {
         IPoaNetworkConsensus poa = IPoaNetworkConsensus(getPoaConsensus());
-        return poa.isValidator(_validator);
+        return _validator == poa.masterOfCeremony() && !poa.isMasterOfCeremonyRemoved();
+        //return poa.isValidator(_validator);
     }
 
     function _isOwner(address _sender) private view returns(bool) {

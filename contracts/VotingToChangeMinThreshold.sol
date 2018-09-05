@@ -18,7 +18,7 @@ contract VotingToChangeMinThreshold is VotingToChange {
         require(_proposedValue >= minPossibleThreshold());
         require(_proposedValue != _getGlobalMinThresholdOfVoters());
         require(_proposedValue <= _getBallotsStorage().getProxyThreshold());
-        uint256 ballotId = _createBallot(
+        uint256 ballotId = super._createBallot(
             uint256(BallotTypes.MinThreshold),
             _startTime,
             _endTime,

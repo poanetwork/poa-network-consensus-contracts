@@ -12,12 +12,12 @@ contract VotingToChangeProxyAddress is VotingToChange {
     function createBallot(
         uint256 _startTime,
         uint256 _endTime,
-        address _proposedValue,
         uint256 _contractType,
-        string _memo
+        string _memo,
+        address _proposedValue
     ) public {
         require(_proposedValue != address(0));
-        uint256 ballotId = _createBallot(
+        uint256 ballotId = super._createBallot(
             uint256(BallotTypes.ProxyAddress),
             _startTime,
             _endTime,

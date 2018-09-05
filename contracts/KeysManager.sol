@@ -78,6 +78,8 @@ contract KeysManager is EternalStorage, IKeysManager {
         view
         returns(bool)
     {
+        require(msg.data.length >= 32*2 + 4);
+
         if (isMiningActive(_newKey)) {
             return true;
         }
@@ -247,7 +249,7 @@ contract KeysManager is EternalStorage, IKeysManager {
             status == uint256(InitialKeyState.Activated) ||
             status == uint256(InitialKeyState.Deactivated)
         );
-        _setInitialKeyStatus(_initialKey, status);
+        _setInitialKeyStatus(status, _initialKey);
         emit Migrated("initialKey", _initialKey);
     }
 
@@ -258,7 +260,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         require(_initialKey != masterOfCeremony());
         uint256 _initialKeysCount = initialKeysCount();
         require(_initialKeysCount < maxNumberOfInitialKeys());
-        _setInitialKeyStatus(_initialKey, uint256(InitialKeyState.Activated));
+        _setInitialKeyStatus(uint256(InitialKeyState.Activated), _initialKey);
         _initialKeysCount = _initialKeysCount.add(1);
         _setInitialKeysCount(_initialKeysCount);
         emit InitialKeyCreated(_initialKey, getTime(), _initialKeysCount);
@@ -297,7 +299,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setIsPayoutActive(true, _miningKey);
         _setMiningKeyByVoting(_votingKey, _miningKey);
         _setMiningKeyByPayout(_payoutKey, _miningKey);
-        _setInitialKeyStatus(msg.sender, uint256(InitialKeyState.Deactivated));
+        _setInitialKeyStatus(uint256(InitialKeyState.Deactivated), msg.sender);
         emit ValidatorInitialized(_miningKey, _votingKey, _payoutKey);
     }
 
@@ -535,7 +537,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         uintStorage[INITIAL_KEYS_COUNT] = _count;
     }
 
-    function _setInitialKeyStatus(address _initialKey, uint256 _status) private {
+    function _setInitialKeyStatus(uint256 _status, address _initialKey) private {
         uintStorage[
             keccak256(abi.encode(INITIAL_KEY_STATUS, _initialKey))
         ] = _status;

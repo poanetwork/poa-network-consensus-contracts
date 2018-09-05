@@ -34,8 +34,8 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
 
     function areKeysBallotParamsValid(
         uint256 _ballotType,
-        address _affectedKey,
         uint256 _affectedKeyType,
+        address _affectedKey,
         address _miningKey
     ) external view returns(bool) {
         require(_ballotType >= uint256(BallotTypes.KeyAdding));
@@ -46,22 +46,22 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
 
         if (_ballotType == uint256(BallotTypes.KeyAdding)) {
             return _areKeyAddingBallotParamsValid(
-                _affectedKey,
                 _affectedKeyType, 
+                _affectedKey,
                 _miningKey
             );
         }
         if (_ballotType == uint256(BallotTypes.KeyRemoval)) {
             return _areKeyRemovalBallotParamsValid(
-                _affectedKey,
                 _affectedKeyType,
+                _affectedKey,
                 _miningKey
             );
         }
         if (_ballotType == uint256(BallotTypes.KeySwap)) {
             return _areKeySwapBallotParamsValid(
-                _affectedKey,
                 _affectedKeyType,
+                _affectedKey,
                 _miningKey
             );
         }
@@ -149,8 +149,8 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
     }
 
     function _areKeyAddingBallotParamsValid(
-        address _affectedKey,
         uint256 _affectedKeyType,
+        address _affectedKey,
         address _miningKey
     ) internal view returns(bool) {
         IKeysManager keysManager = _getKeysManager();
@@ -169,8 +169,8 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
     }
 
     function _areKeyRemovalBallotParamsValid(
-        address _affectedKey,
         uint256 _affectedKeyType,
+        address _affectedKey,
         address _miningKey
     ) internal view returns(bool) {
         IKeysManager keysManager = _getKeysManager();
@@ -193,8 +193,8 @@ contract BallotsStorage is EternalStorage, EnumBallotTypes, EnumKeyTypes, EnumTh
     }
 
     function _areKeySwapBallotParamsValid(
-        address _affectedKey,
         uint256 _affectedKeyType,
+        address _affectedKey,
         address _miningKey
     ) internal view returns(bool) {
         require(_affectedKey != _miningKey);

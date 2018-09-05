@@ -72,12 +72,9 @@ contract('ProxyStorage upgraded [all features]', function (accounts) {
     rewardByBlockEternalStorage = await EternalStorageProxy.new(proxyStorage.address, rewardByBlock.address);
   })
   describe('#constructor', async () => {
-    it('sets MoC and Poa', async () => {
+    it('sets PoA', async () => {
       poaNetworkConsensus.address.should.be.equal(
         await proxyStorage.getPoaConsensus.call()
-      );
-      true.should.be.equal(
-        await proxyStorage.isValidator.call(masterOfCeremony)
       );
     })
   })

@@ -94,23 +94,23 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
     emissionReleaseThreshold = moment.duration(3, 'months').asSeconds();
     distributionThreshold = moment.duration(7, 'days').asSeconds();
     await voting.init(
-      emissionFunds.address,
       emissionReleaseTime,
       emissionReleaseThreshold,
       distributionThreshold,
+      emissionFunds.address,
       {from: accounts[8]}
     ).should.be.rejectedWith(ERROR_MSG);
     await voting.init(
-      emissionFunds.address,
       emissionReleaseTime,
       emissionReleaseThreshold,
-      300
+      300,
+      emissionFunds.address
     ).should.be.rejectedWith(ERROR_MSG);
     await voting.init(
-      emissionFunds.address,
       emissionReleaseTime,
       emissionReleaseThreshold,
-      distributionThreshold
+      distributionThreshold,
+      emissionFunds.address
     ).should.be.fulfilled;
 
     rewardByBlock = await RewardByBlock.new();
@@ -157,10 +157,10 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
     });
     it('cannot be called more than once', async () => {
       await voting.init(
-        emissionFunds.address,
         emissionReleaseTime,
         emissionReleaseThreshold,
-        distributionThreshold
+        distributionThreshold,
+        emissionFunds.address
       ).should.be.rejectedWith(ERROR_MSG);
     });
   });
@@ -1035,10 +1035,10 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       votingEternalStorage = await EternalStorageProxy.new(proxyStorageStubAddress, voting.address);
       voting = await VotingToManageEmissionFunds.at(votingEternalStorage.address);
       await voting.init(
-        emissionFunds.address,
         emissionReleaseTime,
         emissionReleaseThreshold,
-        distributionThreshold
+        distributionThreshold,
+        emissionFunds.address
       ).should.be.fulfilled;
     });
     it('may only be called by ProxyStorage', async () => {
