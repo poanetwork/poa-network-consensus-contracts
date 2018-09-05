@@ -338,7 +338,16 @@ contract('VotingToChangeMinThreshold [all features]', function (accounts) {
       await votingForKeys.migrateDisable();
 
       const nextId = await votingForKeys.nextBallotId.call();
-      await votingForKeys.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 3, accounts[1], 1, "memo", {from: votingKey});
+      await votingForKeys.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        3,
+        "memo",
+        accounts[5],
+        accounts[1],
+        {from: votingKey}
+      );
       const minThresholdVotingForKeys = await votingForKeys.getMinThresholdOfVoters.call(nextId);
       minThresholdVotingForKeys.should.be.bignumber.equal(proposedValue);
     })

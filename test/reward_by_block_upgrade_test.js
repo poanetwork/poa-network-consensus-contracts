@@ -183,8 +183,8 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
 
     it('should assign rewards to extra receivers and clear extra receivers list', async () => {
       await rewardByBlock.setBridgeContractAddress(accounts[1]);
-      await rewardByBlock.addExtraReceiver(accounts[2], 2, {from: accounts[1]}).should.be.fulfilled;
-      await rewardByBlock.addExtraReceiver(accounts[3], 3, {from: accounts[1]}).should.be.fulfilled;
+      await rewardByBlock.addExtraReceiver(2, accounts[2], {from: accounts[1]}).should.be.fulfilled;
+      await rewardByBlock.addExtraReceiver(3, accounts[3], {from: accounts[1]}).should.be.fulfilled;
 
       await rewardByBlock.setSystemAddress(systemAddress);
       let result = await rewardByBlock.reward(
@@ -203,8 +203,8 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
       (await rewardByBlock.extraReceiversAmounts.call(accounts[3])).should.be.bignumber.equal(0);
       (await rewardByBlock.extraReceiversLength.call()).should.be.bignumber.equal(0);
 
-      await rewardByBlock.addExtraReceiver(accounts[2], 2, {from: accounts[1]}).should.be.fulfilled;
-      await rewardByBlock.addExtraReceiver(accounts[3], 3, {from: accounts[1]}).should.be.fulfilled;
+      await rewardByBlock.addExtraReceiver(2, accounts[2], {from: accounts[1]}).should.be.fulfilled;
+      await rewardByBlock.addExtraReceiver(3, accounts[3], {from: accounts[1]}).should.be.fulfilled;
       result = await rewardByBlock.reward(
         [miningKey],
         [0],
@@ -225,16 +225,16 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
 
   describe('#addExtraReceiver', async () => {
     it('may only be called by bridge contract', async () => {
-      await rewardByBlock.addExtraReceiver(accounts[1], 1).should.be.rejectedWith(ERROR_MSG);
+      await rewardByBlock.addExtraReceiver(1, accounts[1]).should.be.rejectedWith(ERROR_MSG);
       await rewardByBlock.setBridgeContractAddress(accounts[2]);
-      await rewardByBlock.addExtraReceiver(accounts[1], 1, {from: accounts[2]}).should.be.fulfilled;
+      await rewardByBlock.addExtraReceiver(1, accounts[1], {from: accounts[2]}).should.be.fulfilled;
     });
 
     it('should revert if receiver address is 0x0', async () => {
       await rewardByBlock.setBridgeContractAddress(accounts[2]);
       await rewardByBlock.addExtraReceiver(
-        '0x0000000000000000000000000000000000000000',
         1,
+        '0x0000000000000000000000000000000000000000',
         {from: accounts[2]}
       ).should.be.rejectedWith(ERROR_MSG);
     });
@@ -242,8 +242,8 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
     it('should revert if amount is 0', async () => {
       await rewardByBlock.setBridgeContractAddress(accounts[2]);
       await rewardByBlock.addExtraReceiver(
-        accounts[1],
         0,
+        accounts[1],
         {from: accounts[2]}
       ).should.be.rejectedWith(ERROR_MSG);
     });
@@ -251,13 +251,13 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
     it('can only be called once for the same recipient', async () => {
       await rewardByBlock.setBridgeContractAddress(accounts[2]);
       await rewardByBlock.addExtraReceiver(
-        accounts[1],
         1,
+        accounts[1],
         {from: accounts[2]}
       ).should.be.fulfilled;
       await rewardByBlock.addExtraReceiver(
-        accounts[1],
         1,
+        accounts[1],
         {from: accounts[2]}
       ).should.be.rejectedWith(ERROR_MSG);
     });
@@ -267,7 +267,7 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
       (await rewardByBlock.extraReceiversAmounts.call(accounts[2])).should.be.bignumber.equal(0);
       (await rewardByBlock.extraReceiversLength.call()).should.be.bignumber.equal(0);
 
-      let result = await rewardByBlock.addExtraReceiver(accounts[2], 2, {from: accounts[1]}).should.be.fulfilled;
+      let result = await rewardByBlock.addExtraReceiver(2, accounts[2], {from: accounts[1]}).should.be.fulfilled;
       (await rewardByBlock.extraReceivers.call(0)).should.be.equal(accounts[2]);
       (await rewardByBlock.extraReceiversAmounts.call(accounts[2])).should.be.bignumber.equal(2);
       (await rewardByBlock.extraReceiversLength.call()).should.be.bignumber.equal(1);
@@ -275,7 +275,7 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
       result.logs[0].args.receiver.should.be.equal(accounts[2]);
       result.logs[0].args.amount.should.be.bignumber.equal(2);
 
-      result = await rewardByBlock.addExtraReceiver(accounts[3], 3, {from: accounts[1]}).should.be.fulfilled;
+      result = await rewardByBlock.addExtraReceiver(3, accounts[3], {from: accounts[1]}).should.be.fulfilled;
       (await rewardByBlock.extraReceivers.call(0)).should.be.equal(accounts[2]);
       (await rewardByBlock.extraReceivers.call(1)).should.be.equal(accounts[3]);
       (await rewardByBlock.extraReceiversAmounts.call(accounts[2])).should.be.bignumber.equal(2);

@@ -200,14 +200,14 @@ async function main() {
 		console.log('');
 
 		console.log('VotingToManageEmissionFunds.init...');
-		const distributionThreshold = 604800; // seven days, in seconds
-		const emissionReleaseThreshold = 7776000; // three months, in seconds
-		const emissionReleaseTime = 1542412800 + emissionReleaseThreshold; // 2018-11-17 plus emissionReleaseThreshold (unix timestamp)
+		const distributionThreshold = 259200; // three days, in seconds
+		const emissionReleaseThreshold = 604800; // seven days, in seconds
+		const emissionReleaseTime = Math.floor(new Date() / 1000) + emissionReleaseThreshold; // now plus emissionReleaseThreshold (unix timestamp)
 		init = votingToManageEmissionFundsInstance.methods.init(
-			emissionFundsAddress,
 			emissionReleaseTime,
 			emissionReleaseThreshold,
-			distributionThreshold
+			distributionThreshold,
+			emissionFundsAddress
 		);
 		await utils.call(init, sender, votingToManageEmissionFundsAddress, key, chainId);
 		emissionFundsAddress.should.be.equal(

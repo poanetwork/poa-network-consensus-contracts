@@ -22,7 +22,7 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
     address public constant bridgeContract = 0x0000000000000000000000000000000000000000;
     // solhint-enable const-name-snakecase
 
-    event AddedReceiver(address indexed receiver, uint256 amount);
+    event AddedReceiver(uint256 amount, address indexed receiver);
     event Rewarded(address[] receivers, uint256[] rewards);
 
     modifier onlyBridgeContract {
@@ -35,16 +35,16 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
         _;
     }
 
-    function addExtraReceiver(address _receiver, uint256 _amount)
+    function addExtraReceiver(uint256 _amount, address _receiver)
         external
         onlyBridgeContract
     {
         require(_receiver != address(0));
         require(_amount != 0);
         require(extraReceiversAmounts(_receiver) == 0);
-        _setExtraReceiverAmount(_receiver, _amount);
+        _setExtraReceiverAmount(_amount, _receiver);
         _addExtraReceiver(_receiver);
-        emit AddedReceiver(_receiver, _amount);
+        emit AddedReceiver(_amount, _receiver);
     }
 
     function reward(address[] benefactors, uint16[] kind)
@@ -74,7 +74,7 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
             uint256 extraIndex = i.add(2);
             address extraAddress = extraReceivers(i);
             uint256 extraAmount = extraReceiversAmounts(extraAddress);
-            _setExtraReceiverAmount(extraAddress, 0);
+            _setExtraReceiverAmount(0, extraAddress);
             receivers[extraIndex] = extraAddress;
             rewards[extraIndex] = extraAmount;
         }
@@ -135,7 +135,7 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
         return keysManager.isMiningActive(_miningKey);
     }
 
-    function _setExtraReceiverAmount(address _receiver, uint256 _amount) private {
+    function _setExtraReceiverAmount(uint256 _amount, address _receiver) private {
         uintStorage[
             keccak256(abi.encode(EXTRA_RECEIVERS_AMOUNTS, _receiver))
         ] = _amount;

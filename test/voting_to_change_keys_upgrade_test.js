@@ -93,33 +93,33 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await voting.createBallot(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
-        accounts[4],       // _affectedKey
-        1,                 // _affectedKeyType (MiningKey)
-        accounts[5],       // _miningKey
         1,                 // _ballotType (KeyAdding)
+        1,                 // _affectedKeyType (MiningKey)
         "memo",            // _memo
+        accounts[4],       // _affectedKey
+        accounts[5],       // _miningKey
         {from: miningKeyForVotingKey}
       ).should.be.rejectedWith(ERROR_MSG);
 
       await voting.createBallot(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
-        accounts[3],       // _affectedKey
-        1,                 // _affectedKeyType (MiningKey)
-        accounts[5],       // _miningKey
         1,                 // _ballotType (KeyAdding)
+        1,                 // _affectedKeyType (MiningKey)
         "memo",            // _memo
+        accounts[3],       // _affectedKey
+        accounts[5],       // _miningKey
         {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG);
 
       const {logs} = await voting.createBallot(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
-        accounts[4],       // _affectedKey
-        1,                 // _affectedKeyType (MiningKey)
-        accounts[5],       // _miningKey
         1,                 // _ballotType (KeyAdding)
+        1,                 // _affectedKeyType (MiningKey)
         "memo",            // _memo
+        accounts[4],       // _affectedKey
+        accounts[5],       // _miningKey
         {from: votingKey}
       ).should.be.fulfilled;
 
@@ -135,13 +135,40 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
     it('should not let create voting with invalid duration', async () => {
       VOTING_START_DATE = moment.utc().add(10, 'days').unix();
       VOTING_END_DATE = moment.utc().add(2, 'seconds').unix();
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo",{from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1, // _ballotType
+        1, // _affectedKeyType
+        "memo",
+        accounts[1], // _affectedKey
+        accounts[2], // _miningKey
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
       VOTING_START_DATE = 0
       VOTING_END_DATE = moment.utc().add(2, 'seconds').unix();
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo",{from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1, // _ballotType
+        1, // _affectedKeyType
+        "memo",
+        accounts[1], // _affectedKey
+        accounts[2], // _miningKey
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
       VOTING_START_DATE = moment.utc().add(2, 'seconds').unix();
       VOTING_END_DATE = 0
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[1], 1, accounts[2], 1, "memo",{from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1, // _ballotType
+        1, // _affectedKeyType
+        "memo",
+        accounts[1], // _affectedKey
+        accounts[2], // _miningKey
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
     })
     it('should not let add votingKey for MoC', async () => {
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
@@ -151,8 +178,26 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await proxyStorageMock.setVotingContractMock(voting.address);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, masterOfCeremony, 1, "memo", {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, accounts[2], 1, "memo", {from: votingKey}).should.be.fulfilled;
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1, // _ballotType
+        2, // _affectedKeyType
+        "memo",
+        accounts[5], // _affectedKey
+        masterOfCeremony, // _miningKey
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1, // _ballotType
+        2, // _affectedKeyType
+        "memo",
+        accounts[5], // _affectedKey
+        accounts[2], // _miningKey
+        {from: votingKey}
+      ).should.be.fulfilled;
     })
     it('should not let add votingKey for 0x0', async () => {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
@@ -162,8 +207,26 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await proxyStorageMock.setVotingContractMock(voting.address);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, '0x0000000000000000000000000000000000000000', 1, "memo", {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, accounts[2], 1, "memo", {from: votingKey}).should.be.fulfilled;
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1, // _ballotType
+        2, // _affectedKeyType
+        "memo",
+        accounts[5], // _affectedKey
+        '0x0000000000000000000000000000000000000000', // _miningKey
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1, // _ballotType
+        2, // _affectedKeyType
+        "memo",
+        accounts[5], // _affectedKey
+        accounts[2], // _miningKey
+        {from: votingKey}
+      ).should.be.fulfilled;
     })
     it('should not let add payoutKey for 0x0', async () => {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
@@ -173,8 +236,26 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await proxyStorageMock.setVotingContractMock(voting.address);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 3, '0x0000000000000000000000000000000000000000', 1, "memo", {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 3, accounts[2], 1, "memo", {from: votingKey}).should.be.fulfilled;
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        3,
+        "memo",
+        accounts[5],
+        '0x0000000000000000000000000000000000000000',
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        3,
+        "memo",
+        accounts[5],
+        accounts[2],
+        {from: votingKey}
+      ).should.be.fulfilled;
     })
     it('should not let create more ballots than the limit', async () => {
       await proxyStorageMock.setVotingContractMock(masterOfCeremony);
@@ -182,12 +263,39 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await addVotingKey(votingKey, accounts[1]);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[3], 1, accounts[2], 1, "memo", {from: votingKey});
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[3], 1, accounts[2], 1, "memo", {from: votingKey});
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        1,
+        "memo",
+        accounts[3],
+        accounts[2],
+        {from: votingKey}
+      );
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        1,
+        "memo",
+        accounts[3],
+        accounts[2],
+        {from: votingKey}
+      );
       new web3.BigNumber(200).should.be.bignumber.equal(await voting.getBallotLimitPerValidator.call());
       await addValidators({proxyStorageMock, keysManager, poaNetworkConsensusMock}); //add 100 validators, so total will be 101 validator
       new web3.BigNumber(1).should.be.bignumber.equal(await voting.getBallotLimitPerValidator.call());
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[3], 1, accounts[2], 1, "memo", {from: votingKey}).should.be.rejectedWith(ERROR_MSG)
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        1,
+        "memo",
+        accounts[3],
+        accounts[2],
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG)
     })
   })
 
@@ -208,19 +316,19 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await voting.createBallotToAddNewValidator(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
+        "memo",            // _memo
         accounts[3],       // _newMiningKey
         accounts[4],       // _newVotingKey
         accounts[5],       // _newPayoutKey
-        "memo",            // _memo
         {from: miningKeyForVotingKey}
       ).should.be.rejectedWith(ERROR_MSG);
       const {logs} = await voting.createBallotToAddNewValidator(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
+        "memo",            // _memo
         accounts[3],       // _newMiningKey
         accounts[4],       // _newVotingKey
         accounts[5],       // _newPayoutKey
-        "memo",            // _memo
         {from: votingKey}
       ).should.be.fulfilled;
       
@@ -255,10 +363,10 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await voting.createBallotToAddNewValidator(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
+        "memo",            // _memo
         accounts[3],       // _newMiningKey
         votingKey,         // _newVotingKey
         accounts[5],       // _newPayoutKey
-        "memo",            // _memo
         {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG);
     });
@@ -267,19 +375,19 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await voting.createBallotToAddNewValidator(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
+        "memo",            // _memo
         accounts[3],       // _newMiningKey
         accounts[4],       // _newVotingKey
         accounts[6],       // _newPayoutKey
-        "memo",            // _memo
         {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG);
       await voting.createBallotToAddNewValidator(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
+        "memo",            // _memo
         accounts[3],       // _newMiningKey
         accounts[4],       // _newVotingKey
         accounts[5],       // _newPayoutKey
-        "memo",            // _memo
         {from: votingKey}
       ).should.be.fulfilled;
     });
@@ -299,10 +407,10 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await voting.createBallotToAddNewValidator(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
+        "memo",            // _memo
         accounts[7],       // _newMiningKey
         accounts[8],       // _newVotingKey
         accounts[9],       // _newPayoutKey
-        "memo",            // _memo
         {from: votingKey}
       ).should.be.fulfilled;
 
@@ -346,10 +454,10 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await voting.createBallotToAddNewValidator(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
+        "memo",            // _memo
         accounts[7],       // _newMiningKey
         accounts[8],       // _newVotingKey
         accounts[9],       // _newPayoutKey
-        "memo",            // _memo
         {from: votingKey}
       ).should.be.fulfilled;
 
@@ -381,11 +489,11 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await voting.createBallot(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
-        accounts[7],       // _affectedKey
-        1,                 // _affectedKeyType (MiningKey)
-        accounts[7],       // _miningKey
         2,                 // _ballotType (KeyRemoval)
+        1,                 // _affectedKeyType (MiningKey)
         "memo",            // _memo
+        accounts[7],       // _affectedKey
+        accounts[7],       // _miningKey
         {from: votingKey}
       ).should.be.fulfilled;
 
@@ -421,7 +529,16 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await addMiningKey(accounts[1]);
       await addVotingKey(votingKey, accounts[1]);
       id = await voting.nextBallotId.call();
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[3], 1, accounts[1], 1, "memo", {from: votingKey});
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        1,
+        "memo",
+        accounts[3], 
+        accounts[1],
+        {from: votingKey}
+      );
     })
 
     it('should let a validator to vote', async () => {
@@ -531,7 +648,16 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
     })
     
     it('happy path - no action since it did not meet minimum number of totalVoters', async () => {
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, payoutKeyToAdd, 3, accounts[1], 1, "memo", {from: votingKey});
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        3,
+        "memo",
+        payoutKeyToAdd,
+        accounts[1],
+        {from: votingKey}
+      );
       let activeBallotsLength = await voting.activeBallotsLength.call();
       votingId = await voting.activeBallots.call(activeBallotsLength.toNumber() - 1);
       await voting.finalize(votingId, { from: votingKey }).should.be.rejectedWith(ERROR_MSG);
@@ -657,8 +783,16 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
         
       })
       await voting.setTime(VOTING_START_DATE - 1);
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, miningKey, 1, accounts[5], 3, "memo",{from: votingKey}).should.be.rejectedWith(ERROR_MSG);
-      
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        3,
+        1,
+        "memo",
+        miningKey,
+        accounts[5],
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
     })
     it('finalize addition of MiningKey', async () => {
       await proxyStorageMock.setVotingContractMock(voting.address);
@@ -874,8 +1008,26 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await poaNetworkConsensusMock.setSystemAddress(accounts[0]);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
 
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, affectedKey, 1, miningKey, 3, "memo",{from: votingKey});
-      await voting.createBallot(VOTING_START_DATE+2, VOTING_END_DATE+2, affectedKey, 1, miningKey, 2, "memo",{from: votingKey});
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        3,
+        1,
+        "memo",
+        affectedKey,
+        miningKey,
+        {from: votingKey}
+      );
+      await voting.createBallot(
+        VOTING_START_DATE+2,
+        VOTING_END_DATE+2,
+        2,
+        1,
+        "memo",
+        affectedKey,
+        miningKey,
+        {from: votingKey}
+      );
       const activeBallotsLength = await voting.activeBallotsLength.call();
       votingId = await voting.activeBallots.call(activeBallotsLength.toNumber() - 2);
       let votingIdForSecond = votingId.add(1);
@@ -907,11 +1059,11 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await voting.createBallot(
         VOTING_START_DATE, // uint256 _startTime
         VOTING_END_DATE,   // uint256 _endTime
-        affectedKey,       // address _affectedKey
-        1,                 // uint256 _affectedKeyType (MiningKey)
-        miningKey,         // address _miningKey
         3,                 // uint256 _ballotType (KeySwap)
+        1,                 // uint256 _affectedKeyType (MiningKey)
         "memo",            // string _memo
+        affectedKey,       // address _affectedKey
+        miningKey,         // address _miningKey
         {from: votingKey3}
       ).should.be.fulfilled;
 
@@ -942,11 +1094,11 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await voting.createBallot(
         VOTING_START_DATE, // uint256 _startTime
         VOTING_END_DATE,   // uint256 _endTime
-        affectedKey,       // address _affectedKey
-        1,                 // uint256 _affectedKeyType (MiningKey)
-        miningKey,         // address _miningKey
         3,                 // uint256 _ballotType (KeySwap)
+        1,                 // uint256 _affectedKeyType (MiningKey)
         "memo",            // string _memo
+        affectedKey,       // address _affectedKey
+        miningKey,         // address _miningKey
         {from: votingKey3}
       ).should.be.fulfilled;
 
@@ -986,11 +1138,11 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       await voting.createBallot(
         VOTING_START_DATE, // _startTime
         VOTING_END_DATE,   // _endTime
-        accounts[7],       // _affectedKey
-        1,                 // _affectedKeyType (MiningKey)
-        accounts[2],       // _miningKey
         1,                 // _ballotType (KeyAdding)
+        1,                 // _affectedKeyType (MiningKey)
         "memo",            // _memo
+        accounts[7],       // _affectedKey
+        accounts[2],       // _miningKey
         {from: votingKey}
       ).should.be.fulfilled;
 
@@ -1072,11 +1224,11 @@ async function deployAndTestBallot({_affectedKey, _affectedKeyType, _miningKey, 
   await voting.createBallot(
     VOTING_START_DATE,
     VOTING_END_DATE,
-    _affectedKey,
-    _affectedKeyType,
-    _miningKey,
     _ballotType,
+    _affectedKeyType,
     "memo",
+    _affectedKey,
+    _miningKey,
     {from: votingKey}
   );
 
@@ -1096,11 +1248,11 @@ async function deployAndTestBallot({_affectedKey, _affectedKeyType, _miningKey, 
     await voting.createBallot(
       VOTING_START_DATE+10,
       VOTING_END_DATE,
-      _affectedKey,
-      _affectedKeyType,
-      _miningKey,
       _ballotType,
+      _affectedKeyType,
       "memo",
+      _affectedKey,
+      _miningKey,
       {from: votingKey}
     );
     new web3.BigNumber(_ballotType).should.be.bignumber.equal(await voting.getBallotType.call(secondVotingId));

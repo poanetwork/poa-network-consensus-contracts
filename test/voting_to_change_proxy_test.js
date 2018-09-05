@@ -107,12 +107,13 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       id = await voting.nextBallotId.call();
     })
     it('happy path', async () => {
-      // uint256 _startTime,
-      // uint256 _endTime,
-      // address _proposedValue,
-      // uint256 _contractType
       const {logs} = await voting.createBallot(
-        VOTING_START_DATE, VOTING_END_DATE, accounts[5], 1, "memo", { from: votingKey }
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        "memo",
+        accounts[5],
+        { from: votingKey }
       );
       const keysManagerFromContract = await voting.getKeysManager.call();
       const ballotInfo = await voting.getBallotInfo.call(id, votingKey);
@@ -147,11 +148,24 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       logs[0].args.creator.should.be.equal(votingKey);
     })
     it('proposed address should not be 0x0', async () => {
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, '0x0000000000000000000000000000000000000000', 2, "memo",{ from: votingKey }).should.be.fulfilled.rejectedWith(ERROR_MSG);
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        2,
+        "memo",
+        '0x0000000000000000000000000000000000000000',
+        { from: votingKey }
+      ).should.be.fulfilled.rejectedWith(ERROR_MSG);
     })
     it('can create multiple ballots', async () => {
       const { logs } = await voting.createBallot(
-        VOTING_START_DATE, VOTING_END_DATE, accounts[5], 1, "memo",{ from: votingKey });
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        "memo",
+        accounts[5],
+        { from: votingKey }
+      );
       const keysManagerFromContract = await voting.getKeysManager.call();
 
       let activeBallotsLength = await voting.activeBallotsLength.call();
@@ -161,7 +175,12 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       nextBallotId.should.be.bignumber.equal(1);
 
       await voting.createBallot(
-        VOTING_START_DATE + 1, VOTING_END_DATE + 1, accounts[5], 2, "memo",{ from: votingKey }
+        VOTING_START_DATE + 1,
+        VOTING_END_DATE + 1,
+        2,
+        "memo",
+        accounts[5],
+        { from: votingKey }
       );
 
       const ballotInfo = await voting.getBallotInfo.call(nextBallotId, votingKey);
@@ -187,13 +206,34 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
     it('should not let create more ballots than the limit', async () => {
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, "memo",{from: votingKey});
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, "memo",{from: votingKey});
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        2,
+        "memo",
+        accounts[5],
+        {from: votingKey}
+      );
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        2,
+        "memo",
+        accounts[5],
+        {from: votingKey}
+      );
       // we have 1 validator, so 200 limit / 1 = 200
       new web3.BigNumber(200).should.be.bignumber.equal(await voting.getBallotLimitPerValidator.call());
       await addValidators({proxyStorageMock, keysManager, poaNetworkConsensusMock}); // add 100 validators, so total will be 101 validator
       new web3.BigNumber(1).should.be.bignumber.equal(await voting.getBallotLimitPerValidator.call());
-      await voting.createBallot(VOTING_START_DATE, VOTING_END_DATE, accounts[5], 2, "memo",{from: votingKey}).should.be.rejectedWith(ERROR_MSG)
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        2,
+        "memo",
+        accounts[5],
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG)
     })
   })
 
@@ -207,7 +247,12 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       await addVotingKey(votingKey, accounts[1]);
       id = await voting.nextBallotId.call();
       await voting.createBallot(
-        VOTING_START_DATE, VOTING_END_DATE, accounts[5], 1, "memo", { from: votingKey }
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        "memo",
+        accounts[5],
+        { from: votingKey }
       );
     })
 
@@ -322,7 +367,12 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       let contractType = 1; //keysManager
       votingId = await voting.nextBallotId.call();
       await voting.createBallot(
-        VOTING_START_DATE, VOTING_END_DATE, accounts[5], contractType, "memo", { from: votingKey }
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        contractType,
+        "memo",
+        accounts[5],
+        { from: votingKey }
       );
       await voting.finalize(votingId, { from: votingKey }).should.be.rejectedWith(ERROR_MSG);
       await voting.setTime(VOTING_START_DATE);
@@ -429,10 +479,20 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       let contractType1 = 100;
       let contractType2 = 101;
       await voting.createBallot(
-        VOTING_START_DATE, VOTING_END_DATE, newAddress1, contractType1, "memo", { from: votingKey }
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        contractType1,
+        "memo",
+        newAddress1,
+        { from: votingKey }
       );
       await voting.createBallot(
-        VOTING_START_DATE+2, VOTING_END_DATE+2, newAddress2, contractType2, "memo", { from: votingKey }
+        VOTING_START_DATE+2,
+        VOTING_END_DATE+2,
+        contractType2,
+        "memo",
+        newAddress2,
+        { from: votingKey }
       );
 
       const activeBallotsLength = await voting.activeBallotsLength.call();
@@ -498,9 +558,9 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       await voting.createBallot(
         VOTING_START_DATE, // uint256 _startTime
         VOTING_END_DATE,   // uint256 _endTime
-        accounts[7],       // address _proposedValue
         100,               // uint256 _contractType
         "memo",            // string _memo
+        accounts[7],       // address _proposedValue
         {from: votingKey}
       ).should.be.fulfilled;
 
@@ -531,9 +591,9 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       await voting.createBallot(
         VOTING_START_DATE, // uint256 _startTime
         VOTING_END_DATE,   // uint256 _endTime
-        accounts[8],       // address _proposedValue
         100,               // uint256 _contractType
         "memo",            // string _memo
+        accounts[8],       // address _proposedValue
         {from: votingKey}
       ).should.be.fulfilled;
 
@@ -573,7 +633,12 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       const id = await voting.nextBallotId.call();
 
       await voting.createBallot(
-        VOTING_START_DATE, VOTING_END_DATE, accounts[7], 1, "memo", {from: votingKey}
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        "memo",
+        accounts[7],
+        {from: votingKey}
       ).should.be.fulfilled;
 
       await voting.setTime(VOTING_START_DATE);
@@ -692,7 +757,12 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       await proxyStorageMock.setVotingContractMock(votingForKeysEternalStorage.address);
       await votingEternalStorage.setProxyStorage(proxyStorageMock.address);
       await voting.createBallot(
-        VOTING_START_DATE, VOTING_END_DATE, accounts[5], 1, "memo", { from: votingKey }
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        "memo",
+        accounts[5],
+        { from: votingKey }
       ).should.be.fulfilled;
       await votingEternalStorage.setProxyStorage(proxyStorageStubAddress);
       let votingNew = await VotingToChangeProxyAddressNew.new();
@@ -727,7 +797,12 @@ async function deployAndTest({
 }) {
   votingId = await voting.nextBallotId.call();
   await voting.createBallot(
-    VOTING_START_DATE, VOTING_END_DATE, newAddress, contractType, "memo", { from: votingKey }
+    VOTING_START_DATE,
+    VOTING_END_DATE,
+    contractType,
+    "memo",
+    newAddress,
+    { from: votingKey }
   );
   await voting.setTime(VOTING_START_DATE);
   await voting.vote(votingId, choice.accept, { from: votingKey }).should.be.fulfilled;

@@ -83,7 +83,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         require(_endTime.sub(releaseTime) <= distributionThreshold());
         require(_receiver != address(0));
         require(noActiveBallotExists());
-        uint256 ballotId = _createBallot(
+        uint256 ballotId = super._createBallot(
             uint256(BallotTypes.ManageEmissionFunds),
             _startTime,
             _endTime,
@@ -156,17 +156,17 @@ contract VotingToManageEmissionFunds is VotingTo {
     }
 
     function init(
-        address _emissionFunds,
         uint256 _emissionReleaseTime, // unix timestamp
         uint256 _emissionReleaseThreshold, // seconds
-        uint256 _distributionThreshold // seconds
+        uint256 _distributionThreshold, // seconds
+        address _emissionFunds
     ) public onlyOwner {
         require(!initDisabled());
-        require(_emissionFunds != address(0));
         require(_emissionReleaseTime > getTime());
         require(_emissionReleaseThreshold > 0);
         require(_distributionThreshold > ballotCancelingThreshold());
         require(_emissionReleaseThreshold > _distributionThreshold);
+        require(_emissionFunds != address(0));
         _setNoActiveBallotExists(true);
         _setEmissionReleaseTime(_emissionReleaseTime);
         addressStorage[EMISSION_FUNDS] = _emissionFunds;
