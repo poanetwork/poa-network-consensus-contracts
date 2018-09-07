@@ -4,10 +4,10 @@
   "description": "Solidity smart contracts for PoA validator set consensus",
   "main": "",
   "scripts": {
-    "test": "bash scripts/test.sh",
+    "test": "node scripts/checkForClashing.js && bash scripts/test.sh",
     "coverage": "SOLIDITY_COVERAGE=true bash scripts/test.sh"
   },
-  "author": "Roman Storm & Viktor Baranov",
+  "author": "Roman Storm, Viktor Baranov, Vadim Arasev",
   "license": "MIT",
   "devDependencies": {
     "chai": "^4.1.2",
