@@ -220,7 +220,6 @@ contract VotingToManageEmissionFunds is VotingTo {
         }
     }
 
-    // solhint-disable code-complexity, function-max-lines
     function _finalize(uint256 _id) internal {
         require(_isEOA(msg.sender));
 
@@ -241,29 +240,17 @@ contract VotingToManageEmissionFunds is VotingTo {
             return;
         }
 
-        QuorumStates quorumState = QuorumStates.Frozen;
         uint256 sendVotesCount = _getSendVotes(_id);
         uint256 burnVotesCount = _getBurnVotes(_id);
         uint256 freezeVotesCount = _getFreezeVotes(_id);
-        
-        if (
-            sendVotesCount != burnVotesCount &&
-            burnVotesCount != freezeVotesCount &&
-            sendVotesCount != freezeVotesCount
-        ) {
-            uint256 max = _max(sendVotesCount, burnVotesCount, freezeVotesCount);
-            if (max == sendVotesCount) quorumState = QuorumStates.Sent;
-            else if (max == burnVotesCount) quorumState = QuorumStates.Burnt;
-        } else {
-            if (
-                burnVotesCount == freezeVotesCount &&
-                sendVotesCount > burnVotesCount
-            ) {
+        QuorumStates quorumState = QuorumStates.Frozen;
+
+        if (sendVotesCount > burnVotesCount) {
+            if (sendVotesCount > freezeVotesCount) {
                 quorumState = QuorumStates.Sent;
-            } else if (
-                sendVotesCount == freezeVotesCount &&
-                burnVotesCount > sendVotesCount
-            ) {
+            }
+        } else {
+            if (burnVotesCount > sendVotesCount && burnVotesCount > freezeVotesCount) {
                 quorumState = QuorumStates.Burnt;
             }
         }
@@ -278,7 +265,6 @@ contract VotingToManageEmissionFunds is VotingTo {
             _emissionFunds.freezeFunds(amount);
         }
     }
-    // solhint-enable code-complexity, function-max-lines
 
     function _getAmount(uint256 _id) internal view returns(uint256) {
         return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, AMOUNT))];
@@ -326,17 +312,6 @@ contract VotingToManageEmissionFunds is VotingTo {
         uint256 size;
         assembly { size := extcodesize(addr) }
         return size == 0;
-    }
-
-    function _max(uint256 a, uint256 b, uint256 c) private pure returns(uint256) {
-        uint256 max = a;
-        if (b > max) {
-            max = b;
-        }
-        if (c > max) {
-            max = c;
-        }
-        return max;
     }
 
     function _setAmount(uint256 _ballotId, uint256 _amount) private {
