@@ -62,6 +62,7 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
         _moc = _masterOfCeremony;
         currentValidators = [_masterOfCeremony];
         for (uint256 y = 0; y < validators.length; y++) {
+            require(validators[y] != address(0));
             currentValidators.push(validators[y]);
         }
         for (uint256 i = 0; i < currentValidators.length; i++) {
