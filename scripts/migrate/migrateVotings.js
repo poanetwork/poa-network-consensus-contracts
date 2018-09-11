@@ -158,6 +158,13 @@ async function ballotsStorageMigrateAndCheck(sender, key, chainId) {
 		oldKeysThreshold.should.be.equal(newKeysThreshold);
 		oldMetadataThreshold.should.be.equal(newMetadataThreshold);
 
+		PROXY_STORAGE_NEW_ADDRESS.should.be.equal(
+			await ballotsStorageNewInstance.methods.proxyStorage().call()
+		);
+		true.should.be.equal(
+			await ballotsStorageNewInstance.methods.initDisabled().call()
+		);
+
 		console.log('Success');
 		console.log('');
 		success = true;
@@ -321,7 +328,6 @@ async function votingToChangeMigrateAndCheck(sender, key, chainId, contractName)
 			try {
 				const poaInstance = new web3.eth.Contract(POA_ABI, POA_ADDRESS);
 				PROXY_STORAGE_NEW_ADDRESS.should.be.equal(await votingNewInstance.methods.proxyStorage().call());
-				(await votingOldInstance.methods.nextBallotId().call()).should.be.equal(await votingNewInstance.methods.nextBallotId().call());
 				const activeBallotsLength = (await votingOldInstance.methods.activeBallotsLength().call());
 				activeBallotsLength.should.be.equal(await votingNewInstance.methods.activeBallotsLength().call());
 				for (let i = 0; i < activeBallotsLength; i++) {
@@ -332,7 +338,8 @@ async function votingToChangeMigrateAndCheck(sender, key, chainId, contractName)
 					const miningKey = await poaInstance.methods.currentValidators(i).call();
 					(await votingOldInstance.methods.validatorActiveBallots(miningKey).call()).should.be.equal(await votingNewInstance.methods.validatorActiveBallots(miningKey).call());
 				}
-				const nextBallotId = (await votingOldInstance.methods.nextBallotId().call());
+				const nextBallotId = await votingOldInstance.methods.nextBallotId().call();
+				nextBallotId.should.be.equal(await votingNewInstance.methods.nextBallotId().call());
 				for (i = 0; i < nextBallotId; i++) {
 					console.log(`  Check ballot #${i}...`);
 					
@@ -352,6 +359,8 @@ async function votingToChangeMigrateAndCheck(sender, key, chainId, contractName)
 						ballotInfo = await votingNewInstance.methods.getBallotInfo(i, '0x0000000000000000000000000000000000000000').call();
 						votingState.proposedValue.should.be.equal(ballotInfo.proposedValue);
 						votingState.contractType.should.be.equal(ballotInfo.contractType);
+					} else {
+						false.should.be.equal(true);
 					}
 
 					votingState.startTime.should.be.equal(ballotInfo.startTime);
@@ -364,6 +373,10 @@ async function votingToChangeMigrateAndCheck(sender, key, chainId, contractName)
 					votingState.minThresholdOfVoters.should.be.equal(await votingNewInstance.methods.getMinThresholdOfVoters(i).call());
 					votingState.creator.should.be.equal(ballotInfo.creator);
 					votingState.memo.should.be.equal(ballotInfo.memo);
+
+					(await votingOldInstance.methods.isActive(i).call()).should.be.equal(
+						await votingNewInstance.methods.isActive(i).call()
+					);
 				}
 			} catch (check_err) {
 				if (check_err.message.indexOf('Invalid JSON RPC response') >= 0) {

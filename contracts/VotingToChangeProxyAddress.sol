@@ -53,11 +53,15 @@ contract VotingToChangeProxyAddress is VotingToChange {
         alreadyVoted = hasAlreadyVoted(_id, _votingKey);
     }
 
+    function init(uint256 _minBallotDuration) public {
+        _init(_minBallotDuration);
+    }
+
     function migrateBasicOne(
         uint256 _id,
         address _prevVotingToChange,
         address[] _voters
-    ) public {
+    ) public onlyOwner {
         require(_prevVotingToChange != address(0));
         require(initDisabled());
         require(!migrateDisabled());

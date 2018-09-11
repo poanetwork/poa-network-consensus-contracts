@@ -48,7 +48,9 @@ async function main() {
 		console.log('PoaNetworkConsensus deploy and migration...');
 		const poaOldInstance = new web3.eth.Contract(poaOldAbi, poaOldAddress);
 		let miningKeys = await poaOldInstance.methods.getValidators().call();
-		miningKeys.splice(miningKeys.indexOf(mocAddress), 1);
+		const mocAddressIndex = miningKeys.indexOf(mocAddress);
+		mocAddressIndex.should.be.above(-1);
+		miningKeys.splice(mocAddressIndex, 1);
 		const poaCompiled = await utils.compile('../../contracts/', 'PoaNetworkConsensus');
 		process.env.POA_CONSENSUS_NEW_ADDRESS = await utils.deploy(
 			'PoaNetworkConsensus', poaCompiled, sender, key, chainId, [mocAddress, miningKeys]
@@ -61,10 +63,22 @@ async function main() {
 		for (let t = 0; t < 5; t++) {
 			try {
 				false.should.be.equal(
+					await poaNewInstance.methods.finalized().call()
+				);
+				false.should.be.equal(
 					await poaNewInstance.methods.wasProxyStorageSet().call()
+				);
+				false.should.be.equal(
+					await poaNewInstance.methods.isMasterOfCeremonyRemoved().call()
+				);
+				false.should.be.equal(
+					await poaNewInstance.methods.isMasterOfCeremonyRemovedPending().call()
 				);
 				mocAddress.should.be.equal(
 					await poaNewInstance.methods.masterOfCeremony().call()
+				);
+				(await poaNewInstance.methods.masterOfCeremonyPending().call()).should.be.equal(
+					'0x0000000000000000000000000000000000000000'
 				);
 				(await poaOldInstance.methods.systemAddress().call()).should.be.equal(
 					await poaNewInstance.methods.systemAddress().call()
@@ -78,11 +92,14 @@ async function main() {
 				(await poaOldInstance.methods.getCurrentValidatorsLength().call()).should.be.equal(
 					await poaNewInstance.methods.getCurrentValidatorsLength().call()
 				);
+				(await poaNewInstance.methods.getCurrentValidatorsLengthWithoutMoC().call()).should.be.bignumber.equal(
+					miningKeys.length - 1
+				);
 				for (let i = 0; i < miningKeys.length; i++) {
 					const validatorStateOld = await poaOldInstance.methods.validatorsState(miningKeys[i]).call();
 					const validatorStateNew = await poaNewInstance.methods.validatorsState(miningKeys[i]).call();
-					validatorStateOld[0].should.be.equal(validatorStateNew[0]);
-					validatorStateOld[1].should.be.bignumber.equal(validatorStateNew[2]);
+					validatorStateOld[0].should.be.equal(validatorStateNew[0]); // check `isValidator` field
+					validatorStateOld[1].should.be.bignumber.equal(validatorStateNew[2]); // check `index` field
 				}
 			} catch (check_err) {
 				if (check_err.message.indexOf('Invalid JSON RPC response') >= 0) {
@@ -119,8 +136,32 @@ async function main() {
 		false.should.be.equal(
 			await proxyStorageInstance.methods.mocInitialized().call()
 		);
+		(await proxyStorageInstance.methods.getKeysManager().call()).should.be.equal(
+			'0x0000000000000000000000000000000000000000'
+		);
+		(await proxyStorageInstance.methods.getVotingToChangeKeys().call()).should.be.equal(
+			'0x0000000000000000000000000000000000000000'
+		);
+		(await proxyStorageInstance.methods.getVotingToChangeMinThreshold().call()).should.be.equal(
+			'0x0000000000000000000000000000000000000000'
+		);
+		(await proxyStorageInstance.methods.getVotingToChangeProxy().call()).should.be.equal(
+			'0x0000000000000000000000000000000000000000'
+		);
+		(await proxyStorageInstance.methods.getVotingToManageEmissionFunds().call()).should.be.equal(
+			'0x0000000000000000000000000000000000000000'
+		);
 		process.env.POA_CONSENSUS_NEW_ADDRESS.should.be.equal(
 			await proxyStorageInstance.methods.getPoaConsensus().call()
+		);
+		(await proxyStorageInstance.methods.getBallotsStorage().call()).should.be.equal(
+			'0x0000000000000000000000000000000000000000'
+		);
+		(await proxyStorageInstance.methods.getValidatorMetadata().call()).should.be.equal(
+			'0x0000000000000000000000000000000000000000'
+		);
+		(await proxyStorageInstance.methods.getRewardByBlock().call()).should.be.equal(
+			'0x0000000000000000000000000000000000000000'
 		);
 		true.should.be.equal(
 			await poaNewInstance.methods.wasProxyStorageSet().call()
@@ -228,6 +269,7 @@ async function main() {
 		true.should.be.equal(
 			await votingToManageEmissionFundsInstance.methods.noActiveBallotExists().call()
 		);
+		(await votingToManageEmissionFundsInstance.methods.nextBallotId().call()).should.be.bignumber.equal(0);
 		EthereumUtil.toChecksumAddress(votingToManageEmissionFundsAddress).should.be.equal(
 			EthereumUtil.toChecksumAddress(await emissionFundsInstance.methods.votingToManageEmissionFunds().call())
 		);
@@ -246,6 +288,7 @@ async function main() {
 		process.env.PROXY_STORAGE_NEW_ADDRESS.should.be.equal(
 			await rewardByBlockInstance.methods.proxyStorage().call()
 		);
+		(await rewardByBlockInstance.methods.extraReceiversLength().call()).should.be.bignumber.equal(0);
 		console.log('Success');
 		console.log('');
 
@@ -279,17 +322,24 @@ async function main() {
 		votingToChangeProxyNewAddress.should.be.equal(
 			await proxyStorageInstance.methods.getVotingToChangeProxy().call()
 		);
+		votingToManageEmissionFundsAddress.should.be.equal(
+			await proxyStorageInstance.methods.getVotingToManageEmissionFunds().call()
+		);
 		ballotsStorageNewAddress.should.be.equal(
 			await proxyStorageInstance.methods.getBallotsStorage().call()
 		);
 		process.env.METADATA_NEW_ADDRESS.should.be.equal(
 			await proxyStorageInstance.methods.getValidatorMetadata().call()
 		);
+		rewardByBlockAddress.should.be.equal(
+			await proxyStorageInstance.methods.getRewardByBlock().call()
+		);
 		const keysManagerNewInstance = new web3.eth.Contract(keysManagerNewAbi, keysManagerNewAddress);
 		const ballotsStorageNewInstance = new web3.eth.Contract(ballotsStorageNewAbi, ballotsStorageNewAddress);
 		const votingToChangeKeysNewInstance = new web3.eth.Contract(votingToChangeKeysNewAbi, votingToChangeKeysNewAddress);
 		const votingToChangeMinThresholdNewInstance = new web3.eth.Contract(votingToChangeMinThresholdNewAbi, votingToChangeMinThresholdNewAddress);
 		const votingToChangeProxyNewInstance = new web3.eth.Contract(votingToChangeProxyNewAbi, votingToChangeProxyNewAddress);
+		const validatorMetadataNewInstance = new web3.eth.Contract(metadataCompiled.abi, process.env.METADATA_NEW_ADDRESS);
 		process.env.PROXY_STORAGE_NEW_ADDRESS.should.be.equal(
 			await keysManagerNewInstance.methods.proxyStorage().call()
 		);
@@ -304,6 +354,15 @@ async function main() {
 		);
 		process.env.PROXY_STORAGE_NEW_ADDRESS.should.be.equal(
 			await votingToChangeProxyNewInstance.methods.proxyStorage().call()
+		);
+		process.env.PROXY_STORAGE_NEW_ADDRESS.should.be.equal(
+			await votingToManageEmissionFundsInstance.methods.proxyStorage().call()
+		);
+		process.env.PROXY_STORAGE_NEW_ADDRESS.should.be.equal(
+			await rewardByBlockInstance.methods.proxyStorage().call()
+		);
+		process.env.PROXY_STORAGE_NEW_ADDRESS.should.be.equal(
+			await validatorMetadataNewInstance.methods.proxyStorage().call()
 		);
 		console.log('Success');
 		console.log('');

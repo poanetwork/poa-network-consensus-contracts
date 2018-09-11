@@ -218,10 +218,9 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
     }
     // solhint-enable code-complexity
 
-    function _isMoC(address _validator) public view returns(bool) {
+    function _isMoC(address _validator) private view returns(bool) {
         IPoaNetworkConsensus poa = IPoaNetworkConsensus(getPoaConsensus());
         return _validator == poa.masterOfCeremony() && !poa.isMasterOfCeremonyRemoved();
-        //return poa.isValidator(_validator);
     }
 
     function _isOwner(address _sender) private view returns(bool) {

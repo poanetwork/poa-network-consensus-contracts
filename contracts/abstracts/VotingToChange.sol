@@ -49,10 +49,6 @@ contract VotingToChange is VotingTo {
         return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, INDEX))];
     }
 
-    function init(uint256 _minBallotDuration) public {
-        _init(_minBallotDuration);
-    }
-
     function maxBallotDuration() public pure returns(uint256) {
         return 14 days;
     }

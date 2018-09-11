@@ -7,6 +7,7 @@ const constants = require('./utils/constants');
 const NETWORK = process.env.NETWORK; // sokol or core
 const KEYS_MANAGER_NEW_ADDRESS = process.env.KEYS_MANAGER_NEW_ADDRESS;
 const PROXY_STORAGE_NEW_ADDRESS = process.env.PROXY_STORAGE_NEW_ADDRESS;
+const POA_CONSENSUS_NEW_ADDRESS = process.env.POA_CONSENSUS_NEW_ADDRESS;
 const ONLY_CHECK = !!process.env.ONLY_CHECK === true
 
 const web3 = new Web3(new Web3.providers.HttpProvider(process.env.PROVIDER_URL));
@@ -148,12 +149,23 @@ async function migrateAndCheck(privateKey) {
 		} else {
 			console.log('  Checking new contract...');
 		}
+		true.should.be.equal(
+			await keysManagerNewInstance.methods.initDisabled().call()
+		);
 		MOC_ADDRESS.toLowerCase().should.be.equal(
 			(await keysManagerNewInstance.methods.masterOfCeremony().call()).toLowerCase()
 		);
 		KEYS_MANAGER_OLD_ADDRESS.toLowerCase().should.be.equal(
 			(await keysManagerNewInstance.methods.previousKeysManager().call()).toLowerCase()
 		);
+		(await keysManagerNewInstance.methods.proxyStorage().call()).should.be.equal(
+			PROXY_STORAGE_NEW_ADDRESS
+		);
+		if (POA_CONSENSUS_NEW_ADDRESS) {
+			(await keysManagerNewInstance.methods.poaNetworkConsensus().call()).should.be.equal(
+				POA_CONSENSUS_NEW_ADDRESS
+			);
+		}
 		(await keysManagerOldInstance.methods.maxNumberOfInitialKeys().call()).should.be.equal(
 			await keysManagerNewInstance.methods.maxNumberOfInitialKeys().call()
 		);
@@ -176,14 +188,22 @@ async function migrateAndCheck(privateKey) {
 			try {
 				const validatorOldKeys = await keysManagerOldInstance.methods.validatorKeys(miningKey).call();
 				const validatorNewKeys = await keysManagerNewInstance.methods.validatorKeys(miningKey).call();
-				validatorOldKeys[0].should.be.equal(validatorNewKeys[0]);
-				validatorOldKeys[1].should.be.equal(validatorNewKeys[1]);
-				validatorOldKeys[2].should.be.equal(validatorNewKeys[2]);
-				validatorOldKeys[3].should.be.equal(validatorNewKeys[3]);
-				validatorOldKeys[4].should.be.equal(validatorNewKeys[4]);
-				//(await keysManagerOldInstance.methods.validatorKeys(miningKey).call()).should.be.deep.equal(
-				//	await keysManagerNewInstance.methods.validatorKeys(miningKey).call()
-				//);
+				validatorOldKeys[0].should.be.equal(validatorNewKeys[0]); // validatorVotingKey
+				validatorOldKeys[1].should.be.equal(validatorNewKeys[1]); // validatorPayoutKey
+				validatorOldKeys[2].should.be.equal(validatorNewKeys[2]); // isValidatorMiningActive
+				validatorOldKeys[3].should.be.equal(validatorNewKeys[3]); // isValidatorVotingActive
+				validatorOldKeys[4].should.be.equal(validatorNewKeys[4]); // isValidatorPayoutActive
+				if (miningKey.toLowerCase() != MOC_ADDRESS.toLowerCase()) {
+					(await keysManagerNewInstance.methods.miningKeyByPayout(validatorNewKeys[1]).call()).should.be.equal(
+						miningKey
+					);
+					(await keysManagerNewInstance.methods.miningKeyByVoting(validatorNewKeys[0]).call()).should.be.equal(
+						miningKey
+					);
+				}
+				(await keysManagerOldInstance.methods.isVotingActive(validatorNewKeys[0]).call()).should.be.equal(
+					await keysManagerNewInstance.methods.isVotingActive(validatorNewKeys[0]).call()
+				);
 				const votingKey = await keysManagerOldInstance.methods.getVotingByMining(miningKey).call();
 				votingKey.should.be.equal(
 					await keysManagerNewInstance.methods.getVotingByMining(miningKey).call()

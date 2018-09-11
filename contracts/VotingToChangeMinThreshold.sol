@@ -64,7 +64,7 @@ contract VotingToChangeMinThreshold is VotingToChange {
         uint256 _id,
         address _prevVotingToChange,
         address[] _voters
-    ) public {
+    ) public onlyOwner {
         require(_prevVotingToChange != address(0));
         require(initDisabled());
         require(!migrateDisabled());

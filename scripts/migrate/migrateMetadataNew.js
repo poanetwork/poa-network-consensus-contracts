@@ -119,6 +119,7 @@ async function migrateAndCheck(privateKey) {
 
 			console.log('  Disable migrations feature of the new contract...');
 			await utils.call(metadataNewInstance.methods.initMetadataDisable(), sender, contractNewAddress, key, chainId);
+			true.should.be.equal(await metadataNewInstance.methods.initMetadataDisabled().call());
 		}
 		
 		if (ONLY_CHECK) {
@@ -132,6 +133,12 @@ async function migrateAndCheck(privateKey) {
 			const validatorOld = await metadataOldInstance.methods.validators(miningKey).call();
 			const validatorNew = await metadataNewInstance.methods.validators(miningKey).call();
 			validatorOld.should.be.deep.equal(validatorNew);
+			(await metadataOldInstance.methods.pendingChanges(miningKey).call()).should.be.deep.equal(
+				await metadataNewInstance.methods.pendingChanges(miningKey).call()
+			);
+			//const oldConfirmationsCount = (await metadataOldInstance.methods.confirmations(miningKey).call()).count;
+			//const newConfirmationsCount = (await metadataNewInstance.methods.confirmations(miningKey).call()).count;
+			//oldConfirmationsCount.should.be.equal(newConfirmationsCount);
 		}
 
 		console.log('Success');
