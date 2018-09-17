@@ -155,9 +155,9 @@ module.exports = function(deployer, network, accounts) {
 
       // Initialize VotingToManageEmissionFunds
       await votingToManageEmissionFunds.init(
-        moment.utc().add(3, 'months').unix(),
-        7776000,
-        604800,
+        demoMode ? moment.utc().add(1, 'minutes').unix() : moment.utc().add(3, 'months').unix(),
+        demoMode ? 604800 : 7776000,
+        demoMode ? 86400 : 604800,
         emissionFunds.address
       );
 
