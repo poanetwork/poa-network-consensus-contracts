@@ -34,11 +34,15 @@ module.exports = function(deployer, network, accounts) {
 
     deployer.then(async function() {
       if (!!process.env.DEPLOY_POA === true) {
-        poaNetworkConsensus = PoaNetworkConsensus.at(poaNetworkConsensusAddress);
-        let validators = await poaNetworkConsensus.getValidators.call();
-        const mocIndex = validators.indexOf(masterOfCeremony.toLowerCase())
-        if (mocIndex > -1) {
-          validators.splice(mocIndex, 1);
+        let validators = [];
+
+        if (poaNetworkConsensusAddress) {
+          poaNetworkConsensus = PoaNetworkConsensus.at(poaNetworkConsensusAddress);
+          validators = await poaNetworkConsensus.getValidators.call();
+          const mocIndex = validators.indexOf(masterOfCeremony.toLowerCase())
+          if (mocIndex > -1) {
+            validators.splice(mocIndex, 1);
+          }
         }
 
         poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, validators);
@@ -155,9 +159,9 @@ module.exports = function(deployer, network, accounts) {
 
       // Initialize VotingToManageEmissionFunds
       await votingToManageEmissionFunds.init(
-        moment.utc().add(3, 'months').unix(),
-        7776000,
-        604800,
+        demoMode ? moment.utc().add(10, 'minutes').unix() : moment.utc().add(3, 'months').unix(),
+        demoMode ? 3600 : 7776000, // emissionReleaseThreshold: 1 hour for demo, 3 months for production
+        demoMode ? 1500 : 604800, // distributionThreshold: 25 minutes for demo, 7 days for production
         emissionFunds.address
       );
 
