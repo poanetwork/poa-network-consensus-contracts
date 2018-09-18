@@ -34,11 +34,15 @@ module.exports = function(deployer, network, accounts) {
 
     deployer.then(async function() {
       if (!!process.env.DEPLOY_POA === true) {
-        poaNetworkConsensus = PoaNetworkConsensus.at(poaNetworkConsensusAddress);
-        let validators = await poaNetworkConsensus.getValidators.call();
-        const mocIndex = validators.indexOf(masterOfCeremony.toLowerCase())
-        if (mocIndex > -1) {
-          validators.splice(mocIndex, 1);
+        let validators = [];
+
+        if (poaNetworkConsensusAddress) {
+          poaNetworkConsensus = PoaNetworkConsensus.at(poaNetworkConsensusAddress);
+          validators = await poaNetworkConsensus.getValidators.call();
+          const mocIndex = validators.indexOf(masterOfCeremony.toLowerCase())
+          if (mocIndex > -1) {
+            validators.splice(mocIndex, 1);
+          }
         }
 
         poaNetworkConsensus = await PoaNetworkConsensus.new(masterOfCeremony, validators);
