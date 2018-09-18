@@ -155,7 +155,7 @@ module.exports = function(deployer, network, accounts) {
 
       // Initialize VotingToManageEmissionFunds
       await votingToManageEmissionFunds.init(
-        demoMode ? moment.utc().add(5, 'minutes').unix() : moment.utc().add(3, 'months').unix(),
+        demoMode ? moment.utc().add(10, 'minutes').unix() : moment.utc().add(3, 'months').unix(),
         demoMode ? 3600 : 7776000, // emissionReleaseThreshold: 1 hour for demo, 3 months for production
         demoMode ? 1500 : 604800, // distributionThreshold: 25 minutes for demo, 7 days for production
         emissionFunds.address
