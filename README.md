@@ -2,19 +2,11 @@
 
 [![Build Status](https://travis-ci.org/poanetwork/poa-network-consensus-contracts.svg?branch=master)](https://travis-ci.org/poanetwork/poa-network-consensus-contracts)
 
-## Audit
+## Security Audit
 - [PoA Consensus Audit.pdf](https://github.com/poanetwork/poa-network-consensus-contracts/blob/a9f63b19e5e4f0f238211d0cd8c456ad384d4a6c/audit/MixBytes/PoA%20Consensus%20Audit.pdf) by MixBytes
-
-## Setup of the ceremony
-
-### Prerequisites
-
-- Python 3.5+, pip
-- solc, the Solidity compiler
 
 ### Start POA network
 
-- Install solidity-flattener `pip3.5 install solidity-flattener`
 - Install npm dependencies `npm i`
 - Generate flat sources of contracts with the script `./make_flat.sh`
 - We need a bytecode of `PoaNetworkConsensus` contract to add it to [`spec.json`](https://github.com/poanetwork/poa-chain-spec/blob/core/spec.json) of the network. <br />
