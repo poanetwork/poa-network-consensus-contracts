@@ -1,36 +1,31 @@
-pragma solidity ^0.4.24;
-
+pragma solidity ^0.4.18;
 import '../../contracts/PoaNetworkConsensus.sol';
+import '../../contracts/ProxyStorage.sol';
 import '../../contracts/interfaces/IProxyStorage.sol';
 
-
 contract PoaNetworkConsensusMock is PoaNetworkConsensus {
-    constructor(
-        address _moc,
-        address[] validators
-    ) PoaNetworkConsensus(
-        _moc,
-        validators
-    ) public {
-    }
-
+    //For testing
+    // address public systemAddress = 0xfffffffffffffffffffffffffffffffffffffffe;
+    function PoaNetworkConsensusMock(address _moc, address[] validators) 
+        PoaNetworkConsensus(_moc, validators) 
+    {}
     function setSystemAddress(address _newAddress) public {
         systemAddress = _newAddress;
     }
 
     function setProxyStorageMock(address _newAddress) public {
-        proxyStorage = IProxyStorage(_newAddress);
+        proxyStorage = ProxyStorage(_newAddress);
     }
 
     function setMoCMock(address _newAddress) public {
-        _moc = _newAddress;
+        masterOfCeremony = _newAddress;
     }
 
-    function setWasProxyStorageSetMock(bool _status) public {
-        wasProxyStorageSet = _status;
+    function setIsMasterOfCeremonyInitializedMock(bool _status) public {
+        isMasterOfCeremonyInitialized = _status;
     }
 
     function setCurrentValidatorsLength(uint256 _newNumber) public {
-        currentValidators.length = _newNumber;
+        currentValidatorsLength = _newNumber;
     }
 }

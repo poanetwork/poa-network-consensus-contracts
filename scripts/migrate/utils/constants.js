@@ -1,4 +1,0 @@
-module.exports = {
-	CORE_COMMIT:  'aa4c9c0decbb5dc5a060219fa0eb691677b59420',
-	SOKOL_COMMIT: '211c7582c3308058308ce972293895fad0b06beb'
-}
