@@ -24,7 +24,7 @@ module.exports = {
     sokol: {
       host: "localhost",
       port: 8545,
-      gas: 5700000,
+      gas: 6400000,
       network_id: "*" // Match any network id
     },
   },
@@ -35,6 +35,7 @@ module.exports = {
     }
   },
   mocha: {
-    reporter: 'mochawesome'
+    reporter: 'mochawesome',
+    enableTimeouts: false
   }
 };

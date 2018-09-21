@@ -1,27 +1,38 @@
-pragma solidity ^0.4.18;
+pragma solidity ^0.4.24;
 
 
 interface IKeysManager {
-    function initiateKeys(address) public;
-    function createKeys(address, address, address) public;
-    function isMiningActive(address) public view returns(bool);
-    function isVotingActive(address) public view returns(bool);
-    function isPayoutActive(address) public view returns(bool);
-    function getVotingByMining(address) public view returns(address);
-    function getPayoutByMining(address) public view returns(address);
-    function addMiningKey(address) public;
-    function addVotingKey(address, address) public;
-    function addPayoutKey(address, address) public;
-    function removeMiningKey(address) public;
-    function removeVotingKey(address) public;
-    function removePayoutKey(address) public;
-    function swapMiningKey(address, address) public;
-    function swapVotingKey(address, address) public;
-    function swapPayoutKey(address, address) public;
-    function getTime() public view returns(uint256);
-    function getMiningKeyHistory(address) public view returns(address);
-    function getMiningKeyByVoting(address) public view returns(address);
-    function getInitialKey(address) public view returns(uint8);
-    function migrateInitialKey(address) public;
-    function migrateMiningKey(address) public;
+    function addMiningKey(address) external returns(bool);
+    function addVotingKey(address, address) external returns(bool);
+    function addPayoutKey(address, address) external returns(bool);
+    function createKeys(address, address, address) external;
+    function initiateKeys(address) external;
+    function migrateInitialKey(address) external;
+    function migrateMiningKey(address) external;
+    function removeMiningKey(address) external returns(bool);
+    function removeVotingKey(address) external returns(bool);
+    function removePayoutKey(address) external returns(bool);
+    function swapMiningKey(address, address) external returns(bool);
+    function swapVotingKey(address, address) external returns(bool);
+    function swapPayoutKey(address, address) external returns(bool);
+    function checkIfMiningExisted(address, address) external view returns(bool);
+    function initialKeysCount() external view returns(uint256);
+    function isMiningActive(address) external view returns(bool);
+    function isVotingActive(address) external view returns(bool);
+    function isPayoutActive(address) external view returns(bool);
+    function getVotingByMining(address) external view returns(address);
+    function getPayoutByMining(address) external view returns(address);
+    function getTime() external view returns(uint256);
+    function getMiningKeyHistory(address) external view returns(address);
+    function getMiningKeyByVoting(address) external view returns(address);
+    function getInitialKeyStatus(address) external view returns(uint256);
+    function masterOfCeremony() external view returns(address);
+    function maxOldMiningKeysDeepCheck() external pure returns(uint256);
+    function miningKeyByPayout(address) external view returns(address);
+    function miningKeyByVoting(address) external view returns(address);
+}
+
+
+interface IKeysManagerPrev {
+    function getInitialKey(address) external view returns(uint8);
 }

@@ -41,7 +41,7 @@ async function migrate(privateKey) {
 	const poaConsensusAddress = await proxyStorageInstance.methods.getPoaConsensus().call();
 	const poaConsensusInstance = new web3.eth.Contract(poaConsensusAbi, poaConsensusAddress);
 	
-	const validatorsLength = await poaConsensusInstance.methods.currentValidatorsLength().call();
+	const validatorsLength = await poaConsensusInstance.methods.getCurrentValidatorsLength().call();
 	
 	let success = true;
 	

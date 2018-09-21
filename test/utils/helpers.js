@@ -8,10 +8,15 @@ async function addValidators({
   arrayOfAddresses = arrayOfAddresses || arrayOfHundredAddresses;
   await proxyStorageMock.setVotingContractMock(masterOfCeremony);
   for(let validator of arrayOfAddresses){
-    await keysManager.addMiningKey(validator).should.be.fulfilled;
+    const {logs} = await keysManager.addMiningKey(validator);
+    logs[0].event.should.be.equal("MiningKeyChanged");
   }
   await poaNetworkConsensusMock.setSystemAddress(masterOfCeremony);
   await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
+}
+
+function getRandomInt(min, max) {
+  return Math.floor(Math.random() * (max - min)) + min;
 }
 
 let arrayOfHundredAddresses = [
@@ -116,4 +121,6 @@ let arrayOfHundredAddresses = [
   "0xA95C3543636F5d62Accf8d2B8Ae06bca1aDf679F",
   "0x4209C9eA64fb4fA437eb950B3839a43C99d96c06",
 ]
+
 exports.addValidators = addValidators;
+exports.getRandomInt = getRandomInt;
