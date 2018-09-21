@@ -1,9 +1,5 @@
 #!/usr/bin/env bash
 
-#pip3 install poa-solidity-flattener --no-cache-dir -U
-#sudo add-apt-repository ppa:ethereum/ethereum
-#sudo apt-get update
-#sudo apt-get install solc
 rm -rf flat/*
 ./node_modules/.bin/poa-solidity-flattener contracts/KeysManager.sol ./flat
 ./node_modules/.bin/poa-solidity-flattener contracts/PoaNetworkConsensus.sol ./flat
