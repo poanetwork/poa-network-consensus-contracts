@@ -7,23 +7,23 @@ set -o errexit
 trap cleanup EXIT
 
 cleanup() {
-  # Kill the ganache-cli instance that we started (if we started one and if it's still running).
-  if [ -n "$ganache_pid" ] && ps -p $ganache_pid > /dev/null; then
-    kill -9 $ganache_pid
+  # Kill the testrpc instance that we started (if we started one and if it's still running).
+  if [ -n "$testrpc_pid" ] && ps -p $testrpc_pid > /dev/null; then
+    kill -9 $testrpc_pid
   fi
 }
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
-  ganache_port=8555
+  testrpc_port=8555
 else
-  ganache_port=8544
+  testrpc_port=8544
 fi
 
-ganache_running() {
-  nc -z localhost "$ganache_port"
+testrpc_running() {
+  nc -z localhost "$testrpc_port"
 }
 
-start_ganache() {
+start_testrpc() {
   # We define 10 accounts with balance 1M ether, needed for high-value tests.
   local accounts=(
     --account="0x2bdd21761a483f71054e14f5b827213567971c676928d9a1808cbfa4b7501200,1000000000000000000000000"
@@ -39,19 +39,19 @@ start_ganache() {
   )
 
   if [ "$SOLIDITY_COVERAGE" = true ]; then
-    node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff --port "$ganache_port" "${accounts[@]}" > /dev/null &
+    node_modules/.bin/testrpc-sc --gasLimit 0xfffffffffff --port "$testrpc_port" "${accounts[@]}" > /dev/null &
   else
-    node_modules/.bin/ganache-cli --gasLimit 0xfffffffffff --port "$ganache_port" "${accounts[@]}" > /dev/null &
+    node_modules/.bin/testrpc --gasLimit 0xfffffffffff "${accounts[@]}" > /dev/null &
   fi
 
-  ganache_pid=$!
+  testrpc_pid=$!
 }
 
-if ganache_running; then
-  echo "Using existing ganache-cli instance"
+if testrpc_running; then
+  echo "Using existing testrpc instance"
 else
-  echo "Starting our own ganache-cli instance"
-  start_ganache
+  echo "Starting our own testrpc instance"
+  start_testrpc
 fi
 
 if [ "$SOLIDITY_COVERAGE" = true ]; then
@@ -61,5 +61,5 @@ if [ "$SOLIDITY_COVERAGE" = true ]; then
     cat coverage/lcov.info | node_modules/.bin/coveralls
   fi
 else
-  node_modules/.bin/truffle test "$@" --network test
+  node_modules/.bin/truffle test "$@"
 fi

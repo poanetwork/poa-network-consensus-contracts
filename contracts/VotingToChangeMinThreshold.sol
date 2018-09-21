@@ -1,131 +1,261 @@
-pragma solidity ^0.4.24;
+pragma solidity ^0.4.18;
+import "./SafeMath.sol";
+import "./interfaces/IProxyStorage.sol";
+import "./interfaces/IBallotsStorage.sol";
+import "./interfaces/IKeysManager.sol";
 
-import "./interfaces/IVotingToChangeMinThresholdPrev.sol";
-import "./abstracts/VotingToChange.sol";
 
+contract VotingToChangeMinThreshold { 
+    using SafeMath for uint256;
+    enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
+    enum ActionChoice { Invalid, Accept, Reject }
 
-contract VotingToChangeMinThreshold is VotingToChange {
-    bytes32 internal constant MIN_POSSIBLE_THRESHOLD = keccak256("minPossibleThreshold");
+    IProxyStorage public proxyStorage;
+    uint8 public maxOldMiningKeysDeepCheck = 25;
+    uint256 public nextBallotId;
+    uint256[] public activeBallots;
+    uint256 public activeBallotsLength;
+    uint8 thresholdForKeysType = 1;
 
-    bytes32 internal constant PROPOSED_VALUE = "proposedValue";
+    struct VotingData {
+        uint256 startTime;
+        uint256 endTime;
+        uint256 totalVoters;
+        int progress;
+        bool isFinalized;
+        uint8 quorumState;
+        uint256 index;
+        uint256 minThresholdOfVoters;
+        uint256 proposedValue;
+        mapping(address => bool) voters;
+        address creator;
+        string memo;
+    }
 
-    function createBallot(
+    mapping(uint256 => VotingData) public votingState;
+    mapping(address => uint256) public validatorActiveBallots;
+
+    event Vote(uint256 indexed id, uint256 decision, address indexed voter, uint256 time );
+    event BallotFinalized(uint256 indexed id, address indexed voter);
+    event BallotCreated(uint256 indexed id, uint256 indexed ballotType, address indexed creator);
+
+    modifier onlyValidVotingKey(address _votingKey) {
+        IKeysManager keysManager = IKeysManager(getKeysManager());
+        require(keysManager.isVotingActive(_votingKey));
+        _;
+    }
+
+    modifier isValidProposedValue(uint256 _proposedValue) {
+        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
+        require(_proposedValue >= 3 && _proposedValue != getGlobalMinThresholdOfVoters());
+        require(_proposedValue <= ballotsStorage.getProxyThreshold());
+        _;
+    }
+
+    function VotingToChangeMinThreshold(address _proxyStorage) public {
+        proxyStorage = IProxyStorage(_proxyStorage);
+    }
+
+    function createBallotToChangeThreshold(
         uint256 _startTime,
         uint256 _endTime,
         uint256 _proposedValue,
-        string _memo
-    ) public {
-        require(_proposedValue >= minPossibleThreshold());
-        require(_proposedValue != _getGlobalMinThresholdOfVoters());
-        require(_proposedValue <= _getBallotsStorage().getProxyThreshold());
-        uint256 ballotId = super._createBallot(
-            uint256(BallotTypes.MinThreshold),
-            _startTime,
-            _endTime,
-            _memo
-        );
-        _setProposedValue(ballotId, _proposedValue);
+        string memo
+        ) public onlyValidVotingKey(msg.sender) isValidProposedValue(_proposedValue) {
+        require(_startTime > 0 && _endTime > 0);
+        require(_endTime > _startTime && _startTime > getTime());
+        uint256 diffTime = _endTime.sub(_startTime);
+        require(diffTime > 2 days);
+        require(diffTime <= 14 days);
+        address creatorMiningKey = getMiningByVotingKey(msg.sender);
+        require(withinLimit(creatorMiningKey));
+        VotingData memory data = VotingData({
+            startTime: _startTime,
+            endTime: _endTime,
+            totalVoters: 0,
+            progress: 0,
+            isFinalized: false,
+            quorumState: uint8(QuorumStates.InProgress),
+            index: activeBallots.length,
+            proposedValue: _proposedValue,
+            minThresholdOfVoters: getGlobalMinThresholdOfVoters(),
+            creator: creatorMiningKey,
+            memo: memo
+        });
+        votingState[nextBallotId] = data;
+        activeBallots.push(nextBallotId);
+        activeBallotsLength = activeBallots.length;
+        _increaseValidatorLimit();
+        BallotCreated(nextBallotId, 4, msg.sender);
+        nextBallotId++;
     }
 
-    function getBallotInfo(uint256 _id, address _votingKey) public view returns(
-        uint256 startTime,
-        uint256 endTime,
-        uint256 totalVoters,
-        int256 progress,
-        bool isFinalized,
-        uint256 proposedValue,
-        address creator,
-        string memo,
-        bool canBeFinalizedNow,
-        bool alreadyVoted
-    ) {
-        startTime = _getStartTime(_id);
-        endTime = _getEndTime(_id);
-        totalVoters = _getTotalVoters(_id);
-        progress = _getProgress(_id);
-        isFinalized = _getIsFinalized(_id);
-        proposedValue = _getProposedValue(_id);
-        creator = _getCreator(_id);
-        memo = _getMemo(_id);
-        canBeFinalizedNow = _canBeFinalizedNow(_id);
-        alreadyVoted = hasAlreadyVoted(_id, _votingKey);
-    }
-
-    function init(
-        uint256 _minBallotDuration,
-        uint256 _minPossibleThreshold
-    ) public {
-        require(_minPossibleThreshold > 0);
-        _init(_minBallotDuration);
-        uintStorage[MIN_POSSIBLE_THRESHOLD] = _minPossibleThreshold;
-    }
-
-    function migrateBasicOne(
-        uint256 _id,
-        address _prevVotingToChange,
-        address[] _voters
-    ) public onlyOwner {
-        require(_prevVotingToChange != address(0));
-        require(initDisabled());
-        require(!migrateDisabled());
-        IVotingToChangeMinThresholdPrev prev =
-            IVotingToChangeMinThresholdPrev(_prevVotingToChange);
-        require(prev.getTotalVoters(_id) == _voters.length);
-
-        uint256 endTime = prev.getEndTime(_id);
-
-        _setTotalVoters(_id, _voters.length);
-        _setIsFinalized(_id, prev.getIsFinalized(_id));
-        _setMinThresholdOfVoters(_id, prev.getMinThresholdOfVoters(_id));
-        _setStartTime(_id, prev.getStartTime(_id));
-        _setEndTime(_id, endTime);
-
-        // solhint-disable indent
-        (
-            , , ,
-            int progress, ,
-            uint8 quorumState,
-            uint256 index, , ,
-            address creator,
-            string memory memo
-        ) = prev.votingState(_id);
-        // solhint-enable indent
-        _setProgress(_id, progress);
-        _setQuorumState(_id, quorumState);
-        _setIndex(_id, index);
-        _setCreator(_id, creator);
-        _setMemo(_id, memo);
-        
-        _setProposedValue(_id, prev.getProposedValue(_id));
-
-        IKeysManager prevKeysManager = IKeysManager(prev.getKeysManager());
-        for (uint256 i = 0; i < _voters.length; i++) {
-            if (getTime() <= endTime) {
-                require(prev.hasAlreadyVoted(_id, prevKeysManager.getVotingByMining(_voters[i])));
-            }
-            _votersAdd(_id, _voters[i]);
+    function vote(uint256 _id, uint8 _choice) public onlyValidVotingKey(msg.sender) {
+        require(!getIsFinalized(_id));
+        VotingData storage ballot = votingState[_id];
+        address miningKey = getMiningByVotingKey(msg.sender);
+        require(isValidVote(_id, msg.sender));
+        if (_choice == uint(ActionChoice.Accept)) {
+            ballot.progress++;
+        } else if (_choice == uint(ActionChoice.Reject)) {
+            ballot.progress--;
+        } else {
+            revert();
         }
+        ballot.totalVoters++;
+        ballot.voters[miningKey] = true;
+        Vote(_id, _choice, msg.sender, getTime());
     }
 
-    function minPossibleThreshold() public view returns(uint256) {
-        return uintStorage[MIN_POSSIBLE_THRESHOLD];
+    function finalize(uint256 _id) public onlyValidVotingKey(msg.sender) {
+        require(getStartTime(_id) <= getTime());
+        require(!isActive(_id));
+        require(!getIsFinalized(_id));
+        VotingData storage ballot = votingState[_id];
+        finalizeBallot(_id);
+        _decreaseValidatorLimit(_id);
+        ballot.isFinalized = true;
+        BallotFinalized(_id, msg.sender);
     }
 
-    function _finalizeBallotInner(uint256 _id) internal returns(bool) {
-        return _getBallotsStorage().setThreshold(
-            _getProposedValue(_id),
-            uint256(ThresholdTypes.Keys)
-        );
+    function getBallotsStorage() public view returns(address) {
+        return proxyStorage.getBallotsStorage();
     }
 
-    function _getProposedValue(uint256 _id) internal view returns(uint256) {
-        return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, PROPOSED_VALUE))];
+    function getKeysManager() public view returns(address) {
+        return proxyStorage.getKeysManager();
     }
 
-    function _setProposedValue(uint256 _ballotId, uint256 _value) private {
-        uintStorage[
-            keccak256(abi.encode(VOTING_STATE, _ballotId, PROPOSED_VALUE))
-        ] = _value;
+    function getBallotLimitPerValidator() public view returns(uint256) {
+        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
+        return ballotsStorage.getBallotLimitPerValidator();
     }
 
+    function getProposedValue(uint256 _id) public view returns(uint256) {
+        return votingState[_id].proposedValue;
+    }
+
+    function getGlobalMinThresholdOfVoters() public view returns(uint256) {
+        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
+        return ballotsStorage.getBallotThreshold(thresholdForKeysType);
+    }
+
+    function getProgress(uint256 _id) public view returns(int) {
+        return votingState[_id].progress;
+    }
+
+    function getTotalVoters(uint256 _id) public view returns(uint256) {
+        return votingState[_id].totalVoters;
+    }
+
+    function getMinThresholdOfVoters(uint256 _id) public view returns(uint256) {
+        return votingState[_id].minThresholdOfVoters;
+    }
+
+    function getMiningByVotingKey(address _votingKey) public view returns(address) {
+        IKeysManager keysManager = IKeysManager(getKeysManager());
+        return keysManager.getMiningKeyByVoting(_votingKey);
+    }
+
+    function getStartTime(uint256 _id) public view returns(uint256) {
+        return votingState[_id].startTime;
+    }
+
+    function getEndTime(uint256 _id) public view returns(uint256) {
+        return votingState[_id].endTime;
+    }
+
+    function getIsFinalized(uint256 _id) public view returns(bool) {
+        return votingState[_id].isFinalized;
+    }
+
+    function getTime() public view returns(uint256) {
+        return now;
+    }
+
+    function getMemo(uint256 _id) public view returns(string) {
+        return votingState[_id].memo;
+    }
+
+    function isActive(uint256 _id) public view returns(bool) {
+        bool withinTime = getStartTime(_id) <= getTime() && getTime() <= getEndTime(_id);
+        return withinTime;
+    }
+
+    function hasAlreadyVoted(uint256 _id, address _votingKey) public view returns(bool) {
+        VotingData storage ballot = votingState[_id];
+        address miningKey = getMiningByVotingKey(_votingKey);
+        return ballot.voters[miningKey];
+    }
+    
+    function isValidVote(uint256 _id, address _votingKey) public view returns(bool) {
+        address miningKey = getMiningByVotingKey(_votingKey);
+        bool notVoted = !hasAlreadyVoted(_id, _votingKey);
+        bool oldKeysNotVoted = !areOldMiningKeysVoted(_id, miningKey);
+        return notVoted && isActive(_id) && oldKeysNotVoted;
+    }
+
+    function areOldMiningKeysVoted(uint256 _id, address _miningKey) public view returns(bool) {
+        VotingData storage ballot = votingState[_id];
+        IKeysManager keysManager = IKeysManager(getKeysManager());
+        for (uint8 i = 0; i < maxOldMiningKeysDeepCheck; i++) {
+            address oldMiningKey = keysManager.getMiningKeyHistory(_miningKey);
+            if (oldMiningKey == address(0)) {
+                return false;
+            }
+            if (ballot.voters[oldMiningKey]) {
+                return true;
+            } else {
+                _miningKey = oldMiningKey;
+            }
+        }
+        return false;
+    }
+
+    function withinLimit(address _miningKey) public view returns(bool) {
+        return validatorActiveBallots[_miningKey] <= getBallotLimitPerValidator();
+    }
+
+    function finalizeBallot(uint256 _id) private {
+        IBallotsStorage ballotsStorage = IBallotsStorage(getBallotsStorage());
+        if (getProgress(_id) > 0 && getTotalVoters(_id) >= getMinThresholdOfVoters(_id)) {
+            updateBallot(_id, uint8(QuorumStates.Accepted));
+            ballotsStorage.setThreshold(getProposedValue(_id), thresholdForKeysType);
+        } else {
+            updateBallot(_id, uint8(QuorumStates.Rejected));
+        }
+        deactiveBallot(_id);
+    }
+
+    function updateBallot(uint256 _id, uint8 _quorumState) private {
+        VotingData storage ballot = votingState[_id];
+        ballot.quorumState = _quorumState;
+    }
+
+    function deactiveBallot(uint256 _id) private {
+        VotingData storage ballot = votingState[_id];
+        uint256 removedIndex = ballot.index;
+        uint256 lastIndex = activeBallots.length - 1;
+        uint256 lastBallotId = activeBallots[lastIndex];
+        // Override the removed ballot with the last one.
+        activeBallots[removedIndex] = lastBallotId;
+        // Update the index of the last validator.
+        votingState[lastBallotId].index = removedIndex;
+        delete activeBallots[lastIndex];
+        if (activeBallots.length > 0) {
+            activeBallots.length--;
+        }
+        activeBallotsLength = activeBallots.length;
+    }
+
+    function _increaseValidatorLimit() private {
+        address miningKey = getMiningByVotingKey(msg.sender);
+        validatorActiveBallots[miningKey] = validatorActiveBallots[miningKey].add(1);
+    }
+
+    function _decreaseValidatorLimit(uint256 _id) private {
+        VotingData storage ballot = votingState[_id];
+        address miningKey = ballot.creator;
+        validatorActiveBallots[miningKey] = validatorActiveBallots[miningKey].sub(1);
+    }
 }
