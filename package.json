@@ -17,9 +17,9 @@
     "mochawesome": "^3.0.2",
     "moment": "^2.19.3",
     "solhint": "^1.2.1",
-    "solidity-coverage": "^0.5.4",
+    "solidity-coverage": "^0.5.11",
     "solidity-flattener": "github:poanetwork/solidity-flattener#master",
-    "truffle": "^4.1.11"
+    "truffle": "^4.1.14"
   },
   "dependencies": {}
 }
