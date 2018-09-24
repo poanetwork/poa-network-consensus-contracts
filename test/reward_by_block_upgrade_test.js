@@ -248,7 +248,7 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
       ).should.be.rejectedWith(ERROR_MSG);
     });
 
-    it('can only be called once for the same recipient', async () => {
+    it('can be called repeatedly for the same recipient', async () => {
       await rewardByBlock.setBridgeContractAddress(accounts[2]);
       await rewardByBlock.addExtraReceiver(
         1,
@@ -256,10 +256,28 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
         {from: accounts[2]}
       ).should.be.fulfilled;
       await rewardByBlock.addExtraReceiver(
-        1,
+        2,
         accounts[1],
         {from: accounts[2]}
-      ).should.be.rejectedWith(ERROR_MSG);
+      ).should.be.fulfilled;
+      (await rewardByBlock.extraReceiversLength.call()).should.be.bignumber.equal(1);
+      (await rewardByBlock.extraReceivers.call(0)).should.be.equal(accounts[1]);
+      (await rewardByBlock.extraReceiversAmounts.call(accounts[1])).should.be.bignumber.equal(3);
+
+      await rewardByBlock.setSystemAddress(systemAddress);
+      const result = await rewardByBlock.reward(
+        [miningKey],
+        [0],
+        {from: systemAddress}
+      ).should.be.fulfilled;
+      result.logs[0].event.should.be.equal('Rewarded');
+      result.logs[0].args.receivers.should.be.deep.equal([payoutKey, emissionFundsAddress, accounts[1]]);
+      result.logs[0].args.rewards[0].toString().should.be.equal(blockRewardAmount.toString());
+      result.logs[0].args.rewards[1].toString().should.be.equal(emissionFundsAmount.toString());
+      result.logs[0].args.rewards[2].toString().should.be.equal('3');
+
+      (await rewardByBlock.extraReceiversLength.call()).should.be.bignumber.equal(0);
+      (await rewardByBlock.extraReceiversAmounts.call(accounts[1])).should.be.bignumber.equal(0);
     });
 
     it('should add receivers', async () => {
