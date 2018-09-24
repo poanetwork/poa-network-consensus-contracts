@@ -147,6 +147,9 @@ module.exports = function(deployer, network, accounts) {
       emissionFunds = await EmissionFunds.new(votingToManageEmissionFunds.address);
 
       // Deploy RewardByBlock
+      // TODO:
+      //   set correct values for public constants
+      //   in RewardByBlock before its deploying
       rewardByBlock = await RewardByBlock.new();
       rewardByBlockImplAddress = rewardByBlock.address;
       rewardByBlock = await EternalStorageProxy.new(

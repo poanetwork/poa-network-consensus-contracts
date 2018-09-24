@@ -11,8 +11,13 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
     using SafeMath for uint256;
 
     bytes32 internal constant EXTRA_RECEIVERS = keccak256("extraReceivers");
+    bytes32 internal constant PROXY_STORAGE = keccak256("proxyStorage");
+    bytes32 internal constant MINTED_TOTALLY = keccak256("mintedTotally");
 
     bytes32 internal constant EXTRA_RECEIVERS_AMOUNTS = "extraReceiversAmounts";
+    bytes32 internal constant MINTED_FOR_ACCOUNT = "mintedForAccount";
+    bytes32 internal constant MINTED_FOR_ACCOUNT_IN_BLOCK = "mintedForAccountInBlock";
+    bytes32 internal constant MINTED_IN_BLOCK = "mintedInBlock";
 
     // solhint-disable const-name-snakecase
     // These values must be changed before deploy
@@ -72,13 +77,19 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
         receivers[1] = emissionFunds;
         rewards[1] = emissionFundsAmount;
 
-        for (uint256 i = 0; i < extraLength; i++) {
+        uint256 i;
+        
+        for (i = 0; i < extraLength; i++) {
             uint256 extraIndex = i.add(2);
             address extraAddress = extraReceivers(i);
             uint256 extraAmount = extraReceiversAmounts(extraAddress);
             _setExtraReceiverAmount(0, extraAddress);
             receivers[extraIndex] = extraAddress;
             rewards[extraIndex] = extraAmount;
+        }
+
+        for (i = 0; i < receivers.length; i++) {
+            _setMinted(rewards[i], receivers[i]);
         }
 
         _clearExtraReceivers();
@@ -102,8 +113,38 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
         return addressArrayStorage[EXTRA_RECEIVERS].length;
     }
 
+    function mintedForAccount(address _account)
+        public
+        view
+        returns(uint256)
+    {
+        return uintStorage[
+            keccak256(abi.encode(MINTED_FOR_ACCOUNT, _account))
+        ];
+    }
+
+    function mintedForAccountInBlock(address _account, uint256 _blockNumber)
+        public
+        view
+        returns(uint256)
+    {
+        return uintStorage[
+            keccak256(abi.encode(MINTED_FOR_ACCOUNT_IN_BLOCK, _account, _blockNumber))
+        ];
+    }
+
+    function mintedInBlock(uint256 _blockNumber) public view returns(uint256) {
+        return uintStorage[
+            keccak256(abi.encode(MINTED_IN_BLOCK, _blockNumber))
+        ];
+    }
+
+    function mintedTotally() public view returns(uint256) {
+        return uintStorage[MINTED_TOTALLY];
+    }
+
     function proxyStorage() public view returns(address) {
-        return addressStorage[keccak256("proxyStorage")];
+        return addressStorage[PROXY_STORAGE];
     }
 
     function _addExtraReceiver(address _receiver) private {
@@ -141,5 +182,21 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
         uintStorage[
             keccak256(abi.encode(EXTRA_RECEIVERS_AMOUNTS, _receiver))
         ] = _amount;
+    }
+
+    function _setMinted(uint256 _amount, address _account) private {
+        bytes32 hash;
+
+        hash = keccak256(abi.encode(MINTED_FOR_ACCOUNT_IN_BLOCK, _account, block.number));
+        uintStorage[hash] = _amount;
+
+        hash = keccak256(abi.encode(MINTED_FOR_ACCOUNT, _account));
+        uintStorage[hash] = uintStorage[hash].add(_amount);
+
+        hash = keccak256(abi.encode(MINTED_IN_BLOCK, block.number));
+        uintStorage[hash] = uintStorage[hash].add(_amount);
+
+        hash = MINTED_TOTALLY;
+        uintStorage[hash] = uintStorage[hash].add(_amount);
     }
 }
