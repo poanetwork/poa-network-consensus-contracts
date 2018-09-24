@@ -3,9 +3,10 @@
 [![Build Status](https://travis-ci.org/poanetwork/poa-network-consensus-contracts.svg?branch=master)](https://travis-ci.org/poanetwork/poa-network-consensus-contracts)
 
 ## Security Audit
-- [PoA Consensus Audit.pdf](https://github.com/poanetwork/poa-network-consensus-contracts/blob/a9f63b19e5e4f0f238211d0cd8c456ad384d4a6c/audit/MixBytes/PoA%20Consensus%20Audit.pdf) by MixBytes
+- [PoA Consensus Audit](https://github.com/poanetwork/poa-network-consensus-contracts/blob/master/audit/MixBytes/PoA%20Consensus%20Audit.pdf) by MixBytes
+- [PoA Consensus Audit](https://github.com/poanetwork/poa-network-consensus-contracts/blob/master/audit/ChainSecurity/ChainSecurity_PoA.pdf) by ChainSecurity
 
-### Start POA network
+## Start POA network
 
 - Install npm dependencies `npm i`
 - Generate flat sources of contracts with the script `./make_flat.sh`
@@ -18,7 +19,7 @@ $ MASTER_OF_CEREMONY=0x0039F22efB07A647557C7C5d17854CFD6D489eF3 node poa-bytecod
 ```
 It will show the bytecode of `PoaNetworkConsensus` contract. Copy the bytecode and paste it into `spec.json`.
 
-### Add Contracts to Parity UI.
+## Add Contracts to Parity UI.
 
 Start Parity UI. In the contracts section press `Develop` button. 
 Select `0.4.24` Solidity compiler version. Set `Optimize` to `true`.

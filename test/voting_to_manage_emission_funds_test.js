@@ -185,7 +185,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
 
       const ballotInfo = await voting.getBallotInfo.call(id);
       ballotInfo.should.be.deep.equal([
-        await voting.getTime(), // creationTime
+        await voting.getTime.call(), // creationTime
         new web3.BigNumber(VOTING_START_DATE), // startTime
         new web3.BigNumber(VOTING_END_DATE), // endTime
         false, // isCanceled
@@ -333,7 +333,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
       ).should.be.fulfilled;
 
-      let creationTime = await voting.getTime();
+      let creationTime = await voting.getTime.call();
 
       await voting.setTime(moment.utc().add(20, 'minutes').unix());
       let result = await voting.cancelNewBallot({from: votingKey}).should.be.fulfilled;
@@ -1096,7 +1096,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
 
       const ballotInfo = await votingNew.getBallotInfo.call(id);
       ballotInfo.should.be.deep.equal([
-        await voting.getTime(), // creationTime
+        await voting.getTime.call(), // creationTime
         new web3.BigNumber(VOTING_START_DATE), // startTime
         new web3.BigNumber(VOTING_END_DATE), // endTime
         false, // isCanceled
