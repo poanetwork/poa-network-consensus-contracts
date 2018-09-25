@@ -1,5 +1,6 @@
 const fs = require('fs');
 const moment = require('moment');
+const solc = require('solc');
 const PoaNetworkConsensus = artifacts.require("./PoaNetworkConsensus.sol");
 const ProxyStorage = artifacts.require("./ProxyStorage.sol");
 const KeysManager = artifacts.require("./KeysManager.sol");
@@ -9,7 +10,6 @@ const VotingToChangeKeys = artifacts.require("./VotingToChangeKeys");
 const VotingToChangeMinThreshold = artifacts.require("./VotingToChangeMinThreshold");
 const VotingToChangeProxyAddress = artifacts.require("./VotingToChangeProxyAddress");
 const VotingToManageEmissionFunds = artifacts.require("./VotingToManageEmissionFunds");
-const RewardByBlock = artifacts.require("./RewardByBlock");
 const EmissionFunds = artifacts.require("./EmissionFunds");
 const EternalStorageProxy = artifacts.require("./eternal-storage/EternalStorageProxy.sol");
 
@@ -147,15 +147,36 @@ module.exports = function(deployer, network, accounts) {
       emissionFunds = await EmissionFunds.new(votingToManageEmissionFunds.address);
 
       // Deploy RewardByBlock
-      rewardByBlock = await RewardByBlock.new();
-      rewardByBlockImplAddress = rewardByBlock.address;
+      let rewardByBlockCode = fs.readFileSync('contracts/RewardByBlock.sol').toString();
+      rewardByBlockCode = rewardByBlockCode.replace('emissionFunds = 0x0000000000000000000000000000000000000000', 'emissionFunds = ' + emissionFunds.address);
+      const rewardByBlockCompiled = await compileContract('contracts/', 'RewardByBlock', rewardByBlockCode);
+      const rewardByBlockGasEstimate = web3.eth.estimateGas({data: '0x' + rewardByBlockCompiled.bytecode});
+      const rewardByBlockImpl = web3.eth.contract(rewardByBlockCompiled.abi);
+      const rewardByBlockDeployed = await rewardByBlockImpl.new({
+        from: web3.eth.coinbase,
+        data: '0x' + rewardByBlockCompiled.bytecode,
+        gas: rewardByBlockGasEstimate
+      });
+      for (let i = 0; i < 10; i++) {
+        if (rewardByBlockDeployed.address) {
+          break;
+        } else {
+          await sleep(5000);
+        }
+      }
+      if (!rewardByBlockDeployed.address) {
+        throw new Error('Cannot deploy RewardByBlock');
+      }
+      rewardByBlockImplAddress = rewardByBlockDeployed.address;
       rewardByBlock = await EternalStorageProxy.new(
         proxyStorage.address,
         rewardByBlockImplAddress
       );
-      rewardByBlock = RewardByBlock.at(
-        rewardByBlock.address
-      );
+      const rewardByBlockInstance = rewardByBlockImpl.at(rewardByBlock.address);
+
+      if (emissionFunds.address != await rewardByBlockInstance.emissionFunds.call()) {
+        throw new Error('RewardByBlock.emissionFunds() returns invalid address');
+      }
 
       // Initialize VotingToManageEmissionFunds
       await votingToManageEmissionFunds.init(
@@ -216,8 +237,8 @@ module.exports = function(deployer, network, accounts) {
   ProxyStorage.address (storage) ..................... ${proxyStorage.address}
   PoaNetworkConsensus.address ........................ ${poaNetworkConsensusAddress}
   EmissionFunds.address .............................. ${emissionFunds.address}
-  RewardByBlock.address (implementation) .............. ${rewardByBlockImplAddress}
-  RewardByBlock.address (storage) ..................... ${rewardByBlock.address}
+  RewardByBlock.address (implementation) ............. ${rewardByBlockImplAddress}
+  RewardByBlock.address (storage) .................... ${rewardByBlock.address}
         `
       );
     }).catch(function(error) {
@@ -225,6 +246,33 @@ module.exports = function(deployer, network, accounts) {
     });
   }
 };
+
+async function compileContract(dir, contractName, contractCode) {
+  const compiled = solc.compile({
+    sources: {
+      '': (contractCode ? contractCode : fs.readFileSync(dir + contractName + '.sol').toString())
+    }
+  }, 1, function (path) {
+    let content;
+    try {
+      content = fs.readFileSync(dir + path);
+    } catch (e) {
+      if (e.code == 'ENOENT') {
+        content = fs.readFileSync(dir + '../' + path);
+      }
+    }
+    return {
+      contents: content.toString()
+    }
+  });
+  const abi = JSON.parse(compiled.contracts[':' + contractName].interface);
+  const bytecode = compiled.contracts[':' + contractName].bytecode;
+  return {abi: abi, bytecode: bytecode};
+}
+
+function sleep(ms) {
+  return new Promise(resolve => setTimeout(resolve, ms))
+}
 
 // SAVE_TO_FILE=true POA_NETWORK_CONSENSUS_ADDRESS=0x8bf38d4764929064f2d4d3a56520a76ab3df415b MASTER_OF_CEREMONY=0xCf260eA317555637C55F70e55dbA8D5ad8414Cb0 OLD_KEYSMANAGER=0xfc90125492e58dbfe80c0bfb6a2a759c4f703ca8 ./node_modules/.bin/truffle migrate --reset --network sokol
 // SAVE_TO_FILE=true DEPLOY_POA=true POA_NETWORK_CONSENSUS_ADDRESS=0x8bf38d4764929064f2d4d3a56520a76ab3df415b MASTER_OF_CEREMONY=0xCf260eA317555637C55F70e55dbA8D5ad8414Cb0 OLD_KEYSMANAGER=0xfc90125492e58dbfe80c0bfb6a2a759c4f703ca8 ./node_modules/.bin/truffle migrate --reset --network sokol
