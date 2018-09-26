@@ -147,14 +147,16 @@ module.exports = function(deployer, network, accounts) {
       emissionFunds = await EmissionFunds.new(votingToManageEmissionFunds.address);
 
       // Deploy RewardByBlock
-      let rewardByBlockCode = fs.readFileSync('contracts/RewardByBlock.sol').toString();
-      rewardByBlockCode = rewardByBlockCode.replace('emissionFunds = 0x0000000000000000000000000000000000000000', 'emissionFunds = ' + emissionFunds.address);
-      const rewardByBlockCompiled = await compileContract('contracts/', 'RewardByBlock', rewardByBlockCode);
-      const rewardByBlockGasEstimate = web3.eth.estimateGas({data: '0x' + rewardByBlockCompiled.bytecode});
+      const contractsFolder = 'contracts/';
+      let rewardByBlockCode = fs.readFileSync(`${contractsFolder}RewardByBlock.sol`).toString();
+      rewardByBlockCode = rewardByBlockCode.replace('emissionFunds = 0x0000000000000000000000000000000000000000', `emissionFunds = ${emissionFunds.address}`);
+      const rewardByBlockCompiled = await compileContract(contractsFolder, 'RewardByBlock', rewardByBlockCode);
+      const rewardByBlockBytecode = `0x${rewardByBlockCompiled.bytecode}`;
+      const rewardByBlockGasEstimate = web3.eth.estimateGas({data: rewardByBlockBytecode});
       const rewardByBlockImpl = web3.eth.contract(rewardByBlockCompiled.abi);
       const rewardByBlockDeployed = await rewardByBlockImpl.new({
         from: web3.eth.coinbase,
-        data: '0x' + rewardByBlockCompiled.bytecode,
+        data: rewardByBlockBytecode,
         gas: rewardByBlockGasEstimate
       });
       for (let i = 0; i < 10; i++) {
@@ -173,8 +175,9 @@ module.exports = function(deployer, network, accounts) {
         rewardByBlockImplAddress
       );
       const rewardByBlockInstance = rewardByBlockImpl.at(rewardByBlock.address);
+      const emissionFundsAddress = await rewardByBlockInstance.emissionFunds.call();
 
-      if (emissionFunds.address != await rewardByBlockInstance.emissionFunds.call()) {
+      if (emissionFunds.address != emissionFundsAddress) {
         throw new Error('RewardByBlock.emissionFunds() returns invalid address');
       }
 
@@ -250,24 +253,25 @@ module.exports = function(deployer, network, accounts) {
 async function compileContract(dir, contractName, contractCode) {
   const compiled = solc.compile({
     sources: {
-      '': (contractCode ? contractCode : fs.readFileSync(dir + contractName + '.sol').toString())
+      '': (contractCode || fs.readFileSync(`${dir}${contractName}.sol`).toString())
     }
   }, 1, function (path) {
     let content;
     try {
-      content = fs.readFileSync(dir + path);
+      content = fs.readFileSync(`${dir}${path}`);
     } catch (e) {
       if (e.code == 'ENOENT') {
-        content = fs.readFileSync(dir + '../' + path);
+        content = fs.readFileSync(`${dir}../${path}`);
       }
     }
     return {
       contents: content.toString()
     }
   });
-  const abi = JSON.parse(compiled.contracts[':' + contractName].interface);
-  const bytecode = compiled.contracts[':' + contractName].bytecode;
-  return {abi: abi, bytecode: bytecode};
+  const compiledContract = compiled.contracts[`:${contractName}`];
+  const abi = JSON.parse(compiledContract.interface);
+  const bytecode = compiledContract.bytecode;
+  return {abi, bytecode};
 }
 
 function sleep(ms) {
