@@ -149,6 +149,12 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
     });
 
     it('should assign rewards to payout key and EmissionFunds', async () => {
+      (await rewardByBlock.mintedForAccount.call(payoutKey)).should.be.bignumber.equal(0);
+      (await rewardByBlock.mintedForAccount.call(emissionFundsAddress)).should.be.bignumber.equal(0);
+      (await rewardByBlock.mintedForAccountInBlock.call(payoutKey, web3.eth.blockNumber)).should.be.bignumber.equal(0);
+      (await rewardByBlock.mintedForAccountInBlock.call(emissionFundsAddress, web3.eth.blockNumber)).should.be.bignumber.equal(0);
+      (await rewardByBlock.mintedInBlock.call(web3.eth.blockNumber)).should.be.bignumber.equal(0);
+      (await rewardByBlock.mintedTotally.call()).should.be.bignumber.equal(0);
       await rewardByBlock.setSystemAddress(systemAddress);
       const {logs} = await rewardByBlock.reward(
         [miningKey],
@@ -159,6 +165,13 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
       logs[0].args.receivers.should.be.deep.equal([payoutKey, emissionFundsAddress]);
       logs[0].args.rewards[0].toString().should.be.equal(blockRewardAmount.toString());
       logs[0].args.rewards[1].toString().should.be.equal(emissionFundsAmount.toString());
+      (await rewardByBlock.mintedForAccount.call(payoutKey)).should.be.bignumber.equal(blockRewardAmount);
+      (await rewardByBlock.mintedForAccount.call(emissionFundsAddress)).should.be.bignumber.equal(emissionFundsAmount);
+      (await rewardByBlock.mintedForAccountInBlock.call(payoutKey, web3.eth.blockNumber)).should.be.bignumber.equal(blockRewardAmount);
+      (await rewardByBlock.mintedForAccountInBlock.call(emissionFundsAddress, web3.eth.blockNumber)).should.be.bignumber.equal(emissionFundsAmount);
+      const totalMinted = web3.toBigNumber(blockRewardAmount).plus(emissionFundsAmount);
+      (await rewardByBlock.mintedInBlock.call(web3.eth.blockNumber)).should.be.bignumber.equal(totalMinted);
+      (await rewardByBlock.mintedTotally.call()).should.be.bignumber.equal(totalMinted);
     });
 
     it('should assign reward to mining key if payout key is 0', async () => {
@@ -220,6 +233,23 @@ contract('RewardByBlock upgraded [all features]', function (accounts) {
       (await rewardByBlock.extraReceiversAmounts.call(accounts[2])).should.be.bignumber.equal(0);
       (await rewardByBlock.extraReceiversAmounts.call(accounts[3])).should.be.bignumber.equal(0);
       (await rewardByBlock.extraReceiversLength.call()).should.be.bignumber.equal(0);
+
+      (await rewardByBlock.mintedForAccount.call(payoutKey)).should.be.bignumber.equal(blockRewardAmount * 2);
+      (await rewardByBlock.mintedForAccount.call(emissionFundsAddress)).should.be.bignumber.equal(emissionFundsAmount * 2);
+      (await rewardByBlock.mintedForAccount.call(accounts[2])).should.be.bignumber.equal(4);
+      (await rewardByBlock.mintedForAccount.call(accounts[3])).should.be.bignumber.equal(6);
+      
+      (await rewardByBlock.mintedForAccountInBlock.call(payoutKey, web3.eth.blockNumber)).should.be.bignumber.equal(blockRewardAmount);
+      (await rewardByBlock.mintedForAccountInBlock.call(emissionFundsAddress, web3.eth.blockNumber)).should.be.bignumber.equal(emissionFundsAmount);
+      (await rewardByBlock.mintedForAccountInBlock.call(accounts[2], web3.eth.blockNumber)).should.be.bignumber.equal(2);
+      (await rewardByBlock.mintedForAccountInBlock.call(accounts[3], web3.eth.blockNumber)).should.be.bignumber.equal(3);
+      
+      (await rewardByBlock.mintedInBlock.call(web3.eth.blockNumber)).should.be.bignumber.equal(
+        web3.toBigNumber(blockRewardAmount).plus(emissionFundsAmount).plus(2).plus(3)
+      );
+      (await rewardByBlock.mintedTotally.call()).should.be.bignumber.equal(
+        web3.toBigNumber(blockRewardAmount).plus(emissionFundsAmount).plus(2).plus(3).mul(2)
+      );
     });
   });
 
