@@ -257,9 +257,6 @@ function getRewardByBlockAddress(bytecode, abi, estimatedGas) {
     const contractInstance = new web3Latest.eth.Contract(abi)
     const deploy = contractInstance.deploy(deployOpts)
     deploy.send(sendOpts)
-    .on('txHash', async (hash) => {
-      console.log(hash)
-    })
     .on('receipt', async (receipt) => {
       resolve(receipt.contractAddress)
     })
