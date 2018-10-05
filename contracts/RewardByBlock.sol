@@ -26,6 +26,7 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
     uint256 public constant blockRewardAmount = 1 ether; 
     uint256 public constant emissionFundsAmount = 1 ether;
     address public constant emissionFunds = 0x0000000000000000000000000000000000000000;
+    uint256 public constant bridgesAllowedLength = 3;
     // solhint-enable const-name-snakecase
 
     event AddedReceiver(uint256 amount, address indexed receiver, address indexed bridge);
@@ -69,9 +70,9 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
 
         require(_isMiningActive(miningKey));
 
-        uint256 length = extraReceiversLength();
+        uint256 extraLength = extraReceiversLength();
 
-        address[] memory receivers = new address[](length.add(2));
+        address[] memory receivers = new address[](extraLength.add(2));
         uint256[] memory rewards = new uint256[](receivers.length);
 
         receivers[0] = _getPayoutByMining(miningKey);
@@ -81,7 +82,7 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
 
         uint256 i;
         
-        for (i = 0; i < length; i++) {
+        for (i = 0; i < extraLength; i++) {
             address extraAddress = extraReceiverByIndex(i);
             uint256 extraAmount = extraReceiverAmount(extraAddress);
             _setExtraReceiverAmount(0, extraAddress);
@@ -93,8 +94,7 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
             _setMinted(rewards[i], receivers[i]);
         }
 
-        length = bridgesAllowed().length;
-        for (i = 0; i < length; i++) {
+        for (i = 0; i < bridgesAllowedLength; i++) {
             address bridgeAddress = bridgesAllowed()[i];
             uint256 bridgeAmountForBlock = bridgeAmount(bridgeAddress);
 
@@ -111,12 +111,12 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
         return (receivers, rewards);
     }
 
-    function bridgesAllowed() public pure returns(address[3]) {
+    function bridgesAllowed() public pure returns(address[bridgesAllowedLength]) {
         // These values must be changed before deploy
         return([
-            0x0000000000000000000000000000000000000000,
-            0x0000000000000000000000000000000000000000,
-            0x0000000000000000000000000000000000000000
+            address(0x0000000000000000000000000000000000000000),
+            address(0x0000000000000000000000000000000000000000),
+            address(0x0000000000000000000000000000000000000000)
         ]);
     }
 
@@ -206,10 +206,10 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
     }
 
     function _isBridgeContract(address _addr) private pure returns(bool) {
-        uint256 length = bridgesAllowed().length;
-
-        for (uint256 i = 0; i < length; i++) {
-            if (_addr == bridgesAllowed()[i]) {
+        address[bridgesAllowedLength] memory bridges = bridgesAllowed();
+        
+        for (uint256 i = 0; i < bridges.length; i++) {
+            if (_addr == bridges[i]) {
                 return true;
             }
         }
