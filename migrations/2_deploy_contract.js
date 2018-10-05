@@ -207,7 +207,8 @@ module.exports = function(deployer, network, accounts) {
           "PROXY_ADDRESS": proxyStorage.address,
           "POA_ADDRESS": poaNetworkConsensusAddress,
           "EMISSION_FUNDS_ADDRESS": emissionFunds.address,
-          "REWARD_BY_BLOCK_ADDRESS": rewardByBlock.address
+          "REWARD_BY_BLOCK_ADDRESS": rewardByBlock.address,
+          "MOC": masterOfCeremony
         };
 
         fs.writeFileSync('./contracts.json', JSON.stringify(contracts, null, 2));

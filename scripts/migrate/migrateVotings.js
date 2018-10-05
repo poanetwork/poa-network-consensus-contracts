@@ -263,9 +263,15 @@ async function votingToChangeMigrateAndCheck(sender, key, chainId, contractName)
 
 			console.log('  Set miningByVoting...');
 			let miningByVoting = {};
-			events = await keysManagerInstance.getPastEvents('ValidatorInitialized', {fromBlock: 0, toBlock: 'latest'});
-			for (i = 0; i < events.length; i++) {
-				miningByVoting[events[i].returnValues.votingKey] = events[i].returnValues.miningKey;
+			try {
+				events = await keysManagerInstance.getPastEvents('ValidatorInitialized', {fromBlock: 0, toBlock: 'latest'});
+				for (i = 0; i < events.length; i++) {
+					miningByVoting[events[i].returnValues.votingKey] = events[i].returnValues.miningKey;
+				}
+			} catch (events_err) {
+				if (events_err.message.indexOf('Returned values aren\'t valid') < 0) {
+					throw events_err;
+				}
 			}
 			events = await keysManagerInstance.getPastEvents('VotingKeyChanged', {fromBlock: 0, toBlock: 'latest'});
 			for (i = 0; i < events.length; i++) {
