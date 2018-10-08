@@ -241,9 +241,9 @@ async function main() {
 		console.log('');
 
 		console.log('VotingToManageEmissionFunds.init...');
-		const distributionThreshold = 259200; // three days, in seconds
-		const emissionReleaseThreshold = 604800; // seven days, in seconds
-		const emissionReleaseTime = Math.floor(new Date() / 1000) + emissionReleaseThreshold; // now plus emissionReleaseThreshold (unix timestamp)
+		const distributionThreshold = 604800; // seven days, in seconds
+		const emissionReleaseThreshold = 7776000; // three months, in seconds
+		const emissionReleaseTime = 1550509200; // Monday, 18-Feb-2019 17:00:00 UTC (unix timestamp)
 		init = votingToManageEmissionFundsInstance.methods.init(
 			emissionReleaseTime,
 			emissionReleaseThreshold,
@@ -282,9 +282,11 @@ async function main() {
 		emissionFundsAddress.should.be.equal(
 			EthereumUtil.toChecksumAddress(await rewardByBlockInstance.methods.emissionFunds().call())
 		);
-		'0x0000000000000000000000000000000000000000'.should.be.equal(
-			await rewardByBlockInstance.methods.bridgeContract().call()
-		);
+		(await rewardByBlockInstance.methods.bridgesAllowed().call()).should.be.deep.equal([
+			'0x0000000000000000000000000000000000000000',
+			'0x0000000000000000000000000000000000000000',
+			'0x0000000000000000000000000000000000000000'
+		]);
 		process.env.PROXY_STORAGE_NEW_ADDRESS.should.be.equal(
 			await rewardByBlockInstance.methods.proxyStorage().call()
 		);
