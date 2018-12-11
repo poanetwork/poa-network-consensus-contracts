@@ -21,13 +21,13 @@ let keysManager, poaNetworkConsensusMock;
 let metadata, metadataEternalStorage;
 let votingKey, votingKey2, votingKey3, miningKey;
 let fakeData = [
-  "Djamshut", "Roosvelt", "123asd", "Moskva", "ZZ", "234", 23423
+  "Djamshut", "Roosvelt", "123asd", "Moskva", "ZZ", "234", 23423, "info@poa.net", false
 ];
 let newMetadata = [
-  "Feodosiy", "Kennedy", "123123", "Petrovka 38", "ZA", "1337", 71
+  "Feodosiy", "Kennedy", "123123", "Petrovka 38", "ZA", "1337", 71, "", false
 ];
 let anotherData = [
-  "Feodosiy", "Bush", "123123", "Petrovka 38", "ZA", "1337", 71
+  "Feodosiy", "Bush", "123123", "Petrovka 38", "ZA", "1337", 71, "", false
 ];
 contract('ValidatorMetadata upgraded [all features]', function (accounts) {
   beforeEach(async () => {
@@ -109,7 +109,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex("info@poa.net"),
+        false
       ]);
       logs[0].event.should.be.equal('MetadataCreated');
       logs[0].args.miningKey.should.be.equal(miningKey);
@@ -134,7 +136,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
-        new web3.BigNumber(0)
+        new web3.BigNumber(0),
+        toHex(""),
+        false
       ]);
     })
     it('should not let create metadata if called second time', async () => {
@@ -156,7 +160,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex("info@poa.net"),
+        false
       ]);
       result.logs[0].event.should.be.equal('MetadataCreated');
       result.logs[0].args.miningKey.should.be.equal(miningKey);
@@ -173,7 +179,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex(""),
+        false
       ]);
       result.logs[0].event.should.be.equal("ChangeRequestInitiated");
       result.logs[0].args.miningKey.should.be.equal(miningKey);
@@ -202,7 +210,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
-        new web3.BigNumber(0)
+        new web3.BigNumber(0),
+        toHex(""),
+        false
       ]);
 
       (await metadata.pendingChanges.call(miningKey)).should.be.deep.equal([
@@ -215,7 +225,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
-        new web3.BigNumber(0)
+        new web3.BigNumber(0),
+        toHex(""),
+        false
       ]);
     });
   });
@@ -233,7 +245,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex("info@poa.net"),
+        false
       ]);
       result.logs[0].event.should.be.equal('MetadataCreated');
       result.logs[0].args.miningKey.should.be.equal(miningKey);
@@ -250,7 +264,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex(""),
+        false
       ]);
       result.logs[0].event.should.be.equal("ChangeRequestInitiated");
       result.logs[0].args.miningKey.should.be.equal(miningKey);
@@ -270,7 +286,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
-        new web3.BigNumber(0)
+        new web3.BigNumber(0),
+        toHex(""),
+        false
       ]);
 
       (await metadata.pendingChanges.call(miningKey2)).should.be.deep.equal([
@@ -283,7 +301,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
-        new web3.BigNumber(0)
+        new web3.BigNumber(0),
+        toHex(""),
+        false
       ]);
 
       await proxyStorageMock.setKeysManagerMock(accounts[0]);
@@ -306,7 +326,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
-        new web3.BigNumber(0)
+        new web3.BigNumber(0),
+        toHex(""),
+        false
       ]);
 
       (await metadata.pendingChanges.call(miningKey)).should.be.deep.equal([
@@ -319,7 +341,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
-        new web3.BigNumber(0)
+        new web3.BigNumber(0),
+        toHex(""),
+        false
       ]);
 
       confirmations = await metadata.confirmations.call(miningKey2);
@@ -336,7 +360,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex("info@poa.net"),
+        false
       ]);
 
       (await metadata.pendingChanges.call(miningKey2)).should.be.deep.equal([
@@ -349,7 +375,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex(""),
+        false
       ]);
     });
   });
@@ -386,7 +414,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(123),
         new web3.BigNumber(0),
-        new web3.BigNumber(3)
+        new web3.BigNumber(3),
+        toHex(""),
+        false
       ]);
 
       validatorData[7] = 0;
@@ -405,7 +435,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(123),
         new web3.BigNumber(0),
-        new web3.BigNumber(3)
+        new web3.BigNumber(3),
+        toHex(""),
+        false
       ]);
 
       validatorData[10] = miningKey3;
@@ -434,7 +466,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex(""),
+        false
       ]);
       logs[0].event.should.be.equal("ChangeRequestInitiated");
       logs[0].args.miningKey.should.be.equal(miningKey);
@@ -476,7 +510,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
-        new web3.BigNumber(0)
+        new web3.BigNumber(0),
+        '0x0000000000000000000000000000000000000000000000000000000000000000',
+        false
       ]);
       const validators = await metadata.validators.call(miningKey);
       validators.should.be.deep.equal([
@@ -489,7 +525,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex("info@poa.net"),
+        false
       ]);
       logs[0].event.should.be.equal("ChangeRequestInitiated");
       logs[0].args.miningKey.should.be.equal(miningKey);
@@ -511,7 +549,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex(""),
+        false
       ]);
       const validators = await metadata.validators.call(miningKey);
       validators.should.be.deep.equal([
@@ -524,7 +564,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex("info@poa.net"),
+        false
       ]);
     });
   })
@@ -588,7 +630,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(71),
         new web3.BigNumber(55555),
         new web3.BigNumber(4444),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex(""),
+        false
       ]);
       const pendingChanges = await metadata.pendingChanges.call(miningKey);
       pendingChanges.should.be.deep.equal([
@@ -601,7 +645,9 @@ contract('ValidatorMetadata upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
-        new web3.BigNumber(0)
+        new web3.BigNumber(0),
+        toHex(""),
+        false
       ]);
       logs[0].event.should.be.equal('FinalizedChange');
       logs[0].args.miningKey.should.be.equal(miningKey);

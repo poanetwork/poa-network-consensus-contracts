@@ -27,6 +27,11 @@ async function main() {
 
 	for (let i = 0; i < filenames.length; i++) {
 		const filename = filenames[i];
+
+		if (filename.indexOf('.sol') != filename.length - 4) {
+			continue;
+		}
+
 		const stats = fs.statSync(dir + filename);
 
 		if (stats.isFile()) {
