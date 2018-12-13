@@ -17,10 +17,12 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     bytes32 internal constant PROXY_STORAGE = keccak256("proxyStorage");
 
     bytes32 internal constant CONFIRMATIONS = "confirmations";
+    bytes32 internal constant CONTACT_EMAIL = "contactEmail";
     bytes32 internal constant CREATED_DATE = "createdDate";
     bytes32 internal constant EXPIRATION_DATE = "expirationDate";
     bytes32 internal constant FIRST_NAME = "firstName";
     bytes32 internal constant FULL_ADDRESS = "fullAddress";
+    bytes32 internal constant IS_COMPANY = "isCompany";
     bytes32 internal constant LAST_NAME = "lastName";
     bytes32 internal constant LICENSE_ID = "licenseId";
     bytes32 internal constant MIN_THRESHOLD = "minThreshold";
@@ -102,7 +104,9 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         uint256 expirationDate,
         uint256 createdDate,
         uint256 updatedDate,
-        uint256 minThreshold
+        uint256 minThreshold,
+        bytes32 contactEmail,
+        bool isCompany
     ) {
         return _validators(false, _miningKey);
     }
@@ -117,7 +121,9 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         uint256 expirationDate,
         uint256 createdDate,
         uint256 updatedDate,
-        uint256 minThreshold
+        uint256 minThreshold,
+        bytes32 contactEmail,
+        bool isCompany
     ) {
         return _validators(true, _miningKey);
     }
@@ -134,7 +140,7 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         return boolStorage[INIT_METADATA_DISABLED];
     }
 
-    function initMetadata( // used for migration
+    function initMetadata( // used for migration from v1.0 contracts
         bytes32 _firstName,
         bytes32 _lastName,
         bytes32 _licenseId,
@@ -178,7 +184,9 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         string _fullAddress,
         bytes32 _state,
         bytes32 _zipcode,
-        uint256 _expirationDate
+        uint256 _expirationDate,
+        bytes32 _contactEmail,
+        bool _isCompany
     )
         public
         onlyValidVotingKey(msg.sender)
@@ -199,6 +207,8 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
             0,
             getMinThreshold()
         );
+        _setContactEmail(false, miningKey, _contactEmail);
+        _setIsCompany(false, miningKey, _isCompany);
         emit MetadataCreated(miningKey);
     }
 
@@ -209,11 +219,12 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         string _fullAddress,
         bytes32 _state,
         bytes32 _zipcode,
-        uint256 _expirationDate
+        uint256 _expirationDate,
+        bytes32 _contactEmail,
+        bool _isCompany
     )
         public
         onlyValidVotingKey(msg.sender)
-        returns(bool)
     {
         address miningKey = _getKeysManager().getMiningKeyByVoting(msg.sender);
         _setMetadata(
@@ -230,8 +241,9 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
             getTime(),
             _getMinThreshold(false, miningKey)
         );
+        _setContactEmail(true, miningKey, _contactEmail);
+        _setIsCompany(true, miningKey, _isCompany);
         emit ChangeRequestInitiated(miningKey);
-        return true;
     }
 
     function cancelPendingChange() public onlyValidVotingKey(msg.sender) returns(bool) {
@@ -294,6 +306,8 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         _setCreatedDate(false, _miningKey, _getCreatedDate(true, _miningKey));
         _setUpdatedDate(false, _miningKey, _getUpdatedDate(true, _miningKey));
         _setMinThreshold(false, _miningKey, minThreshold);
+        _setContactEmail(false, _miningKey, _getContactEmail(true, _miningKey));
+        _setIsCompany(false, _miningKey, _getIsCompany(true, _miningKey));
         _deleteMetadata(true, _miningKey);
         emit FinalizedChange(_miningKey);
     }
@@ -314,6 +328,16 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         return IBallotsStorage(IProxyStorage(proxyStorage()).getBallotsStorage());
     }
 
+    function _getContactEmail(bool _pending, address _miningKey)
+        private
+        view
+        returns(bytes32)
+    {
+        return bytes32Storage[keccak256(abi.encode(
+            _storeName(_pending), _miningKey, CONTACT_EMAIL
+        ))];
+    }
+
     function _getFirstName(bool _pending, address _miningKey)
         private
         view
@@ -321,6 +345,16 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
     {
         return bytes32Storage[keccak256(abi.encode(
             _storeName(_pending), _miningKey, FIRST_NAME
+        ))];
+    }
+
+    function _getIsCompany(bool _pending, address _miningKey)
+        private
+        view
+        returns(bool)
+    {
+        return boolStorage[keccak256(abi.encode(
+            _storeName(_pending), _miningKey, IS_COMPANY
         ))];
     }
 
@@ -460,6 +494,8 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         delete uintStorage[keccak256(abi.encode(_store, _miningKey, CREATED_DATE))];
         delete uintStorage[keccak256(abi.encode(_store, _miningKey, UPDATED_DATE))];
         delete uintStorage[keccak256(abi.encode(_store, _miningKey, MIN_THRESHOLD))];
+        delete bytes32Storage[keccak256(abi.encode(_store, _miningKey, CONTACT_EMAIL))];
+        delete boolStorage[keccak256(abi.encode(_store, _miningKey, IS_COMPANY))];
         if (_pending) {
             _confirmationsVotersClear(_miningKey);
         }
@@ -480,12 +516,22 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
             _getUpdatedDate(_pending, _oldMiningKey),
             _getMinThreshold(_pending, _oldMiningKey)
         );
-        
+        _setContactEmail(_pending, _newMiningKey, _getContactEmail(_pending, _oldMiningKey));
+        _setIsCompany(_pending, _newMiningKey, _getIsCompany(_pending, _oldMiningKey));
+
         if (_pending) {
             _confirmationsVotersCopy(_oldMiningKey, _newMiningKey);
         }
 
         _deleteMetadata(_pending, _oldMiningKey);
+    }
+
+    function _setContactEmail(bool _pending, address _miningKey, bytes32 _contactEmail) private {
+        bytes32Storage[keccak256(abi.encode(
+            _storeName(_pending),
+            _miningKey,
+            CONTACT_EMAIL
+        ))] = _contactEmail;
     }
 
     function _setFirstName(bool _pending, address _miningKey, bytes32 _firstName) private {
@@ -494,6 +540,14 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
             _miningKey,
             FIRST_NAME
         ))] = _firstName;
+    }
+
+    function _setIsCompany(bool _pending, address _miningKey, bool _isCompany) private {
+        boolStorage[keccak256(abi.encode(
+            _storeName(_pending),
+            _miningKey,
+            IS_COMPANY
+        ))] = _isCompany;
     }
 
     function _setLastName(bool _pending, address _miningKey, bytes32 _lastName) private {
@@ -647,7 +701,9 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         uint256 expirationDate,
         uint256 createdDate,
         uint256 updatedDate,
-        uint256 minThreshold
+        uint256 minThreshold,
+        bytes32 contactEmail,
+        bool isCompany
     ) {
         firstName = _getFirstName(_pending, _miningKey);
         lastName = _getLastName(_pending, _miningKey);
@@ -659,6 +715,8 @@ contract ValidatorMetadata is EternalStorage, EnumThresholdTypes, IValidatorMeta
         createdDate = _getCreatedDate(_pending, _miningKey);
         updatedDate = _getUpdatedDate(_pending, _miningKey);
         minThreshold = _getMinThreshold(_pending, _miningKey);
+        contactEmail = _getContactEmail(_pending, _miningKey);
+        isCompany = _getIsCompany(_pending, _miningKey);
     }
 
 }

@@ -412,7 +412,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       await addVotingKey(accounts[3], accounts[1], true);
 
       const validatorData = [
-        "Djamshut", "Roosvelt", "123asd", "Moskva", "ZZ", "234", 23423
+        "Djamshut", "Roosvelt", "123asd", "Moskva", "ZZ", "234", 23423, "", false
       ];
       await validatorMetadata.setTime(55555);
       await validatorMetadata.createMetadata(...validatorData, {from: accounts[3]}).should.be.fulfilled;
@@ -426,7 +426,9 @@ contract('KeysManager upgraded [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex(""),
+        false
       ]);
 
       const {logs} = await keysManager.removeMiningKey(accounts[1]).should.be.fulfilled;
@@ -441,7 +443,9 @@ contract('KeysManager upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
-        new web3.BigNumber(0)
+        new web3.BigNumber(0),
+        toHex(""),
+        false
       ]);
       
       const validator = await keysManager.validatorKeys.call(accounts[1]);
@@ -640,7 +644,7 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       await addVotingKey(accounts[5], accounts[1], true);
 
       const validatorData = [
-        "Djamshut", "Roosvelt", "123asd", "Moskva", "ZZ", "234", 23423
+        "Djamshut", "Roosvelt", "123asd", "Moskva", "ZZ", "234", 23423, "", false
       ];
       await validatorMetadata.setTime(55555);
       await validatorMetadata.createMetadata(...validatorData, {from: accounts[5]}).should.be.fulfilled;
@@ -676,7 +680,9 @@ contract('KeysManager upgraded [all features]', function (accounts) {
         new web3.BigNumber(23423),
         new web3.BigNumber(55555),
         new web3.BigNumber(0),
-        new web3.BigNumber(2)
+        new web3.BigNumber(2),
+        toHex(""),
+        false
       ]);
 
       (await validatorMetadata.validators.call(accounts[1])).should.be.deep.equal([
@@ -689,7 +695,9 @@ contract('KeysManager upgraded [all features]', function (accounts) {
         new web3.BigNumber(0),
         new web3.BigNumber(0),
         new web3.BigNumber(0),
-        new web3.BigNumber(0)
+        new web3.BigNumber(0),
+        toHex(""),
+        false
       ]);
     });
     it('should swap MoC', async () => {
