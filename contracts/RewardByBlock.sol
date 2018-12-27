@@ -69,7 +69,7 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
         address miningKey = benefactors[0];
 
         if (miningKey == address(0)) {
-        	// Return empty arrays
+            // Return empty arrays
             return (new address[](0), new uint256[](0));
         }
 
