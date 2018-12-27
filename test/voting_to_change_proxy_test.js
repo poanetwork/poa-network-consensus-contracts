@@ -473,6 +473,15 @@ contract('VotingToChangeProxyAddress [all features]', function (accounts) {
       await deployAndTest({contractType, newAddress})
       newAddress.should.be.equal(await proxyStorageEternalStorage.implementation.call());
     })
+    it('should change RewardByBlock implementation', async () => {
+      const contractType = 9;
+      const rewardByBlockNew = await RewardByBlock.new();
+      const newAddress = rewardByBlockNew.address;
+      await deployAndTest({contractType, newAddress})
+      const eternalProxyAddress = await proxyStorageMock.getRewardByBlock.call();
+      const eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
+      newAddress.should.be.equal(await eternalProxy.implementation.call());
+    })
     it('prevents double finalize', async () => {
       let newAddress1 = accounts[4];
       let newAddress2 = accounts[5];

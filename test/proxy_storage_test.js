@@ -272,6 +272,20 @@ contract('ProxyStorage [all features]', function (accounts) {
         await proxyStorageEternalStorage.version.call()
       );
     })
+    it('sets rewardByBlock', async () => {
+      const rewardByBlockNew = await RewardByBlock.new();
+      
+      await proxyStorage.setVotingToChangeProxyMock(accounts[4]);
+      await setContractAddress(9, rewardByBlockNew.address, true, {from: accounts[4]});
+      await proxyStorage.setVotingToChangeProxyMock(votingToChangeProxyEternalStorage.address);
+      
+      const eternalProxyAddress = await proxyStorage.getRewardByBlock.call();
+      const eternalProxy = await EternalStorageProxy.at(eternalProxyAddress);
+
+      rewardByBlockNew.address.should.be.equal(
+        await eternalProxy.implementation.call()
+      )
+    })
   })
   describe('#upgradeTo', async () => {
     it('may only be called by ProxyStorage (itself)', async () => {

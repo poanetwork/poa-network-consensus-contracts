@@ -52,7 +52,8 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
         BallotsStorage,
         PoaConsensus,
         ValidatorMetadata,
-        ProxyStorage
+        ProxyStorage,
+        RewardByBlock
     }
 
     event ProxyInitialized(
@@ -210,6 +211,10 @@ contract ProxyStorage is EternalStorage, IProxyStorage {
             ).upgradeTo(_contractAddress);
         } else if (_contractType == uint256(ContractTypes.ProxyStorage)) {
             success = IEternalStorageProxy(this).upgradeTo(_contractAddress);
+        } else if (_contractType == uint256(ContractTypes.RewardByBlock)) {
+            success = IEternalStorageProxy(
+                getRewardByBlock()
+            ).upgradeTo(_contractAddress);
         }
         if (success) {
             emit AddressSet(_contractType, _contractAddress);
