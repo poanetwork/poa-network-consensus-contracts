@@ -96,7 +96,11 @@ contract PoaNetworkConsensus is IPoaNetworkConsensus {
 
     /// Get current validator set (last enacted or initial if no changes ever made)
     function getValidators() public view returns(address[]) {
-        return currentValidators;
+        if (currentValidators.length == 1 && currentValidators[0] == _moc) {
+            return pendingList;
+        } else {
+            return currentValidators;
+        }
     }
 
     function getPendingList() public view returns(address[]) {
