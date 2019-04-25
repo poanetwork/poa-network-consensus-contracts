@@ -5,6 +5,7 @@ const readline = require('readline');
 const EthereumTx = require('ethereumjs-tx');
 const EthereumUtil = require('ethereumjs-util');
 const solc = require('solc');
+const keythereum = require('keythereum');
 
 const web3 = new Web3(new Web3.providers.HttpProvider(process.env.PROVIDER_URL));
 
@@ -86,6 +87,47 @@ async function call(method, from, to, key, chainId) {
 	}
 }
 
+async function send(from, to, key, chainId) {
+	const gasPrice = web3.utils.toWei('1', 'gwei');
+
+	for (let i = 0; i < 5; i++) {
+		try {
+			const nonce = await web3.eth.getTransactionCount(from);
+			const nonceHex = web3.utils.toHex(nonce);
+			
+			var tx = new EthereumTx({
+				nonce: nonceHex,
+				gasPrice: web3.utils.toHex(gasPrice),
+				gasLimit: web3.utils.toHex('22000'),
+				to: to,
+				value: web3.utils.toHex(web3.utils.toWei('300000', 'gwei')),
+				data: '0x00',
+				chainId: chainId
+			});
+			
+			tx.sign(key);
+
+			const serializedTx = tx.serialize();
+
+			const result = await web3.eth.sendSignedTransaction("0x" + serializedTx.toString('hex'));
+
+			if (result.status !== true) {
+				throw new Error("transaction status is false");
+			}
+
+			return result;
+		} catch (e) {
+			if (e.message.indexOf('nonce is too low') >= 0 || e.message.indexOf('price is too low') >= 0) {
+				console.log('  Transaction failed. Another try in 5 seconds...');
+				await sleep(5000);
+				continue;
+			} else {
+				throw e;
+			}
+		}
+	}
+}
+
 async function readPrivateKey() {
 	return new Promise((resolve, reject) => {
 		var mutableStdout = new Writable({
@@ -105,11 +147,16 @@ async function readPrivateKey() {
 			terminal: true
 		});
 
-		readlineInterface.question('Enter your private key: ', (privateKey) => {
+		readlineInterface.question('Enter key password: ', (pwd) => {
 			readlineInterface.close();
 			console.log('');
 			console.log('');
-			resolve(privateKey);
+
+			const keystore = require(process.cwd() + '/keystore/moc.json');
+			const mocAddress = `0x${keystore.address}`;
+			const privateKey = keythereum.recover(pwd, keystore).toString('hex');
+
+			resolve({privateKey, mocAddress});
 		});
 		
 		mutableStdout.muted = true;
@@ -124,6 +171,7 @@ module.exports = {
 	compile,
 	deploy,
 	call,
+	send,
 	readPrivateKey,
 	sleep
 }

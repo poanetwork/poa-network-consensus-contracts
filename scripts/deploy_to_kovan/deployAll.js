@@ -20,17 +20,19 @@ main();
 
 async function main() {
 	try {
-		process.env.PRIVATE_KEY = await utils.readPrivateKey();
+		const {privateKey, mocAddress} = await utils.readPrivateKey();
+
+		process.env.PRIVATE_KEY = privateKey;
+		process.env.MOC = EthereumUtil.toChecksumAddress(mocAddress);
 
 		const key = Buffer.from(process.env.PRIVATE_KEY, 'hex');
 		const sender = '0x' + EthereumUtil.privateToAddress(key).toString('hex');
 		const chainId = web3.utils.toHex(await web3.eth.net.getId());
 
-		/*
-		console.log('PoaNetworkConsensus deploy...');
+		console.log('PoaNetworkConsensus deployment...');
 		const poaCompiled = await utils.compile('../../contracts/', 'PoaNetworkConsensus');
 		process.env.POA_CONSENSUS_NEW_ADDRESS = await utils.deploy(
-			'PoaNetworkConsensus', poaCompiled, sender, key, chainId, [constants.MOC, []]
+			'PoaNetworkConsensus', poaCompiled, sender, key, chainId, [process.env.MOC, []]
 		);
 		console.log(`  PoaNetworkConsensus address is ${process.env.POA_CONSENSUS_NEW_ADDRESS}`);
 		const poaNewInstance = new web3.eth.Contract(poaCompiled.abi, process.env.POA_CONSENSUS_NEW_ADDRESS);
@@ -50,16 +52,16 @@ async function main() {
 				false.should.be.equal(
 					await poaNewInstance.methods.isMasterOfCeremonyRemovedPending().call()
 				);
-				constants.MOC.should.be.equal(
-					await poaNewInstance.methods.masterOfCeremony().call()
+				process.env.MOC.toLowerCase().should.be.equal(
+					(await poaNewInstance.methods.masterOfCeremony().call()).toLowerCase()
 				);
 				(await poaNewInstance.methods.masterOfCeremonyPending().call()).should.be.equal(
 					'0x0000000000000000000000000000000000000000'
 				);
-				[constants.MOC].should.be.deep.equal(
+				[process.env.MOC].should.be.deep.equal(
 					await poaNewInstance.methods.getValidators().call()
 				);
-				[constants.MOC].should.be.deep.equal(
+				[process.env.MOC].should.be.deep.equal(
 					await poaNewInstance.methods.getPendingList().call()
 				);
 				(await poaNewInstance.methods.getCurrentValidatorsLength().call()).should.be.bignumber.equal(1);
@@ -79,7 +81,7 @@ async function main() {
 		console.log('Success');
 		console.log('');
 
-		console.log('ProxyStorage deploy...');
+		console.log('ProxyStorage deployment...');
 		const proxyStorageCompiled = await utils.compile('../../contracts/', 'ProxyStorage');
 		const proxyStorageImplAddress = await utils.deploy('ProxyStorage', proxyStorageCompiled, sender, key, chainId);
 		console.log(`  ProxyStorage implementation address is ${proxyStorageImplAddress}`);
@@ -135,17 +137,15 @@ async function main() {
 
 		console.log('Success');
 		console.log('');
-		*/
-
-		process.env.PROXY_STORAGE_NEW_ADDRESS = '0xB9EC4bB143d6229143D34408700e53E25c843AcC';
-		process.env.POA_CONSENSUS_NEW_ADDRESS = '0x6636D01561Bbd0494093cE44256c32ADb3feB162';
 
 		const {
 			keysManagerNewAddress,
 			keysManagerNewAbi
 		} = await runExternalScript('./deployKeys.js');
 
-		/*
+		process.env.KEYS_MANAGER_NEW_ADDRESS = keysManagerNewAddress;
+		process.env.KEYS_MANAGER_NEW_ABI = JSON.stringify(keysManagerNewAbi);
+
 		const {
 			ballotsStorageNewAddress,
 			ballotsStorageNewAbi,
@@ -155,8 +155,8 @@ async function main() {
 			votingToChangeMinThresholdNewAbi,
 			votingToChangeProxyNewAddress,
 			votingToChangeProxyNewAbi
-		} = await runExternalScript('./migrateVotings.js');
-		
+		} = await runExternalScript('./deployVotings.js');
+
 		console.log('Deploy ValidatorMetadata...');
 		const metadataCompiled = await utils.compile('../../contracts/', 'ValidatorMetadata');
 		const metadataImplAddress = await utils.deploy('ValidatorMetadata', metadataCompiled, sender, key, chainId);
@@ -211,7 +211,7 @@ async function main() {
 		console.log('VotingToManageEmissionFunds.init...');
 		const distributionThreshold = 604800; // seven days, in seconds
 		const emissionReleaseThreshold = 7776000; // three months, in seconds
-		const emissionReleaseTime = 1550509200; // Monday, 18-Feb-2019 17:00:00 UTC (unix timestamp)
+		const emissionReleaseTime = 1577836800; // 01-Jan-2020 00:00:00 UTC (unix timestamp)
 		init = votingToManageEmissionFundsInstance.methods.init(
 			emissionReleaseTime,
 			emissionReleaseThreshold,
@@ -337,10 +337,15 @@ async function main() {
 		console.log('Success');
 		console.log('');
 
-		await runExternalScript('./migrateMetadataNew.js');
+		await runExternalScript('./addValidators.js');
+
+		console.log('Disable migrations feature of the ValidatorMetadata contract...');
+		await utils.call(validatorMetadataNewInstance.methods.initMetadataDisable(), sender, process.env.METADATA_NEW_ADDRESS, key, chainId);
+		true.should.be.equal(await validatorMetadataNewInstance.methods.initMetadataDisabled().call());
+		console.log('');
 
 		console.log('Save contracts.json...');
-		const networkPath = `./${process.env.NETWORK}`;
+		const networkPath = `./kovan`;
 		const contractsJSONPath = `${networkPath}/contracts.json`;
 		const contractsJSONContent =
 `{
@@ -355,7 +360,7 @@ async function main() {
 	"POA_ADDRESS": "${process.env.POA_CONSENSUS_NEW_ADDRESS}",
 	"EMISSION_FUNDS_ADDRESS": "${emissionFundsAddress}",
 	"REWARD_BY_BLOCK_ADDRESS": "${rewardByBlockAddress}",
-	"MOC": "${mocAddress}"
+	"MOC": "${process.env.MOC}"
 }`;
 		if (!fs.existsSync(networkPath)) fs.mkdirSync(networkPath);
 		fs.writeFileSync(contractsJSONPath, contractsJSONContent);
@@ -379,10 +384,9 @@ async function main() {
 		console.log('Success');
 		console.log('');
 
-		console.log(`Deployment and migration to ${process.env.NETWORK.toUpperCase()} network are successful.`);
+		console.log(`Deployment to Kovan network is successful.`);
 		console.log(`New addresses have been saved to ${contractsJSONPath}`);
 		console.log(`New ABIs have been saved to ${abisPath}`);
-		*/
 	} catch (err) {
 		console.log(err);
 	}

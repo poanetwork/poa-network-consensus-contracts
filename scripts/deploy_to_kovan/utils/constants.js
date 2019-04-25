@@ -1,5 +1,4 @@
 module.exports = {
-	MOC: '0x1092a1E3A3F2FB2024830Dd12064a4B33fF8EbAe',
 	VALIDATOR: [
 		{ // POA Network
 			mining: '0x03801efb0efe2a25ede5dd3a003ae880c0292e4d',
