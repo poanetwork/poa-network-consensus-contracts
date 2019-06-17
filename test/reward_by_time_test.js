@@ -261,9 +261,10 @@ contract('RewardByTime [all features]', function (accounts) {
       result.logs[0].args.rewards[3].toString().should.be.equal((emissionFundsAmount * 3).toString());
       (await rewardByTime.lastTime.call()).should.be.bignumber.equal(100 + threshold * 7);
       (await rewardByTime.keyIndex.call()).should.be.bignumber.equal(1);
-
-      await addMiningKey(miningKey2);
-      await addPayoutKey(payoutKey2, miningKey2);
+      
+      const miningKey4 = '0x0000000000000000000000000000000000000001';
+      await addMiningKey(miningKey4);
+      await addPayoutKey(payoutKey2, miningKey4);
       await poaNetworkConsensus.setSystemAddress(coinbase);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
       await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
