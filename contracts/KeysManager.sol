@@ -30,6 +30,7 @@ contract KeysManager is EternalStorage, IKeysManager {
     bytes32 internal constant IS_MINING_ACTIVE = "isMiningActive";
     bytes32 internal constant IS_PAYOUT_ACTIVE = "isPayoutActive";
     bytes32 internal constant IS_VOTING_ACTIVE = "isVotingActive";
+    bytes32 internal constant HAS_MINING_KEY_BEEN_REMOVED = "hasMiningKeyBeenRemoved";
     bytes32 internal constant MINING_KEY_BY_PAYOUT = "miningKeyByPayout";
     bytes32 internal constant MINING_KEY_BY_VOTING = "miningKeyByVoting";
     bytes32 internal constant MINING_KEY_HISTORY = "miningKeyHistory";
@@ -346,6 +347,12 @@ contract KeysManager is EternalStorage, IKeysManager {
         ];
     }
 
+    function hasMiningKeyBeenRemoved(address _key) public view returns(bool) {
+        return boolStorage[
+            keccak256(abi.encode(HAS_MINING_KEY_BEEN_REMOVED, _key))
+        ];
+    }
+
     function getMiningKeyHistory(address _miningKey) public view returns(address) {
         return miningKeyHistory(_miningKey);
     }
@@ -358,6 +365,9 @@ contract KeysManager is EternalStorage, IKeysManager {
         if (!_withinTotalLimit()) return false;
         if (!initDisabled()) return false;
         if (!IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_key, true)) {
+            return false;
+        }
+        if (hasMiningKeyBeenRemoved(_key)) {
             return false;
         }
         _setVotingKey(address(0), _key);
@@ -402,6 +412,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setMiningKeyByPayout(payoutKey, address(0));
         _clearMiningKey(_key);
         _getValidatorMetadata().clearMetadata(_key);
+        _setHasMiningKeyBeenRemoved(_key);
         emit MiningKeyChanged(_key, "removed");
         if (votingKey != address(0)) {
             emit VotingKeyChanged(votingKey, _key, "removed");
@@ -597,6 +608,12 @@ contract KeysManager is EternalStorage, IKeysManager {
         boolStorage[
             keccak256(abi.encode(SUCCESSFUL_VALIDATOR_CLONE, _miningKey))
         ] = _success;
+    }
+
+    function _setHasMiningKeyBeenRemoved(address _key) internal {
+        boolStorage[
+            keccak256(abi.encode(HAS_MINING_KEY_BEEN_REMOVED, _key))
+        ] = true;
     }
 
     function _withinTotalLimit() private view returns(bool) {
