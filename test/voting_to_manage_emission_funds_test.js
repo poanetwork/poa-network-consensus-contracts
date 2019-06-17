@@ -247,6 +247,13 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG);
     });
+    it('ballot duration must be greater than min ballot duration', async () => {
+      VOTING_START_DATE = moment.utc().add(31 * 60, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(31 * 60 + minBallotDuration - 1, 'seconds').unix();
+      await voting.createBallot(
+        VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
+    });
     it('receiver address should not be 0x0', async () => {
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, '0x0000000000000000000000000000000000000000', "memo", {from: votingKey}
