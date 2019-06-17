@@ -296,6 +296,21 @@ contract('KeysManager upgraded [all features]', function (accounts) {
       logs[0].args.key.should.be.equal(accounts[2]);
       logs[0].args.action.should.be.equal('added');
     })
+    it('cannot add removed mining key', async () => {
+      let data;
+      const key = accounts[3];
+
+      data = await keysManager.addMiningKey(key).should.be.fulfilled;
+      data.logs[0].event.should.be.equal('MiningKeyChanged');
+      data.logs[0].args.action.should.be.equal('added');
+
+      data = await keysManager.removeMiningKey(key).should.be.fulfilled;
+      data.logs[0].event.should.be.equal('MiningKeyChanged');
+      data.logs[0].args.action.should.be.equal('removed');
+
+      data = await keysManager.addMiningKey(key).should.be.fulfilled;
+      (data.logs[0] === undefined).should.be.equal(true);
+    })
   })
 
   describe('#addVotingKey', async () => {
