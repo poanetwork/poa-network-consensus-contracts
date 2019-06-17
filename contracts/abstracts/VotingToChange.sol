@@ -8,7 +8,6 @@ import "./VotingTo.sol";
 contract VotingToChange is VotingTo {
     bytes32 internal constant ACTIVE_BALLOTS = keccak256("activeBallots");
     bytes32 internal constant MIGRATE_DISABLED = keccak256("migrateDisabled");
-    bytes32 internal constant MIN_BALLOT_DURATION = keccak256("minBallotDuration");
 
     bytes32 internal constant INDEX = "index";
     bytes32 internal constant FINALIZE_CALLED = "finalizeCalled";
@@ -18,15 +17,6 @@ contract VotingToChange is VotingTo {
 
     enum QuorumStates {Invalid, InProgress, Accepted, Rejected}
     enum ActionChoice {Invalid, Accept, Reject}
-
-    modifier onlyValidTime(uint256 _startTime, uint256 _endTime) {
-        require(_startTime > 0 && _endTime > 0);
-        require(_endTime > _startTime && _startTime > getTime());
-        uint256 diffTime = _endTime.sub(_startTime);
-        require(diffTime > minBallotDuration());
-        require(diffTime <= maxBallotDuration());
-        _;
-    }
 
     function activeBallots(uint256 _index) public view returns(uint256) {
         return uintArrayStorage[ACTIVE_BALLOTS][_index];
@@ -47,10 +37,6 @@ contract VotingToChange is VotingTo {
 
     function getIndex(uint256 _id) public view returns(uint256) {
         return uintStorage[keccak256(abi.encode(VOTING_STATE, _id, INDEX))];
-    }
-
-    function maxBallotDuration() public pure returns(uint256) {
-        return 14 days;
     }
 
     function migrateBasicAll(address _prevVotingToChange) public onlyOwner {
@@ -90,10 +76,6 @@ contract VotingToChange is VotingTo {
 
     function migrateDisabled() public view returns(bool) {
         return boolStorage[MIGRATE_DISABLED];
-    }
-
-    function minBallotDuration() public view returns(uint256) {
-        return uintStorage[MIN_BALLOT_DURATION];
     }
 
     function validatorActiveBallots(address _miningKey) public view returns(uint256) {
@@ -171,7 +153,6 @@ contract VotingToChange is VotingTo {
     )
         internal
         onlyValidVotingKey(msg.sender)
-        onlyValidTime(_startTime, _endTime)
         returns(uint256)
     {
         require(migrateDisabled());
@@ -259,11 +240,8 @@ contract VotingToChange is VotingTo {
     }
 
     function _init(uint256 _minBallotDuration) internal onlyOwner {
-        require(!initDisabled());
         require(!migrateDisabled());
-        require(_minBallotDuration < maxBallotDuration());
-        uintStorage[MIN_BALLOT_DURATION] = _minBallotDuration;
-        boolStorage[INIT_DISABLED] = true;
+        super._init(_minBallotDuration);
     }
 
     function _setIndex(uint256 _ballotId, uint256 _value) internal {
