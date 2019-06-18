@@ -99,23 +99,23 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       emissionReleaseTime,
       emissionReleaseThreshold,
       distributionThreshold,
-      emissionFunds.address,
       minBallotDuration,
+      emissionFunds.address,
       {from: accounts[8]}
     ).should.be.rejectedWith(ERROR_MSG);
     await voting.init(
       emissionReleaseTime,
       emissionReleaseThreshold,
       300,
-      emissionFunds.address,
-      minBallotDuration
+      minBallotDuration,
+      emissionFunds.address
     ).should.be.rejectedWith(ERROR_MSG);
     await voting.init(
       emissionReleaseTime,
       emissionReleaseThreshold,
       distributionThreshold,
-      emissionFunds.address,
-      minBallotDuration
+      minBallotDuration,
+      emissionFunds.address
     ).should.be.fulfilled;
 
     rewardByBlock = await RewardByBlock.new();
@@ -165,8 +165,8 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
         emissionReleaseTime,
         emissionReleaseThreshold,
         distributionThreshold,
-        emissionFunds.address,
-        minBallotDuration
+        minBallotDuration,
+        emissionFunds.address
       ).should.be.rejectedWith(ERROR_MSG);
     });
   });
@@ -1055,8 +1055,8 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
         emissionReleaseTime,
         emissionReleaseThreshold,
         distributionThreshold,
-        emissionFunds.address,
-        minBallotDuration
+        minBallotDuration,
+        emissionFunds.address
       ).should.be.fulfilled;
     });
     it('may only be called by ProxyStorage', async () => {

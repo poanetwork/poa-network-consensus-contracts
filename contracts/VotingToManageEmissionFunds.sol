@@ -163,13 +163,14 @@ contract VotingToManageEmissionFunds is VotingTo {
         uint256 _emissionReleaseTime, // unix timestamp
         uint256 _emissionReleaseThreshold, // seconds
         uint256 _distributionThreshold, // seconds
-        address _emissionFunds,
-        uint256 _minBallotDuration
+        uint256 _minBallotDuration, // seconds
+        address _emissionFunds
     ) public onlyOwner {
         require(_emissionReleaseTime > getTime());
         require(_emissionReleaseThreshold > 0);
         require(_distributionThreshold > ballotCancelingThreshold());
         require(_emissionReleaseThreshold > _distributionThreshold);
+        require(_minBallotDuration < _distributionThreshold);
         require(_emissionFunds != address(0));
         _init(_minBallotDuration);
         _setNoActiveBallotExists(true);

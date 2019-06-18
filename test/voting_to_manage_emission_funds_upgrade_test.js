@@ -99,23 +99,23 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       emissionReleaseTime,
       emissionReleaseThreshold,
       distributionThreshold,
-      emissionFunds.address,
       minBallotDuration,
+      emissionFunds.address,
       {from: accounts[8]}
     ).should.be.rejectedWith(ERROR_MSG);
     await voting.init(
       emissionReleaseTime,
       emissionReleaseThreshold,
       300,
-      emissionFunds.address,
-      minBallotDuration
+      minBallotDuration,
+      emissionFunds.address
     ).should.be.rejectedWith(ERROR_MSG);
     await voting.init(
       emissionReleaseTime,
       emissionReleaseThreshold,
       distributionThreshold,
-      emissionFunds.address,
-      minBallotDuration
+      minBallotDuration,
+      emissionFunds.address
     ).should.be.fulfilled;
 
     rewardByBlock = await RewardByBlock.new();
@@ -172,8 +172,8 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
         emissionReleaseTime,
         emissionReleaseThreshold,
         distributionThreshold,
-        emissionFunds.address,
-        minBallotDuration
+        minBallotDuration,
+        emissionFunds.address
       ).should.be.rejectedWith(ERROR_MSG);
     });
   });
