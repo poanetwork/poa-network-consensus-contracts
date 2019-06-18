@@ -14,6 +14,7 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
 
     bytes32 internal constant OWNER = keccak256("owner");
     bytes32 internal constant INIT_DISABLED = keccak256("initDisabled");
+    bytes32 internal constant MIN_BALLOT_DURATION = keccak256("minBallotDuration");
     bytes32 internal constant NEXT_BALLOT_ID = keccak256("nextBallotId");
     bytes32 internal constant PROXY_STORAGE = keccak256("proxyStorage");
 
@@ -26,7 +27,6 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
     bytes32 internal constant START_TIME = "startTime";
     bytes32 internal constant VOTERS = "voters";
     bytes32 internal constant VOTING_STATE = "votingState";
-    bytes32 internal constant MIN_BALLOT_DURATION = keccak256("minBallotDuration");
 
     event BallotCreated(
         uint256 indexed id,

@@ -253,6 +253,10 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG);
+      VOTING_END_DATE = moment.utc().add(31 * 60 + minBallotDuration + 1, 'seconds').unix();
+      await voting.createBallot(
+        VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
+      ).should.be.fulfilled;
     });
     it('receiver address should not be 0x0', async () => {
       await voting.createBallot(

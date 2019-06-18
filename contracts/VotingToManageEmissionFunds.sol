@@ -56,7 +56,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         if (_getIsFinalized(_id)) return false;
         if (noActiveBallotExists()) return false;
         if (_withinCancelingThreshold(_id)) return false;
-        if (diffTime < minBallotDuration()) return false;
+        if (diffTime <= minBallotDuration()) return false;
 
         return true;
     }
@@ -80,9 +80,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         address _receiver,
         string _memo
     ) public onlyValidVotingKey(msg.sender) {
-        require(_startTime > 0 && _endTime > 0);
         uint256 currentTime = getTime();
-        require(_endTime > _startTime && _startTime > currentTime);
         uint256 releaseTimeSnapshot = emissionReleaseTime();
         uint256 releaseTime = refreshEmissionReleaseTime();
         require(currentTime >= releaseTime);
@@ -168,7 +166,6 @@ contract VotingToManageEmissionFunds is VotingTo {
         address _emissionFunds,
         uint256 _minBallotDuration
     ) public onlyOwner {
-        require(!initDisabled());
         require(_emissionReleaseTime > getTime());
         require(_emissionReleaseThreshold > 0);
         require(_distributionThreshold > ballotCancelingThreshold());
@@ -180,7 +177,6 @@ contract VotingToManageEmissionFunds is VotingTo {
         addressStorage[EMISSION_FUNDS] = _emissionFunds;
         uintStorage[EMISSION_RELEASE_THRESHOLD] = _emissionReleaseThreshold;
         uintStorage[DISTRIBUTION_THRESHOLD] = _distributionThreshold;
-        boolStorage[INIT_DISABLED] = true;
     }
 
     function noActiveBallotExists() public view returns(bool) {
