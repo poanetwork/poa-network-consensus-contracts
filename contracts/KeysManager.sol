@@ -364,10 +364,10 @@ contract KeysManager is EternalStorage, IKeysManager {
     function addMiningKey(address _key) public onlyVotingToChangeKeys returns(bool) {
         if (!_withinTotalLimit()) return false;
         if (!initDisabled()) return false;
-        if (!IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_key, true)) {
+        if (hasMiningKeyBeenRemoved(_key)) {
             return false;
         }
-        if (hasMiningKeyBeenRemoved(_key)) {
+        if (!IPoaNetworkConsensus(poaNetworkConsensus()).addValidator(_key, true)) {
             return false;
         }
         _setVotingKey(address(0), _key);

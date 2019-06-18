@@ -46,6 +46,7 @@ contract VotingToChangeKeys is VotingToChange, EnumKeyTypes {
         address _newPayoutKey
     ) public returns(uint256) {
         IKeysManager keysManager = _getKeysManager();
+        require(!keysManager.hasMiningKeyBeenRemoved(_newMiningKey));
         require(keysManager.miningKeyByVoting(_newVotingKey) == address(0));
         require(keysManager.miningKeyByPayout(_newPayoutKey) == address(0));
         require(_newVotingKey != _newMiningKey);
