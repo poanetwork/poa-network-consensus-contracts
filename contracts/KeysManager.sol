@@ -85,6 +85,10 @@ contract KeysManager is EternalStorage, IKeysManager {
             return true;
         }
 
+        if (hasMiningKeyBeenRemoved(_newKey)) {
+            return true;
+        }
+
         if (_currentKey == address(0)) {
             return false;
         }
@@ -446,6 +450,9 @@ contract KeysManager is EternalStorage, IKeysManager {
     {
         if (_key == _oldMiningKey) return false;
         if (!isMiningActive(_oldMiningKey)) return false;
+        if (hasMiningKeyBeenRemoved(_key)) {
+            return false;
+        }
         if (!IPoaNetworkConsensus(poaNetworkConsensus()).swapValidatorKey(_key, _oldMiningKey)) {
             return false;
         }
@@ -461,6 +468,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setMiningKeyByVoting(votingKey, _key);
         _setMiningKeyByPayout(payoutKey, _key);
         _getValidatorMetadata().moveMetadata(_oldMiningKey, _key);
+        _setHasMiningKeyBeenRemoved(_key);
         emit MiningKeyChanged(_key, "swapped");
         return true;
     }
@@ -610,7 +618,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         ] = _success;
     }
 
-    function _setHasMiningKeyBeenRemoved(address _key) internal {
+    function _setHasMiningKeyBeenRemoved(address _key) private {
         boolStorage[
             keccak256(abi.encode(HAS_MINING_KEY_BEEN_REMOVED, _key))
         ] = true;
