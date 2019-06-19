@@ -468,7 +468,7 @@ contract KeysManager is EternalStorage, IKeysManager {
         _setMiningKeyByVoting(votingKey, _key);
         _setMiningKeyByPayout(payoutKey, _key);
         _getValidatorMetadata().moveMetadata(_oldMiningKey, _key);
-        _setHasMiningKeyBeenRemoved(_key);
+        _setHasMiningKeyBeenRemoved(_oldMiningKey);
         emit MiningKeyChanged(_key, "swapped");
         return true;
     }

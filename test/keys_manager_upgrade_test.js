@@ -715,6 +715,11 @@ contract('KeysManager upgraded [all features]', function (accounts) {
         false
       ]);
     });
+    it('cannot swap to removed mining key', async () => {
+      await addMiningKey(accounts[1], true);
+      await swapMiningKey(accounts[2], accounts[1], true);
+      await swapMiningKey(accounts[1], accounts[2], false);
+    })
     it('should swap MoC', async () => {
       (await keysManager.masterOfCeremony.call()).should.be.equal(masterOfCeremony);
       (await poaNetworkConsensusMock.masterOfCeremony.call()).should.be.equal(masterOfCeremony);

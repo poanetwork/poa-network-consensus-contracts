@@ -656,56 +656,6 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       await voting.vote(id, choice.send, {from: votingKey3}).should.be.rejectedWith(ERROR_MSG);
     });
 
-    it('should not let vote with old miningKey', async () => {
-      await addValidator(votingKey2, miningKey2);
-
-      await voting.setTime(VOTING_START_DATE);
-      await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
-      false.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
-
-      await proxyStorage.setVotingContractMock(coinbase);
-      const {logs} = await keysManager.swapMiningKey(miningKey3, miningKey);
-      logs[0].event.should.equal("MiningKeyChanged");
-      await proxyStorage.setVotingContractMock(votingForKeysEternalStorage.address);
-      await poaNetworkConsensus.setSystemAddress(coinbase);
-      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
-      await voting.vote(id, choice.send, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
-
-      await proxyStorage.setVotingContractMock(coinbase);
-      await swapVotingKey(votingKey3, miningKey3);
-      await proxyStorage.setVotingContractMock(votingForKeysEternalStorage.address);
-      await voting.vote(id, choice.send, {from: votingKey3}).should.be.rejectedWith(ERROR_MSG);
-
-      await voting.vote(id, choice.send, {from: votingKey2}).should.be.fulfilled;
-      true.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
-
-      id = await voting.nextBallotId.call();
-      VOTING_START_DATE += emissionReleaseThreshold;
-      VOTING_END_DATE += emissionReleaseThreshold;
-      await voting.setTime(VOTING_START_DATE - 5*60);
-      await voting.createBallot(
-        VOTING_START_DATE, VOTING_END_DATE, receiver, "memo", {from: votingKey2}
-      ).should.be.fulfilled;
-
-      await voting.setTime(VOTING_START_DATE + 11*60);
-      await voting.vote(id, choice.send, {from: votingKey3}).should.be.fulfilled;
-      false.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
-
-      await proxyStorage.setVotingContractMock(coinbase);
-      let result = await keysManager.swapMiningKey(miningKey, miningKey3);
-      result.logs[0].event.should.equal("MiningKeyChanged");
-      await swapVotingKey(votingKey, miningKey);
-      await proxyStorage.setVotingContractMock(votingForKeysEternalStorage.address);
-      await poaNetworkConsensus.setSystemAddress(coinbase);
-      await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
-      await poaNetworkConsensus.setSystemAddress('0xffffFFFfFFffffffffffffffFfFFFfffFFFfFFfE');
-      await voting.vote(id, choice.send, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
-
-      await voting.vote(id, choice.send, {from: votingKey2}).should.be.fulfilled;
-      true.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
-    });
-
     it('should not let vote if ballot is canceled', async () => {
       await voting.setTime(moment.utc().add(20, 'minutes').unix());
       const {logs} = await voting.cancelNewBallot({from: votingKey}).should.be.fulfilled;
