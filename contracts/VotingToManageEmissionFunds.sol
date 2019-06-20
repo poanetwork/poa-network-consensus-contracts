@@ -219,7 +219,11 @@ contract VotingToManageEmissionFunds is VotingTo {
             IProxyStorage(proxyStorage()).getPoaConsensus()
         ).getCurrentValidatorsLengthWithoutMoC();
         
-        if (getTotalVoters(_id) >= validatorsLength && !_withinCancelingThreshold(_id)) {
+        if (
+            getTotalVoters(_id) >= validatorsLength &&
+            !_withinCancelingThreshold(_id) &&
+            getTime().sub(_getStartTime(_id)) > minBallotDuration()
+        ) {
             _finalize(_id);
         }
     }
