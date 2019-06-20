@@ -114,6 +114,13 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       emissionReleaseTime,
       emissionReleaseThreshold,
       distributionThreshold,
+      distributionThreshold + 1,
+      emissionFunds.address
+    ).should.be.rejectedWith(ERROR_MSG); // minBallotDuration can't be more than distributionThreshold
+    await voting.init(
+      emissionReleaseTime,
+      emissionReleaseThreshold,
+      distributionThreshold,
       minBallotDuration,
       emissionFunds.address
     ).should.be.fulfilled;
@@ -731,6 +738,18 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
 
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(id, choice.send, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+    });
+
+    it('should be finalized if elapsed time is greater than minBallotDuration', async () => {
+      await voting.setTime(VOTING_START_DATE + minBallotDuration + 1);
+      await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
+      true.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
+    });
+
+    it('should not be finalized if elapsed time is less than minBallotDuration', async () => {
+      await voting.setTime(VOTING_START_DATE + minBallotDuration - 1);
+      await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
+      false.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
     });
   });
 
