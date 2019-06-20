@@ -297,6 +297,29 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
         {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG)
     })
+    it('cannot create a ballot with earlier removed mining key', async () => {
+      await proxyStorageMock.setVotingContractMock(accounts[0]);
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(10, 'days').unix();
+
+      await addMiningKey(accounts[1]);
+      await addVotingKey(votingKey, accounts[1]);
+
+      await addMiningKey(accounts[2]);
+      const {logs} = await keysManager.removeMiningKey(accounts[2]);
+      logs[0].event.should.be.equal("MiningKeyChanged");
+      
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,
+        1,
+        "memo",
+        accounts[2], // _affectedKey
+        accounts[1],
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
+    })
   })
 
   describe('#createBallotToAddNewValidator', async () => {
@@ -517,6 +540,42 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
       (await poaNetworkConsensusMock.getCurrentValidatorsLength.call()).should.be.bignumber.equal(4);
       await poaNetworkConsensusMock.finalizeChange().should.be.fulfilled;
       (await poaNetworkConsensusMock.getCurrentValidatorsLength.call()).should.be.bignumber.equal(4);
+    });
+
+    it('cannot create a ballot with earlier removed mining key', async () => {
+      await proxyStorageMock.setVotingContractMock(accounts[0]);
+      let data = await keysManager.removePayoutKey(miningKeyForVotingKey);
+      data.logs[0].event.should.be.equal("PayoutKeyChanged");
+
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(10, 'days').unix();
+      
+      await addMiningKey(accounts[3]);
+      await addVotingKey(accounts[4], accounts[3]);
+
+      await addMiningKey(accounts[5]);
+      data = await keysManager.removeMiningKey(accounts[5]);
+      data.logs[0].event.should.be.equal("MiningKeyChanged");
+
+      await voting.createBallotToAddNewValidator(
+        VOTING_START_DATE, // _startTime
+        VOTING_END_DATE,   // _endTime
+        "memo",            // _memo
+        accounts[5],       // _newMiningKey
+        accounts[6],       // _newVotingKey
+        accounts[7],       // _newPayoutKey
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
+
+      await voting.createBallotToAddNewValidator(
+        VOTING_START_DATE, // _startTime
+        VOTING_END_DATE,   // _endTime
+        "memo",            // _memo
+        accounts[8],       // _newMiningKey
+        accounts[6],       // _newVotingKey
+        accounts[7],       // _newPayoutKey
+        {from: votingKey}
+      ).should.be.fulfilled;
     });
   });
 
