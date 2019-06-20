@@ -44,20 +44,14 @@ contract VotingToManageEmissionFunds is VotingTo {
 
     // solhint-disable code-complexity
     function canBeFinalizedNow(uint256 _id) public view returns(bool) {
-        uint256 currentTime = getTime();
-        uint256 startTime = _getStartTime(_id);
-        uint256 diffTime = currentTime.sub(startTime);
-
         if (_id >= nextBallotId()) return false;
         if (_id != nextBallotId().sub(1)) return false;
-        if (startTime > currentTime) return false;
+        if (_getStartTime(_id) > getTime()) return false;
         if (isActive(_id)) return false;
         if (_getIsCanceled(_id)) return false;
         if (_getIsFinalized(_id)) return false;
         if (noActiveBallotExists()) return false;
         if (_withinCancelingThreshold(_id)) return false;
-        if (diffTime <= minBallotDuration()) return false;
-
         return true;
     }
     // solhint-enable code-complexity
