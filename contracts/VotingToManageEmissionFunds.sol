@@ -167,7 +167,6 @@ contract VotingToManageEmissionFunds is VotingTo {
         address _emissionFunds
     ) public onlyOwner {
         require(_emissionReleaseTime > getTime());
-        require(_emissionReleaseThreshold > 0);
         require(_distributionThreshold > ballotCancelingThreshold());
         require(_emissionReleaseThreshold > _distributionThreshold);
         require(_minBallotDuration < _distributionThreshold);
