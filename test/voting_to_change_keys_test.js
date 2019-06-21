@@ -290,7 +290,7 @@ contract('Voting to change keys [all features]', function (accounts) {
         {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG)
     })
-    it('cannot create a ballot with earlier removed mining key', async () => {
+    it('cannot create a ballot for adding removed key', async () => {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
@@ -305,13 +305,58 @@ contract('Voting to change keys [all features]', function (accounts) {
       await voting.createBallot(
         VOTING_START_DATE,
         VOTING_END_DATE,
-        1,
+        1,                      // _ballotType (KeyAdding)
         1,
         "memo",
-        accounts[2], // _affectedKey
+        accounts[2],            // _affectedKey
+        '0x0000000000000000000000000000000000000000',
+        {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
+
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        1,                      // _ballotType (KeyAdding)
+        1,
+        "memo",
+        accounts[3],            // _affectedKey
+        '0x0000000000000000000000000000000000000000',
+        {from: votingKey}
+      ).should.be.fulfilled;
+    })
+    it('cannot create a ballot for swapping to removed key', async () => {
+      await proxyStorageMock.setVotingContractMock(accounts[0]);
+      VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(10, 'days').unix();
+
+      await addMiningKey(accounts[1]);
+      await addVotingKey(votingKey, accounts[1]);
+
+      await addMiningKey(accounts[2]);
+      const {logs} = await keysManager.removeMiningKey(accounts[2]);
+      logs[0].event.should.be.equal("MiningKeyChanged");
+      
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        3,                      // _ballotType (KeySwap)
+        1,
+        "memo",
+        accounts[2],            // _affectedKey
         accounts[1],
         {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG);
+
+      await voting.createBallot(
+        VOTING_START_DATE,
+        VOTING_END_DATE,
+        3,                      // _ballotType (KeySwap)
+        1,
+        "memo",
+        accounts[3],            // _affectedKey
+        accounts[1],
+        {from: votingKey}
+      ).should.be.fulfilled;
     })
   })
 
