@@ -20,6 +20,7 @@ interface IKeysManager {
     function isMiningActive(address) external view returns(bool);
     function isVotingActive(address) external view returns(bool);
     function isPayoutActive(address) external view returns(bool);
+    function hasMiningKeyBeenRemoved(address) external view returns(bool);
     function getVotingByMining(address) external view returns(address);
     function getPayoutByMining(address) external view returns(address);
     function getTime() external view returns(uint256);

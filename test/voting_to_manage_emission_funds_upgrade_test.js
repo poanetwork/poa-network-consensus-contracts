@@ -688,7 +688,7 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       await voting.vote(id, choice.send, {from: votingKey3}).should.be.rejectedWith(ERROR_MSG);
     });
 
-    it('should not let vote with old miningKey', async () => {
+    it('should not let the same user to re-vote with another miningKey', async () => {
       await addValidator(votingKey2, miningKey2);
 
       await voting.setTime(VOTING_START_DATE + minBallotDuration + 1);
@@ -725,9 +725,9 @@ contract('VotingToManageEmissionFunds upgraded [all features]', function (accoun
       false.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
 
       await proxyStorage.setVotingContractMock(coinbase);
-      let result = await keysManager.swapMiningKey(miningKey, miningKey3);
+      let result = await keysManager.swapMiningKey(miningKey4, miningKey3);
       result.logs[0].event.should.equal("MiningKeyChanged");
-      await swapVotingKey(votingKey, miningKey);
+      await swapVotingKey(votingKey, miningKey4);
       await proxyStorage.setVotingContractMock(votingForKeysEternalStorage.address);
       await poaNetworkConsensus.setSystemAddress(coinbase);
       await poaNetworkConsensus.finalizeChange().should.be.fulfilled;
