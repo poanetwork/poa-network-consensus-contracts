@@ -74,9 +74,7 @@ contract VotingToManageEmissionFunds is VotingTo {
         address _receiver,
         string _memo
     ) public onlyValidVotingKey(msg.sender) {
-        require(_startTime > 0 && _endTime > 0);
         uint256 currentTime = getTime();
-        require(_endTime > _startTime && _startTime > currentTime);
         uint256 releaseTimeSnapshot = emissionReleaseTime();
         uint256 releaseTime = refreshEmissionReleaseTime();
         require(currentTime >= releaseTime);
@@ -159,20 +157,20 @@ contract VotingToManageEmissionFunds is VotingTo {
         uint256 _emissionReleaseTime, // unix timestamp
         uint256 _emissionReleaseThreshold, // seconds
         uint256 _distributionThreshold, // seconds
+        uint256 _minBallotDuration, // seconds
         address _emissionFunds
     ) public onlyOwner {
-        require(!initDisabled());
         require(_emissionReleaseTime > getTime());
-        require(_emissionReleaseThreshold > 0);
         require(_distributionThreshold > ballotCancelingThreshold());
         require(_emissionReleaseThreshold > _distributionThreshold);
+        require(_minBallotDuration < _distributionThreshold);
         require(_emissionFunds != address(0));
+        _init(_minBallotDuration);
         _setNoActiveBallotExists(true);
         _setEmissionReleaseTime(_emissionReleaseTime);
         addressStorage[EMISSION_FUNDS] = _emissionFunds;
         uintStorage[EMISSION_RELEASE_THRESHOLD] = _emissionReleaseThreshold;
         uintStorage[DISTRIBUTION_THRESHOLD] = _distributionThreshold;
-        boolStorage[INIT_DISABLED] = true;
     }
 
     function noActiveBallotExists() public view returns(bool) {
@@ -215,7 +213,11 @@ contract VotingToManageEmissionFunds is VotingTo {
             IProxyStorage(proxyStorage()).getPoaConsensus()
         ).getCurrentValidatorsLengthWithoutMoC();
         
-        if (getTotalVoters(_id) >= validatorsLength && !_withinCancelingThreshold(_id)) {
+        if (
+            getTotalVoters(_id) >= validatorsLength &&
+            !_withinCancelingThreshold(_id) &&
+            getTime().sub(_getStartTime(_id)) > minBallotDuration()
+        ) {
             _finalize(_id);
         }
     }

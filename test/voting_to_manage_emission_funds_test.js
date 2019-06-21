@@ -27,6 +27,8 @@ const choice = {
   freeze: 3
 }
 
+const minBallotDuration = 600 // 10 minutes
+
 let coinbase;
 let poaNetworkConsensus, masterOfCeremony, proxyStorage, keysManager;
 let ballotsStorage, votingForKeysEternalStorage, voting, votingEternalStorage, emissionFunds;
@@ -97,6 +99,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       emissionReleaseTime,
       emissionReleaseThreshold,
       distributionThreshold,
+      minBallotDuration,
       emissionFunds.address,
       {from: accounts[8]}
     ).should.be.rejectedWith(ERROR_MSG);
@@ -104,12 +107,21 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       emissionReleaseTime,
       emissionReleaseThreshold,
       300,
+      minBallotDuration,
       emissionFunds.address
     ).should.be.rejectedWith(ERROR_MSG);
     await voting.init(
       emissionReleaseTime,
       emissionReleaseThreshold,
       distributionThreshold,
+      distributionThreshold + 1,
+      emissionFunds.address
+    ).should.be.rejectedWith(ERROR_MSG); // minBallotDuration can't be more than distributionThreshold
+    await voting.init(
+      emissionReleaseTime,
+      emissionReleaseThreshold,
+      distributionThreshold,
+      minBallotDuration,
       emissionFunds.address
     ).should.be.fulfilled;
 
@@ -160,6 +172,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
         emissionReleaseTime,
         emissionReleaseThreshold,
         distributionThreshold,
+        minBallotDuration,
         emissionFunds.address
       ).should.be.rejectedWith(ERROR_MSG);
     });
@@ -241,6 +254,17 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG);
     });
+    it('ballot duration must be greater than min ballot duration', async () => {
+      VOTING_START_DATE = moment.utc().add(31 * 60, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(31 * 60 + minBallotDuration - 1, 'seconds').unix();
+      await voting.createBallot(
+        VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
+      ).should.be.rejectedWith(ERROR_MSG);
+      VOTING_END_DATE = moment.utc().add(31 * 60 + minBallotDuration + 1, 'seconds').unix();
+      await voting.createBallot(
+        VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
+      ).should.be.fulfilled;
+    });
     it('receiver address should not be 0x0', async () => {
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, '0x0000000000000000000000000000000000000000', "memo", {from: votingKey}
@@ -267,7 +291,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
         emissionReleaseTime + emissionReleaseThreshold + 1
       );
       VOTING_START_DATE = emissionReleaseTime + emissionReleaseThreshold + 2;
-      VOTING_END_DATE = VOTING_START_DATE + 100;
+      VOTING_END_DATE = VOTING_START_DATE + minBallotDuration + 1;
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, accounts[5], "memo", {from: votingKey}
       ).should.be.fulfilled;
@@ -528,7 +552,8 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       const emissionFundsBalanceOld = await web3.eth.getBalance(emissionFunds.address);
       const receiverBalanceOld = await web3.eth.getBalance(receiver);
 
-      await voting.setTime(VOTING_START_DATE);
+      const time = VOTING_START_DATE + minBallotDuration + 1;
+      await voting.setTime(time);
       const {logs} = await voting.vote(id, choice.freeze, {from: votingKey}).should.be.fulfilled;
 
       const ballotInfo = await voting.getBallotInfo.call(id);
@@ -546,7 +571,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       logs[0].args.id.should.be.bignumber.equal(0);
       logs[0].args.decision.should.be.bignumber.equal(choice.freeze);
       logs[0].args.voter.should.be.equal(votingKey);
-      logs[0].args.time.should.be.bignumber.equal(VOTING_START_DATE);
+      logs[0].args.time.should.be.bignumber.equal(time);
       logs[0].args.voterMiningKey.should.be.equal(miningKey);
       logs[1].event.should.be.equal('BallotFinalized');
       logs[1].args.id.should.be.bignumber.equal(0);
@@ -571,7 +596,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       );
       (await voting.getAmount.call(id)).should.be.bignumber.above(0);
 
-      await voting.setTime(VOTING_START_DATE+3);
+      await voting.setTime(VOTING_START_DATE + minBallotDuration + 1);
       await voting.vote(id, choice.burn, {from: votingKey3}).should.be.fulfilled;
 
       const ballotInfo = await voting.getBallotInfo.call(id);
@@ -659,7 +684,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
     it('should not let vote with old miningKey', async () => {
       await addValidator(votingKey2, miningKey2);
 
-      await voting.setTime(VOTING_START_DATE);
+      await voting.setTime(VOTING_START_DATE + minBallotDuration + 1);
       await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
       false.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
 
@@ -713,6 +738,18 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
 
       await voting.setTime(VOTING_START_DATE);
       await voting.vote(id, choice.send, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
+    });
+
+    it('should be finalized if elapsed time is greater than minBallotDuration', async () => {
+      await voting.setTime(VOTING_START_DATE + minBallotDuration + 1);
+      await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
+      true.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
+    });
+
+    it('should not be finalized if elapsed time is less than minBallotDuration', async () => {
+      await voting.setTime(VOTING_START_DATE + minBallotDuration - 1);
+      await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
+      false.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
     });
   });
 
@@ -778,7 +815,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       await addValidator(votingKey2, miningKey2);
       await addValidator(votingKey3, miningKey3);
 
-      await voting.setTime(VOTING_START_DATE);
+      await voting.setTime(VOTING_START_DATE + minBallotDuration + 1);
       await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
       await voting.vote(id, choice.burn, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(id, choice.freeze, {from: votingKey3}).should.be.fulfilled;
@@ -798,7 +835,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       await addValidator(votingKey3, miningKey3);
       await addValidator(votingKey4, miningKey4);
 
-      await voting.setTime(VOTING_START_DATE);
+      await voting.setTime(VOTING_START_DATE + minBallotDuration + 1);
       await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
       await voting.vote(id, choice.burn, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(id, choice.send, {from: votingKey3}).should.be.fulfilled;
@@ -821,7 +858,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       await addValidator(votingKey4, miningKey4);
       const receiverInitBalance = await web3.eth.getBalance(receiver);
       (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(emissionFundsInitBalance);
-      await voting.setTime(VOTING_START_DATE);
+      await voting.setTime(VOTING_START_DATE + minBallotDuration + 1);
       await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
       await voting.vote(id, choice.send, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(id, choice.burn, {from: votingKey3}).should.be.fulfilled;
@@ -848,7 +885,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
 
       (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.equal(emissionFundsInitBalance);
 
-      await voting.setTime(VOTING_START_DATE);
+      await voting.setTime(VOTING_START_DATE + minBallotDuration + 1);
       await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
       await voting.vote(id, choice.send, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(id, choice.burn, {from: votingKey3}).should.be.fulfilled;
@@ -874,7 +911,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
 
       (await web3.eth.getBalance(emissionFunds.address)).should.be.bignumber.above(0);
 
-      await voting.setTime(VOTING_START_DATE);
+      await voting.setTime(VOTING_START_DATE + minBallotDuration + 1);
       await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
       await voting.vote(id, choice.burn, {from: votingKey2}).should.be.fulfilled;
       await voting.vote(id, choice.burn, {from: votingKey3}).should.be.fulfilled;
@@ -910,7 +947,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       await addValidator(votingKey2, miningKey2);
       await addValidator(votingKey3, miningKey3);
 
-      await voting.setTime(VOTING_START_DATE);
+      await voting.setTime(VOTING_START_DATE + minBallotDuration + 1);
       await voting.vote(id, choice.send, {from: votingKey}).should.be.fulfilled;
       
       await voting.vote(id, choice.burn, {from: votingKey2}).should.be.fulfilled;
@@ -923,8 +960,8 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
     });
 
     it('does not finalize immediately until ballot canceling threshold is reached', async () => {
-      VOTING_START_DATE = moment.utc().add(17, 'minutes').unix();
-      VOTING_END_DATE = moment.utc().add(20, 'minutes').unix();
+      VOTING_START_DATE = moment.utc().add(17 * 60, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(17 * 60 + minBallotDuration + 1, 'seconds').unix();
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, receiver, "memo", {from: votingKey}
       ).should.be.fulfilled;
@@ -939,7 +976,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       
       false.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
 
-      await voting.setTime(moment.utc().add(31, 'minutes').unix());
+      await voting.setTime(moment.utc().add(31 * 60 + minBallotDuration + 1, 'seconds').unix());
       await voting.finalize(id, {from: votingKey3}).should.be.fulfilled;
 
       true.should.be.equal((await voting.getBallotInfo.call(id))[4]); // isFinalized
@@ -995,8 +1032,8 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
     });
 
     it('deny finalization within ballot canceling threshold', async () => {
-      VOTING_START_DATE = moment.utc().add(17, 'minutes').unix();
-      VOTING_END_DATE = moment.utc().add(20, 'minutes').unix();
+      VOTING_START_DATE = moment.utc().add(17 * 60, 'seconds').unix();
+      VOTING_END_DATE = moment.utc().add(17 * 60 + minBallotDuration + 1, 'seconds').unix();
       
       await voting.createBallot(
         VOTING_START_DATE, VOTING_END_DATE, receiver, "memo", {from: votingKey}
@@ -1005,7 +1042,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
       await voting.setTime(VOTING_END_DATE + 1);
       await voting.finalize(id, {from: votingKey}).should.be.rejectedWith(ERROR_MSG);
 
-      await voting.setTime(moment.utc().add(31, 'minutes').unix());
+      await voting.setTime(moment.utc().add(31 * 60 + minBallotDuration + 1, 'seconds').unix());
       await voting.finalize(id, {from: votingKey}).should.be.fulfilled;
     });
 
@@ -1038,6 +1075,7 @@ contract('VotingToManageEmissionFunds [all features]', function (accounts) {
         emissionReleaseTime,
         emissionReleaseThreshold,
         distributionThreshold,
+        minBallotDuration,
         emissionFunds.address
       ).should.be.fulfilled;
     });

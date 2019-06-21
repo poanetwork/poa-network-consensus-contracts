@@ -14,6 +14,7 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
 
     bytes32 internal constant OWNER = keccak256("owner");
     bytes32 internal constant INIT_DISABLED = keccak256("initDisabled");
+    bytes32 internal constant MIN_BALLOT_DURATION = keccak256("minBallotDuration");
     bytes32 internal constant NEXT_BALLOT_ID = keccak256("nextBallotId");
     bytes32 internal constant PROXY_STORAGE = keccak256("proxyStorage");
 
@@ -53,6 +54,15 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
 
     modifier onlyValidVotingKey(address _votingKey) {
         require(_getKeysManager().isVotingActive(_votingKey));
+        _;
+    }
+
+    modifier onlyValidTime(uint256 _startTime, uint256 _endTime) {
+        require(_startTime > 0 && _endTime > 0);
+        require(_endTime > _startTime && _startTime > getTime());
+        uint256 diffTime = _endTime.sub(_startTime);
+        require(diffTime > minBallotDuration());
+        require(diffTime <= maxBallotDuration());
         _;
     }
 
@@ -131,6 +141,21 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
         return addressStorage[PROXY_STORAGE];
     }
 
+    function maxBallotDuration() public pure returns(uint256) {
+        return 14 days;
+    }
+
+    function minBallotDuration() public view returns(uint256) {
+        return uintStorage[MIN_BALLOT_DURATION];
+    }
+
+    function _init(uint256 _minBallotDuration) internal onlyOwner {
+        require(!initDisabled());
+        require(_minBallotDuration < maxBallotDuration());
+        uintStorage[MIN_BALLOT_DURATION] = _minBallotDuration;
+        boolStorage[INIT_DISABLED] = true;
+    }
+
     function _createBallot(
         uint256 _ballotType,
         uint256 _startTime,
@@ -138,7 +163,7 @@ contract VotingTo is EternalStorage, EnumBallotTypes, EnumThresholdTypes {
         string _memo,
         uint256 _quorumState,
         address _creatorMiningKey
-    ) internal returns(uint256) {
+    ) internal onlyValidTime(_startTime, _endTime) returns(uint256) {
         require(initDisabled());
         uint256 ballotId = nextBallotId();
         _setNextBallotId(ballotId.add(1));
