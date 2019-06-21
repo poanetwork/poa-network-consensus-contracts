@@ -297,7 +297,7 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
         {from: votingKey}
       ).should.be.rejectedWith(ERROR_MSG)
     })
-    it('cannot create a ballot for adding removed key', async () => {
+    it('cannot create a ballot for adding removed mining key', async () => {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
@@ -331,7 +331,7 @@ contract('Voting to change keys upgraded [all features]', function (accounts) {
         {from: votingKey}
       ).should.be.fulfilled;
     })
-    it('cannot create a ballot for swapping to removed key', async () => {
+    it('cannot create a ballot for swapping to removed mining key', async () => {
       await proxyStorageMock.setVotingContractMock(accounts[0]);
       VOTING_START_DATE = moment.utc().add(20, 'seconds').unix();
       VOTING_END_DATE = moment.utc().add(10, 'days').unix();
