@@ -127,22 +127,6 @@ contract('RewardByBlock [all features]', function (accounts) {
       ).should.be.rejectedWith(ERROR_MSG);
     });
 
-    it('should revert if mining key does not exist', async () => {
-      const {logs} = await keysManager.removeMiningKey(miningKey3, {from: votingToChangeKeys});
-      logs[0].event.should.equal("MiningKeyChanged");
-      await rewardByBlock.setSystemAddress(systemAddress);
-      await rewardByBlock.reward(
-        [miningKey3],
-        [0],
-        {from: systemAddress}
-      ).should.be.rejectedWith(ERROR_MSG);
-      await rewardByBlock.reward(
-        [miningKey2],
-        [0],
-        {from: systemAddress}
-      ).should.be.fulfilled;
-    });
-
     it('should assign rewards to payout key and EmissionFunds', async () => {
       (await rewardByBlock.mintedForAccount.call(payoutKey)).should.be.bignumber.equal(0);
       (await rewardByBlock.mintedForAccount.call(emissionFundsAddress)).should.be.bignumber.equal(0);

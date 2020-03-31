@@ -73,8 +73,6 @@ contract RewardByBlock is EternalStorage, IRewardByBlock {
             return (new address[](0), new uint256[](0));
         }
 
-        require(_isMiningActive(miningKey));
-
         uint256 extraLength = extraReceiversLength();
 
         address[] memory receivers = new address[](extraLength.add(2));
