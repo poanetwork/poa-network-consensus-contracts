@@ -15,7 +15,7 @@
     "chai-bignumber": "^2.0.2",
     "ganache-cli": "^6.1.0",
     "mochawesome": "^3.0.2",
-    "moment": "^2.19.3",
+    "moment": "^2.29.2",
     "solhint": "^1.2.1",
     "solidity-coverage": "^0.5.11",
     "solidity-flattener": "github:poanetwork/solidity-flattener#master",
